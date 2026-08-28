@@ -29,5 +29,6 @@ Current supplements:
 - [`docs/research/2026-08-28-cross-domain-infeasibility-witness-pass.md`](docs/research/2026-08-28-cross-domain-infeasibility-witness-pass.md)
 - [`docs/research/2026-08-28-theory-transfer-and-intersection-pass.md`](docs/research/2026-08-28-theory-transfer-and-intersection-pass.md)
 - [`docs/research/2026-08-28-symbolic-infinite-space-pass.md`](docs/research/2026-08-28-symbolic-infinite-space-pass.md)
+- [`docs/research/2026-08-28-coinduction-infinite-behavior-pass.md`](docs/research/2026-08-28-coinduction-infinite-behavior-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
