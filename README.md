@@ -72,5 +72,8 @@ Current supplements:
 - [`docs/research/2026-08-28-behavioral-blackboxing-minimization-pass.md`](docs/research/2026-08-28-behavioral-blackboxing-minimization-pass.md)
 - [`docs/research/2026-08-28-source-code-semantic-lifting-pass.md`](docs/research/2026-08-28-source-code-semantic-lifting-pass.md)
 - [`docs/research/2026-08-28-knowledge-ingestion-authority-pass.md`](docs/research/2026-08-28-knowledge-ingestion-authority-pass.md)
+- [`docs/research/2026-08-28-semantic-identity-equivalence-pass.md`](docs/research/2026-08-28-semantic-identity-equivalence-pass.md)
+- [`docs/research/2026-08-28-spectral-basis-decoupling-pass.md`](docs/research/2026-08-28-spectral-basis-decoupling-pass.md)
+- [`docs/research/2026-08-28-filtered-exact-computation-pass.md`](docs/research/2026-08-28-filtered-exact-computation-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
