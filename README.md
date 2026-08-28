@@ -62,5 +62,15 @@ Current supplements:
 - [`docs/research/2026-08-28-symmetry-conservation-bridge-pass.md`](docs/research/2026-08-28-symmetry-conservation-bridge-pass.md)
 - [`docs/research/2026-08-28-witness-function-synthesis-pass.md`](docs/research/2026-08-28-witness-function-synthesis-pass.md)
 - [`docs/research/2026-08-28-conjugacy-linearization-normal-form-pass.md`](docs/research/2026-08-28-conjugacy-linearization-normal-form-pass.md)
+- [`docs/research/2026-08-28-proof-to-program-extraction-pass.md`](docs/research/2026-08-28-proof-to-program-extraction-pass.md)
+- [`docs/research/2026-08-28-out-of-core-symbolic-execution-pass.md`](docs/research/2026-08-28-out-of-core-symbolic-execution-pass.md)
+- [`docs/research/2026-08-28-mathematical-retrieval-premise-selection-pass.md`](docs/research/2026-08-28-mathematical-retrieval-premise-selection-pass.md)
+- [`docs/research/2026-08-28-homomorphic-image-reconstruction-pass.md`](docs/research/2026-08-28-homomorphic-image-reconstruction-pass.md)
+- [`docs/research/2026-08-28-certified-computational-reductions-pass.md`](docs/research/2026-08-28-certified-computational-reductions-pass.md)
+- [`docs/research/2026-08-28-certified-resource-semantics-pass.md`](docs/research/2026-08-28-certified-resource-semantics-pass.md)
+- [`docs/research/2026-08-28-open-system-compositional-semantics-pass.md`](docs/research/2026-08-28-open-system-compositional-semantics-pass.md)
+- [`docs/research/2026-08-28-behavioral-blackboxing-minimization-pass.md`](docs/research/2026-08-28-behavioral-blackboxing-minimization-pass.md)
+- [`docs/research/2026-08-28-source-code-semantic-lifting-pass.md`](docs/research/2026-08-28-source-code-semantic-lifting-pass.md)
+- [`docs/research/2026-08-28-knowledge-ingestion-authority-pass.md`](docs/research/2026-08-28-knowledge-ingestion-authority-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
