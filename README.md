@@ -12,8 +12,12 @@ Do not freeze the product name or full implementation roadmap until the mathemat
 
 ## Research authority
 
-Current canonical checkpoint:
+Canonical baseline:
 
 - [`docs/research/2026-08-28-research-checkpoint.md`](docs/research/2026-08-28-research-checkpoint.md)
 
-Future research should update or supersede that checkpoint explicitly rather than relying on chat memory.
+Current supplements:
+
+- [`docs/research/2026-08-28-generalization-representation-pass.md`](docs/research/2026-08-28-generalization-representation-pass.md)
+
+Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
