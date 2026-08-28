@@ -163,18 +163,104 @@ This may be one of the central reasons the final system can outperform naive bru
 
 ---
 
-## 6. New research obligation
+## 6. Portable proof certificates already exist for theory properties
+
+A major finding is that automated theory profilers do not have to be trusted directly.
+
+The rewriting community uses the **Certification Problem Format (CPF)** as a machine-readable exchange format for proofs of properties including:
+
+- termination / nontermination;
+- confluence / nonconfluence;
+- complexity;
+- completion;
+- safety and related properties.
+
+CPF was created specifically so independent automated tools and certifiers could interoperate.
+
+Sources:
+
+https://isafor-ceta.uibk.ac.at/cpf3.html
+
+https://doi.org/10.4204/EPTCS.167.8
+
+**CeTA** is a certifier generated from the Isabelle/HOL formalization IsaFoR. It checks CPF certificates for rewriting properties.
+
+Sources:
+
+https://isafor-ceta.uibk.ac.at/
+
+https://devel.isa-afp.org/entries/First_Order_Rewriting.html
+
+CeTA's supported certificate boundary includes termination, confluence, complexity, completion, and related rewrite-system properties.
+
+### Architectural implication
+
+A Theory Profile should not contain only:
+
+```text
+termination = PROVEN
+```
+
+It should bind the claim to evidence such as:
+
+```text
+property: termination
+status: PROVEN
+producer: AProVE / other analyzer
+certificate_format: CPF3
+certificate_digest: ...
+checker: CeTA
+checker_lineage: IsaFoR / Isabelle-HOL
+checker_result: CERTIFIED
+```
+
+The large analyzer remains replaceable. The portable certificate and independent checker establish the trusted result.
+
+This is directly aligned with the project's broader solver-versus-verifier law.
+
+---
+
+## 7. The profile schema must separate property from proof method
+
+Different domains may prove the same profile property using unrelated mathematics.
+
+For example:
+
+```text
+termination = PROVEN
+```
+
+might be supported by:
+
+- dependency-pair techniques and CPF/CeTA in a rewrite theory;
+- a ranking-function certificate in another transition system;
+- a direct algebraic argument in a specialized mathematical domain.
+
+Therefore the schema should expose the mathematical property while preserving:
+
+```text
+proof method
+certificate type
+producer identity
+independent checker identity
+assumptions
+scope
+freshness
+```
+
+The profile is a semantic interface, not a universal proof language.
+
+---
+
+## 8. New research obligation
 
 The next stage should investigate a common **Theory Profile schema** capable of representing properties obtained from unrelated mathematical engines without pretending they use the same internal proof method.
 
-Important distinction:
+A useful initial direction is to study CPF as a donor for:
 
-```text
-property claim
-!=
-property proof method
-```
+- portable proof-object design;
+- extensible property families;
+- separation of prover and certifier;
+- graceful handling of proof techniques not yet supported by the certifier.
 
-For example, `termination = PROVEN` might be supported by a dependency-pair certificate in one domain and a direct algebraic theorem in another.
-
-The profile should expose the property while preserving exact provenance/certification of how it was established.
+The project should not necessarily adopt CPF itself outside rewriting. The architectural lesson is more important: **standardize evidence interchange at the property boundary, not solver internals.**
