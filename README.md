@@ -31,5 +31,6 @@ Current supplements:
 - [`docs/research/2026-08-28-symbolic-infinite-space-pass.md`](docs/research/2026-08-28-symbolic-infinite-space-pass.md)
 - [`docs/research/2026-08-28-coinduction-infinite-behavior-pass.md`](docs/research/2026-08-28-coinduction-infinite-behavior-pass.md)
 - [`docs/research/2026-08-28-automatic-presburger-structures-pass.md`](docs/research/2026-08-28-automatic-presburger-structures-pass.md)
+- [`docs/research/2026-08-28-adaptive-representation-pass.md`](docs/research/2026-08-28-adaptive-representation-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
