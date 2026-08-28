@@ -36,5 +36,9 @@ Current supplements:
 - [`docs/research/2026-08-28-computability-boundaries-pass.md`](docs/research/2026-08-28-computability-boundaries-pass.md)
 - [`docs/research/2026-08-28-parameterized-complexity-pass.md`](docs/research/2026-08-28-parameterized-complexity-pass.md)
 - [`docs/research/2026-08-28-reflective-computation-pass.md`](docs/research/2026-08-28-reflective-computation-pass.md)
+- [`docs/research/2026-08-28-fast-exact-arithmetic-pass.md`](docs/research/2026-08-28-fast-exact-arithmetic-pass.md)
+- [`docs/research/2026-08-28-arithmetic-circuit-pass.md`](docs/research/2026-08-28-arithmetic-circuit-pass.md)
+- [`docs/research/2026-08-28-relational-propagation-pass.md`](docs/research/2026-08-28-relational-propagation-pass.md)
+- [`docs/research/2026-08-28-rule-semantics-reflection-pass.md`](docs/research/2026-08-28-rule-semantics-reflection-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
