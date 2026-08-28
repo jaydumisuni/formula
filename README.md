@@ -25,5 +25,6 @@ Current supplements:
 - [`docs/research/2026-08-28-search-economy-pass.md`](docs/research/2026-08-28-search-economy-pass.md)
 - [`docs/research/2026-08-28-symbolic-query-learning-pass.md`](docs/research/2026-08-28-symbolic-query-learning-pass.md)
 - [`docs/research/2026-08-28-candidate-space-representation-pass.md`](docs/research/2026-08-28-candidate-space-representation-pass.md)
+- [`docs/research/2026-08-28-compact-witness-pass.md`](docs/research/2026-08-28-compact-witness-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
