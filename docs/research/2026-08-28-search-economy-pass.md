@@ -316,7 +316,221 @@ The exact timescales remain open.
 
 ---
 
-## 10. Current search-economy hypothesis
+## 10. AND/OR search exposes dependency structure directly
+
+AND/OR search distinguishes goals where one alternative is sufficient (OR) from goals where several subgoals must all be solved (AND).
+
+Graphical-model research shows that explicitly exposing conditional independence in an AND/OR search graph can reduce search exponentially relative to a flat OR search space when the problem structure permits it.
+
+Source:
+
+https://www.sciencedirect.com/science/article/pii/S000437020600138X
+
+### Architectural implication
+
+A mathematical campaign should not necessarily be represented as a flat queue of work cells.
+
+A proof/construction objective can be represented structurally:
+
+```text
+Goal
+ |
+ +-- OR: Route A
+ |      +-- AND: Lemma A1
+ |      +-- AND: Lemma A2
+ |
+ +-- OR: Route B
+        +-- AND: Lemma B1
+        +-- AND: Lemma B2
+```
+
+This lets the scheduler understand that proving one OR branch makes competing branches unnecessary, while an AND branch still requires every unresolved dependency.
+
+---
+
+## 11. Proof-number / disproof-number search gives lower-bound style guidance
+
+Proof-number search assigns each partial AND/OR node estimates of how many leaf expansions are still required to prove or disprove the node.
+
+The search repeatedly expands the most-proving frontier rather than treating all open nodes equally.
+
+Sources:
+
+https://www.sciencedirect.com/science/article/pii/0004370294900043
+
+https://en.wikipedia.org/wiki/Proof-number_search
+
+### Architectural implication
+
+The unnamed project may be able to attach analogous quantities to proof/counterexample graphs:
+
+```text
+proof_work_lower_bound
+refutation_work_lower_bound
+```
+
+These values would not be probabilities or truth claims. They would be search-control estimates derived from graph structure.
+
+Potential use:
+
+```text
+choose the branch that currently appears cheapest to close
+```
+
+while the larger value-of-computation layer also considers information gain and reusable value.
+
+This deserves direct experimentation on mathematical dependency graphs rather than assuming game-tree formulas transfer unchanged.
+
+---
+
+## 12. Dynamic activity can guide search, but it must remain ephemeral
+
+VSIDS-style heuristics increase the activity of variables/clauses involved in recent conflicts and decay older activity. LBD-style metrics estimate learned-clause quality from the number of decision levels linked by a clause.
+
+Sources:
+
+https://arxiv.org/abs/1904.11106
+
+https://pmc.ncbi.nlm.nih.gov/articles/PMC7326468/
+
+However, recent 2026 work reports domains where LBD becomes a poor quality measure and dynamic usage/lineage must be handled differently.
+
+Source:
+
+https://arxiv.org/abs/2602.20829
+
+### Architectural implication
+
+The project should distinguish:
+
+```text
+PERMANENT MATHEMATICAL KNOWLEDGE
+proofs, certified counterexamples, certified nogoods, constructions
+
+EPHEMERAL SEARCH CONTROL STATE
+activity, recency, local usefulness, queue scores, restart state
+```
+
+Search-control scores may decay, be deleted, or be rebuilt without affecting mathematical truth.
+
+A theorem does not become less true because its activity score decays.
+
+Conversely, a highly active candidate does not become mathematically trustworthy merely because it has been useful recently.
+
+---
+
+## 13. Search memory should be garbage-collected selectively
+
+SAT research shows that retaining every learned clause can hurt performance even with sufficient memory because excess learned state increases propagation cost. Modern solvers therefore rank, minimize, and delete search clauses.
+
+Sources:
+
+https://pmc.ncbi.nlm.nih.gov/articles/PMC9417043/
+
+https://www.sciencedirect.com/science/article/pii/S0004370219301961
+
+### Architectural implication
+
+The project should not equate "we can store everything" with "every search artifact should remain in the active solver state".
+
+Possible separation:
+
+```text
+archive all provenance-worthy campaign artifacts
+        !=
+keep all artifacts active in the current search frontier
+```
+
+A certified mathematical nogood may remain permanently archived while only a compact subset is loaded into a given campaign index.
+
+---
+
+## 14. Restarts can be principled rather than evidence loss
+
+Universal restart strategies such as Luby sequences provide worst-case guarantees relative to unknown runtime distributions, and modern SAT solvers use adaptive restart policies heavily.
+
+Source:
+
+https://link.springer.com/article/10.1007/s00224-021-10041-0
+
+### Architectural implication
+
+A mathematical search restart should distinguish between:
+
+```text
+throw away local control/search state
+```
+
+and:
+
+```text
+forget certified mathematical discoveries
+```
+
+The former may be useful.
+
+The latter should generally be forbidden.
+
+A restart can therefore mean:
+
+```text
+preserve proofs/counterexamples/nogoods/provenance
+reset frontier/activity/local heuristic state
+change strategy/representation/search order
+resume
+```
+
+---
+
+## 15. Adaptive exploration can remain deterministic and replayable
+
+Adaptive scheduling sometimes uses randomness for exploration, but reproducibility does not require eliminating such methods.
+
+Counter-based random-number generators such as Random123/Philox define random values as deterministic functions of `(counter, key)` and parallelize without mutable RNG stream state.
+
+Sources:
+
+https://random123.com/
+
+https://github.com/DEShawResearch/random123
+
+Research on Deterministic Parallel DPLL also demonstrates a parallel portfolio SAT architecture with controlled synchronization and reproducible results.
+
+Source:
+
+https://www.microsoft.com/en-us/research/publication/deterministic-parallel-dpll-dp2ll/
+
+### Architectural implication
+
+A replayable campaign can derive exploratory choices from stable identities such as:
+
+```text
+random_value = RNG(
+    campaign_digest,
+    world_digest,
+    cell_id,
+    decision_index
+)
+```
+
+and record scheduler decisions in the campaign Chronicle/provenance stream.
+
+This allows:
+
+```text
+same mathematical inputs
++ same policy version
++ same campaign seed
+-> replayable adaptive search decisions
+```
+
+subject to explicitly declared hardware/timing effects where exact parallel replay is not promised.
+
+The project should distinguish reproducible mathematical verdicts from byte-identical runtime schedules.
+
+---
+
+## 16. Current search-economy hypothesis
 
 A future mathematical campaign scheduler may combine several layers:
 
@@ -324,8 +538,14 @@ A future mathematical campaign scheduler may combine several layers:
 THEORY PROFILE
     -> which search families are admissible/promising
 
+AND/OR DEPENDENCY MODEL
+    -> what must all succeed vs which alternative is sufficient
+
 STRUCTURAL ROUTER
     -> initial formation / representation / solver selection
+
+PROOF/DISPROOF WORK ESTIMATES
+    -> lower-bound style guidance on branch closure
 
 VALUE-OF-COMPUTATION ESTIMATOR
     -> expected mathematical value per resource cost
@@ -336,27 +556,38 @@ INFORMATION-GAIN / DISCRIMINATION LAYER
 PORTFOLIO / BANDIT LAYER
     -> adapt allocation using observed campaign performance
 
+DYNAMIC ACTIVITY LAYER
+    -> emphasize recently useful regions without granting truth authority
+
 FAIRNESS / UNIVERSAL FLOOR
     -> prevent permanent heuristic starvation
 
 CONFLICT / NOGOOD LEARNING
-    -> failures permanently prune future search
+    -> failures permanently prune future search where certified
+
+RESTART / GARBAGE-COLLECTION POLICY
+    -> discard harmful local search state while retaining durable mathematics
 
 EVENT-DRIVEN RECOMPILATION
     -> discoveries/refutations change the search landscape
+
+REPLAY BINDING
+    -> deterministic policy version, identities, seeds, decision log
 ```
 
 This is not a frozen design. It is the strongest evidence-backed synthesis from this research pass.
 
 ---
 
-## 11. New research obligations
+## 17. Remaining research obligations
 
 1. Define mathematics-specific notions of information gain when candidate spaces are symbolic/infinite rather than finite probabilistic model sets.
-2. Investigate proof-number / disproof-number search and AND/OR search for dependency/proof graphs.
-3. Investigate clause activity measures such as VSIDS/LBD as analogues for prioritizing recently useful mathematical constraints.
+2. Test proof-number / disproof-number ideas against real mathematical proof/construction DAGs rather than assuming game-tree formulas transfer unchanged.
+3. Investigate whether recent-conflict activity has a useful mathematical analogue for representations, assumptions, transformations, and lemmas.
 4. Investigate algorithm-portfolio scheduling where jobs have variable runtimes and produce structured side effects such as proofs, counterexamples, or new primitives.
 5. Investigate how to score **future reusable value** of a computation, not only probability of solving the current problem.
-6. Investigate restart policies for mathematical search and when accumulated search state should be retained versus discarded.
-7. Determine how the scheduler can remain deterministic/replayable while using empirical performance statistics or stochastic exploration policies.
-8. Define certificate/provenance requirements for learned search constraints so invalid failures cannot poison future campaigns.
+6. Determine which search artifacts can be safely garbage-collected from active state while remaining archived as provenance.
+7. Define restart boundaries for e-graph/equality-saturation, synthesis, theorem proving, and representation search.
+8. Determine what level of deterministic replay is required across multicore/GPU/distributed execution.
+9. Define certificate/provenance requirements for learned search constraints so invalid failures cannot poison future campaigns.
+10. Investigate whether search-economy policies themselves can be distilled/promoted as versioned deterministic mathematical campaign capabilities without coupling truth to them.
