@@ -1,102 +1,92 @@
-# Formula — temporary research repository
+# Formula — temporary project repository
 
-> **Temporary repository name only. This is not the final product name.**
+> **Temporary repository name only. This is not the final product name or mathematical identity.**
 
-This repository preserves research and design evidence for an unnamed mathematical problem-solving project under investigation.
+This repository preserves the research, architecture, proof specifications, and implementation roadmap for an unnamed self-expanding deterministic mathematical problem-solving system.
 
-The project is not yet being treated as a conventional CAS, theorem prover, AI mathematician, programming language, solver, or product category. The purpose of this repository during the research phase is to preserve what has been established, track architecture-changing discoveries, and prevent later design work from drifting away from evidence.
+The project is deliberately not classified as only a CAS, theorem prover, AI mathematician, solver, programming language, or compiler. Those can all participate as packages, tools, proof systems, or realizations.
 
-## Current rule
+## Current status
 
-Do not freeze the product name or full implementation roadmap until the mathematical identity and substrate are understood well enough to describe what is actually being built.
+Broad pre-design research is complete enough to support architecture.
+
+The project now has a frozen canonical architecture:
+
+- **D1 — Mathematical Constitution**
+- **D1A — Self-Hosting and Bootstrap Trust Amendment**
+- **D2 — Core System Architecture**
+- **D3 — Mathematical Compiler Architecture**
+- **D4 — Native Execution Architecture**
+- **D5 — Self-Expansion Architecture**
+- **First Light — Canonical End-to-End Proof Specification**
+- **Implementation Roadmap — P0 through P13**
+
+Canonical index: [`docs/design/README.md`](docs/design/README.md)
+
+Implementation roadmap: [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md)
+
+## Defining architectural law
+
+```text
+U_g
+  -> target
+  -> represent / reduce / decompose / search / invent
+  -> candidate mathematics
+  -> falsify / certify
+  -> promote
+  -> U_(g+1)
+  -> compile / specialize / realize
+  -> stronger and cheaper future problem solving
+```
+
+Search may propose mathematics. Only Certification + Promotion creates mathematical authority.
+
+Execution consumes admitted mathematics. It cannot create authority directly.
+
+No solver, model, proof language, representation, compiler, backend, or external package is the mathematics itself.
 
 ## Research authority
+
+The preserved research under [`docs/research/`](docs/research/) remains the evidence authority behind the design.
 
 Canonical baseline:
 
 - [`docs/research/2026-08-28-research-checkpoint.md`](docs/research/2026-08-28-research-checkpoint.md)
 
-Current supplements:
+The directory contains the subsequent focused research passes covering substrate integration, mathematical identity, certificate routing, exact/native execution, representation search, theory transfer, candidate-space compression, search economy, self-specialization, computation limits, proof repair, primitive invention, federation, and related architecture-changing evidence.
 
-- [`docs/research/2026-08-28-generalization-representation-pass.md`](docs/research/2026-08-28-generalization-representation-pass.md)
-- [`docs/research/2026-08-28-theory-profiling-completion-pass.md`](docs/research/2026-08-28-theory-profiling-completion-pass.md)
-- [`docs/research/2026-08-28-certificates-compilation-pass.md`](docs/research/2026-08-28-certificates-compilation-pass.md)
-- [`docs/research/2026-08-28-substrate-integration-pass.md`](docs/research/2026-08-28-substrate-integration-pass.md)
-- [`docs/research/2026-08-28-search-economy-pass.md`](docs/research/2026-08-28-search-economy-pass.md)
-- [`docs/research/2026-08-28-symbolic-query-learning-pass.md`](docs/research/2026-08-28-symbolic-query-learning-pass.md)
-- [`docs/research/2026-08-28-candidate-space-representation-pass.md`](docs/research/2026-08-28-candidate-space-representation-pass.md)
-- [`docs/research/2026-08-28-compact-witness-pass.md`](docs/research/2026-08-28-compact-witness-pass.md)
-- [`docs/research/2026-08-28-cross-domain-infeasibility-witness-pass.md`](docs/research/2026-08-28-cross-domain-infeasibility-witness-pass.md)
-- [`docs/research/2026-08-28-theory-transfer-and-intersection-pass.md`](docs/research/2026-08-28-theory-transfer-and-intersection-pass.md)
-- [`docs/research/2026-08-28-symbolic-infinite-space-pass.md`](docs/research/2026-08-28-symbolic-infinite-space-pass.md)
-- [`docs/research/2026-08-28-coinduction-infinite-behavior-pass.md`](docs/research/2026-08-28-coinduction-infinite-behavior-pass.md)
-- [`docs/research/2026-08-28-automatic-presburger-structures-pass.md`](docs/research/2026-08-28-automatic-presburger-structures-pass.md)
-- [`docs/research/2026-08-28-adaptive-representation-pass.md`](docs/research/2026-08-28-adaptive-representation-pass.md)
-- [`docs/research/2026-08-28-self-specialization-pass.md`](docs/research/2026-08-28-self-specialization-pass.md)
-- [`docs/research/2026-08-28-computability-boundaries-pass.md`](docs/research/2026-08-28-computability-boundaries-pass.md)
-- [`docs/research/2026-08-28-parameterized-complexity-pass.md`](docs/research/2026-08-28-parameterized-complexity-pass.md)
-- [`docs/research/2026-08-28-reflective-computation-pass.md`](docs/research/2026-08-28-reflective-computation-pass.md)
-- [`docs/research/2026-08-28-fast-exact-arithmetic-pass.md`](docs/research/2026-08-28-fast-exact-arithmetic-pass.md)
-- [`docs/research/2026-08-28-arithmetic-circuit-pass.md`](docs/research/2026-08-28-arithmetic-circuit-pass.md)
-- [`docs/research/2026-08-28-relational-propagation-pass.md`](docs/research/2026-08-28-relational-propagation-pass.md)
-- [`docs/research/2026-08-28-rule-semantics-reflection-pass.md`](docs/research/2026-08-28-rule-semantics-reflection-pass.md)
-- [`docs/research/2026-08-28-heterogeneous-theory-composition-pass.md`](docs/research/2026-08-28-heterogeneous-theory-composition-pass.md)
-- [`docs/research/2026-08-28-package-interference-and-change-pass.md`](docs/research/2026-08-28-package-interference-and-change-pass.md)
-- [`docs/research/2026-08-28-interface-extraction-and-forgetting-pass.md`](docs/research/2026-08-28-interface-extraction-and-forgetting-pass.md)
-- [`docs/research/2026-08-28-mathematical-structure-type-system-pass.md`](docs/research/2026-08-28-mathematical-structure-type-system-pass.md)
-- [`docs/research/2026-08-28-structure-inference-and-dispatch-pass.md`](docs/research/2026-08-28-structure-inference-and-dispatch-pass.md)
-- [`docs/research/2026-08-28-incremental-capability-closure-pass.md`](docs/research/2026-08-28-incremental-capability-closure-pass.md)
-- [`docs/research/2026-08-28-executable-mathematical-semantics-pass.md`](docs/research/2026-08-28-executable-mathematical-semantics-pass.md)
-- [`docs/research/2026-08-28-probabilistic-stochastic-semantics-pass.md`](docs/research/2026-08-28-probabilistic-stochastic-semantics-pass.md)
-- [`docs/research/2026-08-28-semiring-parametric-evaluation-pass.md`](docs/research/2026-08-28-semiring-parametric-evaluation-pass.md)
-- [`docs/research/2026-08-28-kleene-algebra-iteration-pass.md`](docs/research/2026-08-28-kleene-algebra-iteration-pass.md)
-- [`docs/research/2026-08-28-fixed-point-recursion-pass.md`](docs/research/2026-08-28-fixed-point-recursion-pass.md)
-- [`docs/research/2026-08-28-domain-theory-certified-progress-pass.md`](docs/research/2026-08-28-domain-theory-certified-progress-pass.md)
-- [`docs/research/2026-08-28-compositional-progress-andor-pass.md`](docs/research/2026-08-28-compositional-progress-andor-pass.md)
-- [`docs/research/2026-08-28-automatic-decomposition-pass.md`](docs/research/2026-08-28-automatic-decomposition-pass.md)
-- [`docs/research/2026-08-28-factorized-semiring-elimination-pass.md`](docs/research/2026-08-28-factorized-semiring-elimination-pass.md)
-- [`docs/research/2026-08-28-certified-numerical-realization-pass.md`](docs/research/2026-08-28-certified-numerical-realization-pass.md)
-- [`docs/research/2026-08-28-automatic-differentiation-sensitivity-pass.md`](docs/research/2026-08-28-automatic-differentiation-sensitivity-pass.md)
-- [`docs/research/2026-08-28-dimensional-analysis-invariant-coordinates-pass.md`](docs/research/2026-08-28-dimensional-analysis-invariant-coordinates-pass.md)
-- [`docs/research/2026-08-28-invariant-conservation-discovery-pass.md`](docs/research/2026-08-28-invariant-conservation-discovery-pass.md)
-- [`docs/research/2026-08-28-symmetry-conservation-bridge-pass.md`](docs/research/2026-08-28-symmetry-conservation-bridge-pass.md)
-- [`docs/research/2026-08-28-witness-function-synthesis-pass.md`](docs/research/2026-08-28-witness-function-synthesis-pass.md)
-- [`docs/research/2026-08-28-conjugacy-linearization-normal-form-pass.md`](docs/research/2026-08-28-conjugacy-linearization-normal-form-pass.md)
-- [`docs/research/2026-08-28-proof-to-program-extraction-pass.md`](docs/research/2026-08-28-proof-to-program-extraction-pass.md)
-- [`docs/research/2026-08-28-out-of-core-symbolic-execution-pass.md`](docs/research/2026-08-28-out-of-core-symbolic-execution-pass.md)
-- [`docs/research/2026-08-28-mathematical-retrieval-premise-selection-pass.md`](docs/research/2026-08-28-mathematical-retrieval-premise-selection-pass.md)
-- [`docs/research/2026-08-28-homomorphic-image-reconstruction-pass.md`](docs/research/2026-08-28-homomorphic-image-reconstruction-pass.md)
-- [`docs/research/2026-08-28-certified-computational-reductions-pass.md`](docs/research/2026-08-28-certified-computational-reductions-pass.md)
-- [`docs/research/2026-08-28-certified-resource-semantics-pass.md`](docs/research/2026-08-28-certified-resource-semantics-pass.md)
-- [`docs/research/2026-08-28-open-system-compositional-semantics-pass.md`](docs/research/2026-08-28-open-system-compositional-semantics-pass.md)
-- [`docs/research/2026-08-28-behavioral-blackboxing-minimization-pass.md`](docs/research/2026-08-28-behavioral-blackboxing-minimization-pass.md)
-- [`docs/research/2026-08-28-source-code-semantic-lifting-pass.md`](docs/research/2026-08-28-source-code-semantic-lifting-pass.md)
-- [`docs/research/2026-08-28-knowledge-ingestion-authority-pass.md`](docs/research/2026-08-28-knowledge-ingestion-authority-pass.md)
-- [`docs/research/2026-08-28-semantic-identity-equivalence-pass.md`](docs/research/2026-08-28-semantic-identity-equivalence-pass.md)
-- [`docs/research/2026-08-28-spectral-basis-decoupling-pass.md`](docs/research/2026-08-28-spectral-basis-decoupling-pass.md)
-- [`docs/research/2026-08-28-filtered-exact-computation-pass.md`](docs/research/2026-08-28-filtered-exact-computation-pass.md)
-- [`docs/research/2026-08-28-certified-escalation-synthesis-pass.md`](docs/research/2026-08-28-certified-escalation-synthesis-pass.md)
-- [`docs/research/2026-08-28-fundamental-limits-open-endedness-pass.md`](docs/research/2026-08-28-fundamental-limits-open-endedness-pass.md)
-- [`docs/research/2026-08-28-proof-erasure-runtime-separation-pass.md`](docs/research/2026-08-28-proof-erasure-runtime-separation-pass.md)
-- [`docs/research/2026-08-28-certified-nonlinear-root-solving-pass.md`](docs/research/2026-08-28-certified-nonlinear-root-solving-pass.md)
-- [`docs/research/2026-08-28-certified-global-optimization-pass.md`](docs/research/2026-08-28-certified-global-optimization-pass.md)
-- [`docs/research/2026-08-28-real-quantifier-elimination-pass.md`](docs/research/2026-08-28-real-quantifier-elimination-pass.md)
-- [`docs/research/2026-08-28-duality-certificate-search-pass.md`](docs/research/2026-08-28-duality-certificate-search-pass.md)
-- [`docs/research/2026-08-28-oracle-representation-separation-pass.md`](docs/research/2026-08-28-oracle-representation-separation-pass.md)
-- [`docs/research/2026-08-28-certificate-atlas-pass.md`](docs/research/2026-08-28-certificate-atlas-pass.md)
-- [`docs/research/2026-08-28-verifiable-computation-interactive-proofs-pass.md`](docs/research/2026-08-28-verifiable-computation-interactive-proofs-pass.md)
-- [`docs/research/2026-08-28-certified-knowledge-compilation-counting-pass.md`](docs/research/2026-08-28-certified-knowledge-compilation-counting-pass.md)
-- [`docs/research/2026-08-28-incremental-mathematical-computation-pass.md`](docs/research/2026-08-28-incremental-mathematical-computation-pass.md)
-- [`docs/research/2026-08-28-holonomic-creative-telescoping-pass.md`](docs/research/2026-08-28-holonomic-creative-telescoping-pass.md)
-- [`docs/research/2026-08-28-difference-ring-symbolic-summation-pass.md`](docs/research/2026-08-28-difference-ring-symbolic-summation-pass.md)
-- [`docs/research/2026-08-28-differential-algebra-risch-pass.md`](docs/research/2026-08-28-differential-algebra-risch-pass.md)
-- [`docs/research/2026-08-28-automatic-algorithm-dp-synthesis-pass.md`](docs/research/2026-08-28-automatic-algorithm-dp-synthesis-pass.md)
-- [`docs/research/2026-08-28-contextual-minimal-state-pass.md`](docs/research/2026-08-28-contextual-minimal-state-pass.md)
-- [`docs/research/2026-08-28-coalgebraic-behavioral-minimization-pass.md`](docs/research/2026-08-28-coalgebraic-behavioral-minimization-pass.md)
-- [`docs/research/2026-08-28-runtime-theory-combination-pass.md`](docs/research/2026-08-28-runtime-theory-combination-pass.md)
-- [`docs/research/2026-08-28-incremental-proof-certificate-repair-pass.md`](docs/research/2026-08-28-incremental-proof-certificate-repair-pass.md)
-- [`docs/research/2026-08-28-special-function-primitive-invention-pass.md`](docs/research/2026-08-28-special-function-primitive-invention-pass.md)
-- [`docs/research/2026-08-28-abstract-domain-solver-federation-pass.md`](docs/research/2026-08-28-abstract-domain-solver-federation-pass.md)
-- [`docs/research/2026-08-28-observer-sufficient-summary-pass.md`](docs/research/2026-08-28-observer-sufficient-summary-pass.md)
+Broad research is no longer the lead activity. New research should be opened only when:
 
-Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
+1. a frozen design/implementation decision lacks adequate evidence;
+2. preserved research contradicts the intended design;
+3. a roadmap research-spike trigger is reached;
+4. implementation evidence exposes a genuinely new architectural uncertainty.
+
+## First-Light boundary
+
+The canonical First-Light proof must remain:
+
+```text
+local
+ordinary CPU
+model-free
+network-free during canonical execution
+independently checked
+content-addressed/replay-bound
+Ptah-free
+GPU-free
+```
+
+First Light must blindly discover a primitive absent from `U_0`, reject false near-misses, independently certify and promote the surviving mathematics into `U_1`, compile and independently validate a native realization, then prove a second query reuses the promoted capability without rediscovery.
+
+## Ptah boundary
+
+Ptah is explicitly deferred until the local First-Light proof passes.
+
+Ptah may later execute serialized Work Cells and large mathematical campaigns, but it does not become mathematical authority and is not required to consume already promoted local mathematics.
+
+## Next executable milestone
+
+**P0 — Repository and reproducible build skeleton.**
+
+The next major proof freeze is **P9 — Canonical First-Light Proof**.
