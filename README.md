@@ -23,5 +23,6 @@ Current supplements:
 - [`docs/research/2026-08-28-certificates-compilation-pass.md`](docs/research/2026-08-28-certificates-compilation-pass.md)
 - [`docs/research/2026-08-28-substrate-integration-pass.md`](docs/research/2026-08-28-substrate-integration-pass.md)
 - [`docs/research/2026-08-28-search-economy-pass.md`](docs/research/2026-08-28-search-economy-pass.md)
+- [`docs/research/2026-08-28-symbolic-query-learning-pass.md`](docs/research/2026-08-28-symbolic-query-learning-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
