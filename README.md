@@ -52,5 +52,15 @@ Current supplements:
 - [`docs/research/2026-08-28-kleene-algebra-iteration-pass.md`](docs/research/2026-08-28-kleene-algebra-iteration-pass.md)
 - [`docs/research/2026-08-28-fixed-point-recursion-pass.md`](docs/research/2026-08-28-fixed-point-recursion-pass.md)
 - [`docs/research/2026-08-28-domain-theory-certified-progress-pass.md`](docs/research/2026-08-28-domain-theory-certified-progress-pass.md)
+- [`docs/research/2026-08-28-compositional-progress-andor-pass.md`](docs/research/2026-08-28-compositional-progress-andor-pass.md)
+- [`docs/research/2026-08-28-automatic-decomposition-pass.md`](docs/research/2026-08-28-automatic-decomposition-pass.md)
+- [`docs/research/2026-08-28-factorized-semiring-elimination-pass.md`](docs/research/2026-08-28-factorized-semiring-elimination-pass.md)
+- [`docs/research/2026-08-28-certified-numerical-realization-pass.md`](docs/research/2026-08-28-certified-numerical-realization-pass.md)
+- [`docs/research/2026-08-28-automatic-differentiation-sensitivity-pass.md`](docs/research/2026-08-28-automatic-differentiation-sensitivity-pass.md)
+- [`docs/research/2026-08-28-dimensional-analysis-invariant-coordinates-pass.md`](docs/research/2026-08-28-dimensional-analysis-invariant-coordinates-pass.md)
+- [`docs/research/2026-08-28-invariant-conservation-discovery-pass.md`](docs/research/2026-08-28-invariant-conservation-discovery-pass.md)
+- [`docs/research/2026-08-28-symmetry-conservation-bridge-pass.md`](docs/research/2026-08-28-symmetry-conservation-bridge-pass.md)
+- [`docs/research/2026-08-28-witness-function-synthesis-pass.md`](docs/research/2026-08-28-witness-function-synthesis-pass.md)
+- [`docs/research/2026-08-28-conjugacy-linearization-normal-form-pass.md`](docs/research/2026-08-28-conjugacy-linearization-normal-form-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
