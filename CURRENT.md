@@ -75,6 +75,37 @@ B13 canonical verifier + full PASS manifest
 
 Do **not** skip ahead to distributed execution, GPU work, models, large CAS/proof-assistant federation, Ptah integration, UI/API work, advanced e-graphs, or a full roadmap before the canonical F0 proof requires them.
 
+## Current F0 execution handoff
+
+B01 has a frozen implementation plan:
+
+- [`docs/superpowers/plans/2026-08-28-f0-b01-canonical-identity-blob-store.md`](docs/superpowers/plans/2026-08-28-f0-b01-canonical-identity-blob-store.md)
+
+The implementation plan pins **Rust 1.98.0** for First-Light reproducibility and defines the mandatory TDD/proof sequence for:
+
+```text
+ArtifactDigest / SHA-256 identity
+restricted canonical UTF-8 JSON
+arbitrary-precision integer/rational canonicalization
+immutable verified SHA-256 blob storage
+frozen authority vectors
+B01 proof note
+```
+
+**B01 is NOT complete.**
+
+The session that created the plan attempted to start the RED/GREEN execution cycle, but its isolated shell environment had:
+
+```text
+no DNS/network access for `git clone`
+no installed `rustc`
+no installed `cargo`
+```
+
+Therefore no B01 production implementation or B01 proof was honestly claimed. A new chat with a real Rust 1.98.0 execution environment should recover the plan and start at **Task 1 / RED**, or first inspect `main` for later implementation commits and continue from the first unproven plan task.
+
+Do not bypass the required failing-test-first boundary merely because the plan already contains proposed implementation code.
+
 ## Canonical First-Light PASS set
 
 The independent verifier must eventually emit all constitutional markers in one proof manifest:
@@ -150,7 +181,7 @@ U_0
 2. Read [`docs/design/README.md`](docs/design/README.md).
 3. Recover D1, D2, and D3; D1 wins on constitution, D2 on operational contracts, D3 on First-Light implementation choices.
 4. Inspect current `main` and repository tree before acting; later implementation commits may supersede this handoff's no-F0-work observation.
-5. If F0 has not started, resume at **B01**.
+5. If F0 has not started, recover the B01 plan and start at its first unproven RED step.
 6. If F0 has started, recover the latest completed B-stage and its proof evidence; continue from the first unproven stage.
 7. Do not reopen broad research or redesign frozen milestones unless concrete implementation evidence exposes a contradiction or unsupported obligation.
 8. Preserve the temporary project-name rule until the mathematical product identity is mature enough to name.
@@ -169,4 +200,4 @@ current repository implementation/proof evidence
     > chat recollection
 ```
 
-No chat should claim work is complete merely because a design exists. F0 completion requires the independently replayable proof manifest and full PASS set defined by D3.
+No chat should claim work is complete merely because a design or implementation plan exists. F0 completion requires the independently replayable proof manifest and full PASS set defined by D3.
