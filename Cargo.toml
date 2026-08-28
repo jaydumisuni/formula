@@ -1,0 +1,14 @@
+[workspace]
+members = ["crates/formula-core"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+sha2 = "0.10"
+num-bigint = "0.4"
+num-integer = "0.1"
+num-traits = "0.2"
+tempfile = "3"
