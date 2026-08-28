@@ -47,5 +47,10 @@ Current supplements:
 - [`docs/research/2026-08-28-structure-inference-and-dispatch-pass.md`](docs/research/2026-08-28-structure-inference-and-dispatch-pass.md)
 - [`docs/research/2026-08-28-incremental-capability-closure-pass.md`](docs/research/2026-08-28-incremental-capability-closure-pass.md)
 - [`docs/research/2026-08-28-executable-mathematical-semantics-pass.md`](docs/research/2026-08-28-executable-mathematical-semantics-pass.md)
+- [`docs/research/2026-08-28-probabilistic-stochastic-semantics-pass.md`](docs/research/2026-08-28-probabilistic-stochastic-semantics-pass.md)
+- [`docs/research/2026-08-28-semiring-parametric-evaluation-pass.md`](docs/research/2026-08-28-semiring-parametric-evaluation-pass.md)
+- [`docs/research/2026-08-28-kleene-algebra-iteration-pass.md`](docs/research/2026-08-28-kleene-algebra-iteration-pass.md)
+- [`docs/research/2026-08-28-fixed-point-recursion-pass.md`](docs/research/2026-08-28-fixed-point-recursion-pass.md)
+- [`docs/research/2026-08-28-domain-theory-certified-progress-pass.md`](docs/research/2026-08-28-domain-theory-certified-progress-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
