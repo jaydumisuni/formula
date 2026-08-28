@@ -1,0 +1,33 @@
+name: F0 B01 Development TDD
+
+on:
+  push:
+    branches:
+      - f0/b01-canonical-identity
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'crates/formula-core/**'
+      - '.github/workflows/f0-b01-dev.yml'
+
+jobs:
+  formula-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust 1.98.0
+        uses: dtolnay/rust-toolchain@1.98.0
+        with:
+          components: rustfmt, clippy
+      - name: Test formula-core
+        run: cargo test -p formula-core
+      - name: Formatting
+        if: success()
+        run: cargo fmt --check
+      - name: Clippy
+        if: success()
+        run: cargo clippy -p formula-core --all-targets -- -D warnings
