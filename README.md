@@ -20,5 +20,6 @@ Current supplements:
 
 - [`docs/research/2026-08-28-generalization-representation-pass.md`](docs/research/2026-08-28-generalization-representation-pass.md)
 - [`docs/research/2026-08-28-theory-profiling-completion-pass.md`](docs/research/2026-08-28-theory-profiling-completion-pass.md)
+- [`docs/research/2026-08-28-certificates-compilation-pass.md`](docs/research/2026-08-28-certificates-compilation-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
