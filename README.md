@@ -41,5 +41,7 @@ Current supplements:
 - [`docs/research/2026-08-28-relational-propagation-pass.md`](docs/research/2026-08-28-relational-propagation-pass.md)
 - [`docs/research/2026-08-28-rule-semantics-reflection-pass.md`](docs/research/2026-08-28-rule-semantics-reflection-pass.md)
 - [`docs/research/2026-08-28-heterogeneous-theory-composition-pass.md`](docs/research/2026-08-28-heterogeneous-theory-composition-pass.md)
+- [`docs/research/2026-08-28-package-interference-and-change-pass.md`](docs/research/2026-08-28-package-interference-and-change-pass.md)
+- [`docs/research/2026-08-28-interface-extraction-and-forgetting-pass.md`](docs/research/2026-08-28-interface-extraction-and-forgetting-pass.md)
 
 Future research should update or supersede these checkpoints explicitly rather than relying on chat memory.
