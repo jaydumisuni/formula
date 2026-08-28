@@ -40,9 +40,11 @@ impl ArtifactDigest {
         }
 
         let mut bytes = [0u8; 32];
-        for (i, chunk) in hex.as_bytes().chunks_exact(2).enumerate() {
-            let high = decode_nibble(chunk[0])?;
-            let low = decode_nibble(chunk[1])?;
+        let (pairs, remainder) = hex.as_bytes().as_chunks::<2>();
+        debug_assert!(remainder.is_empty());
+        for (i, pair) in pairs.iter().enumerate() {
+            let high = decode_nibble(pair[0])?;
+            let low = decode_nibble(pair[1])?;
             bytes[i] = (high << 4) | low;
         }
         Ok(Self(bytes))
