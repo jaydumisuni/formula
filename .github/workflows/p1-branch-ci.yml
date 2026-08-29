@@ -23,6 +23,11 @@ jobs:
       - name: Canonical P1 proof gate
         run: |
           set -euxo pipefail
+          git status --porcelain
+          git rev-parse HEAD
+          rustc -vV
+          cargo -V
+          cargo metadata --locked --offline --format-version 1
           cargo test -p formula-archtest --locked --offline
           cargo test -p formula-core --locked --offline
           cargo test -p formula-store --locked --offline
