@@ -22,6 +22,10 @@ pub enum CheckFailure {
     PromotionParentMismatch,
     PromotionEvidenceMismatch,
     PromotionAdmissionMismatch,
+    RealizationBindingMismatch,
+    RealizationArtifactDigestMismatch,
+    RealizationOutputCoverageMismatch,
+    RealizationCounterexample(u8),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
