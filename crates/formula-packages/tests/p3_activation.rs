@@ -84,7 +84,10 @@ fn overlapping_packages_require_an_admissible_exact_composition_claim() {
     .unwrap();
     assert_eq!(activated.generation(), certified_generation.digest());
     assert_eq!(activated.digests().len(), 2);
-    assert_eq!(activated.composition_claims(), &[certified.structural_digest()]);
+    assert_eq!(
+        activated.composition_claims(),
+        &[certified.structural_digest()]
+    );
 }
 
 #[test]
