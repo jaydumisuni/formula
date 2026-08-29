@@ -1,7 +1,5 @@
 use formula_core::{
-    artifacts::StructuralIdentity,
-    digest::ArtifactDigest,
-    generation::UniverseGeneration,
+    artifacts::StructuralIdentity, digest::ArtifactDigest, generation::UniverseGeneration,
     theory::CanonicalMorphism,
 };
 use formula_packages::morphisms::{
