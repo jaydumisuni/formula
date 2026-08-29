@@ -32,6 +32,22 @@ impl UniverseGeneration {
         }
     }
 
+    pub fn generation_number(&self) -> u64 {
+        self.generation_number
+    }
+
+    pub fn parent(&self) -> Option<ArtifactDigest> {
+        self.parent
+    }
+
+    pub fn admitted(&self) -> &[ArtifactDigest] {
+        &self.admitted
+    }
+
+    pub fn authority_bindings(&self) -> &[ArtifactDigest] {
+        &self.authority_bindings
+    }
+
     pub fn canonical_bytes(&self) -> Vec<u8> {
         self.canonical_value().to_canonical_bytes()
     }
