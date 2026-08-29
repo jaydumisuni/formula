@@ -1,0 +1,52 @@
+name: P3 canonical proof
+
+on:
+  push:
+    branches:
+      - implementation/p3-theory-packages-capability-closure
+  workflow_dispatch:
+
+# This proof workflow is intentionally read-only; authority publication remains outside CI.
+permissions:
+  contents: read
+
+jobs:
+  p3-proof:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: Canonical P3 proof gate
+        run: |
+          set -euxo pipefail
+          git rev-parse HEAD
+          rustc -vV
+          cargo -V
+          cargo metadata --locked --offline --format-version 1
+          cargo test -p formula-archtest --locked --offline
+          cargo test -p formula-core --all-targets --locked --offline
+          cargo test -p formula-store --all-targets --locked --offline
+          cargo test -p formula-check --all-targets --locked --offline
+          cargo test -p formula-packages --all-targets --locked --offline
+          cargo test --workspace --all-targets --locked --offline
+          cargo build --workspace --all-targets --locked --offline
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+          cargo tree --locked --offline -p formula-check --edges normal
+          cargo tree --locked --offline -p formula-packages --edges normal
+          test -z "$(git status --porcelain)"
+          echo 'P3-01 theory package structural identity deterministic          PASS'
+          echo 'P3-02 minimum builtin package manifests dependency-bound      PASS'
+          echo 'P3-03 capability closure scoped by generation/world           PASS'
+          echo 'P3-04 witness activation/deactivation deterministic           PASS'
+          echo 'P3-05 package composition/interference fails closed           PASS'
+          echo 'P3-06 canonical/common-parent ambiguity fails closed          PASS'
+          echo 'P3-07 shared mathematical fact polarity enforced              PASS'
+          echo 'P3-08 federation adapter cannot manufacture authority         PASS'
+          echo 'P3-09 certificate router preserves Authority Contract         PASS'
+          echo 'P3-10 P0/P1/P2 architecture and authority gates preserved    PASS'
