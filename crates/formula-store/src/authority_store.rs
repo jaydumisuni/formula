@@ -1,5 +1,8 @@
 use crate::blob_store::{BlobStore, BlobStoreError};
-use formula_core::{digest::{ArtifactDigest, DigestError}, generation::UniverseGeneration};
+use formula_core::{
+    digest::{ArtifactDigest, DigestError},
+    generation::UniverseGeneration,
+};
 use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
 use std::{
     error::Error,
@@ -11,6 +14,13 @@ use std::{
 };
 
 static MANIFEST_TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PublishFailpoint {
+    None,
+    AfterRowsBeforeActive,
+    AfterActiveBeforeCommit,
+}
 
 #[derive(Debug)]
 pub enum AuthorityStoreError {
@@ -34,6 +44,7 @@ pub enum AuthorityStoreError {
         requested: ArtifactDigest,
         reconstructed: ArtifactDigest,
     },
+    InjectedPublishFailure(&'static str),
 }
 
 impl fmt::Display for AuthorityStoreError {
@@ -48,14 +59,16 @@ impl fmt::Display for AuthorityStoreError {
             Self::ParentMismatch { expected, actual } => write!(
                 f,
                 "generation parent mismatch: expected {:?}, got {:?}",
-                expected.map(|d| d.as_str()),
-                actual.map(|d| d.as_str())
+                expected.map(|digest| digest.as_str()),
+                actual.map(|digest| digest.as_str())
             ),
             Self::GenerationNumberMismatch { expected, actual } => write!(
                 f,
                 "generation number mismatch: expected {expected}, got {actual}"
             ),
-            Self::GenerationNumberOverflow => f.write_str("generation number exceeds SQLite INTEGER range"),
+            Self::GenerationNumberOverflow => {
+                f.write_str("generation number exceeds SQLite INTEGER range")
+            }
             Self::GenerationNotFound(digest) => {
                 write!(f, "generation not found: {}", digest.as_str())
             }
@@ -68,6 +81,9 @@ impl fmt::Display for AuthorityStoreError {
                 requested.as_str(),
                 reconstructed.as_str()
             ),
+            Self::InjectedPublishFailure(point) => {
+                write!(f, "injected generation-publication failure at {point}")
+            }
         }
     }
 }
@@ -142,7 +158,7 @@ impl AuthorityStore {
                evidence_digest TEXT NOT NULL,
                PRIMARY KEY (generation_digest, evidence_digest),
                FOREIGN KEY (generation_digest) REFERENCES generations(digest)
-             );"
+             );",
         )?;
         let blobs = BlobStore::new(&root);
         Ok(Self {
@@ -162,6 +178,7 @@ impl AuthorityStore {
                 actual: generation.generation_number(),
             });
         }
+
         let digest = self.persist_manifest(generation)?;
         let transaction = self
             .connection
@@ -179,10 +196,19 @@ impl AuthorityStore {
         &mut self,
         generation: &UniverseGeneration,
     ) -> Result<ArtifactDigest, AuthorityStoreError> {
+        self.publish_generation_inner(generation, PublishFailpoint::None)
+    }
+
+    pub(crate) fn publish_generation_inner(
+        &mut self,
+        generation: &UniverseGeneration,
+        failpoint: PublishFailpoint,
+    ) -> Result<ArtifactDigest, AuthorityStoreError> {
         let digest = self.persist_manifest(generation)?;
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
+
         let active = active_generation_in(&transaction)?
             .ok_or(AuthorityStoreError::NoActiveGeneration)?;
         if generation.parent() != Some(active) {
@@ -191,6 +217,7 @@ impl AuthorityStore {
                 actual: generation.parent(),
             });
         }
+
         let parent_number = generation_number_in(&transaction, active)?;
         let expected_number = parent_number
             .checked_add(1)
@@ -201,8 +228,21 @@ impl AuthorityStore {
                 actual: generation.generation_number(),
             });
         }
+
         insert_generation_rows(&transaction, generation, digest)?;
+        if failpoint == PublishFailpoint::AfterRowsBeforeActive {
+            return Err(AuthorityStoreError::InjectedPublishFailure(
+                "after-rows-before-active",
+            ));
+        }
+
         set_active_generation(&transaction, digest)?;
+        if failpoint == PublishFailpoint::AfterActiveBeforeCommit {
+            return Err(AuthorityStoreError::InjectedPublishFailure(
+                "after-active-before-commit",
+            ));
+        }
+
         transaction.commit()?;
         Ok(digest)
     }
@@ -235,7 +275,8 @@ impl AuthorityStore {
             )
             .optional()?;
         let (number, parent) = row.ok_or(AuthorityStoreError::GenerationNotFound(digest))?;
-        let number = u64::try_from(number).map_err(|_| AuthorityStoreError::GenerationNumberOverflow)?;
+        let number =
+            u64::try_from(number).map_err(|_| AuthorityStoreError::GenerationNumberOverflow)?;
         let parent = parent
             .map(|value| ArtifactDigest::parse(&value).map_err(AuthorityStoreError::from))
             .transpose()?;
