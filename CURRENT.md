@@ -6,147 +6,138 @@ This file is the shortest authoritative recovery path for a new chat/session. Re
 
 ## Exact current state
 
-The research-led phase is complete enough for implementation. Broad research is no longer the lead activity.
+Broad research is closed as the lead activity. The canonical D1–D5 architecture, First-Light specification, and implementation roadmap are frozen.
 
-Three design milestones are already frozen:
+Primary authorities:
 
-1. [`docs/design/2026-08-28-d1-mathematical-constitution.md`](docs/design/2026-08-28-d1-mathematical-constitution.md)
-   - frozen D1 mathematical constitution;
-   - six durable artifact classes: `Entity`, `Relation`, `World`, `Judgement`, `Evidence`, `Realization`;
-   - immutable Universe generations `U_g`;
-   - Problem/Campaign Compiler;
-   - Discovery Fabric;
-   - Certification + Promotion boundary;
-   - Execution/Realization boundary;
-   - search may propose mathematics; only Certification + Promotion creates authority.
+1. [`docs/design/README.md`](docs/design/README.md) — canonical D1–D5 design index and precedence.
+2. [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md) — frozen implementation phases P0 onward.
+3. [`docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md`](docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md) — proved P0 milestone.
+4. [`docs/superpowers/plans/2026-08-29-p0-repository-reproducible-build-skeleton.md`](docs/superpowers/plans/2026-08-29-p0-repository-reproducible-build-skeleton.md) — executed P0 plan and RED/GREEN sequence.
+5. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for concrete design/implementation gaps.
 
-2. [`docs/design/2026-08-28-d2-operational-mathematical-machine.md`](docs/design/2026-08-28-d2-operational-mathematical-machine.md)
-   - frozen D2 operational contracts;
-   - Package/Capability contracts;
-   - Structure Goal IR and generation-scoped capability closure;
-   - Theory Profiles;
-   - CandidateSpace contract;
-   - Campaign/Work Cell IR;
-   - shared mathematical facts / solver federation;
-   - search economy;
-   - certificate routing and realization planning;
-   - canonical First-Light proof obligations.
+## Current implementation milestone
 
-3. [`docs/design/2026-08-28-d3-first-light-build-architecture.md`](docs/design/2026-08-28-d3-first-light-build-architecture.md)
-   - frozen D3 concrete First-Light build architecture;
-   - stable Rust for First Light only, not a permanent constitutional language choice;
-   - exact integer/rational authority arithmetic;
-   - SQLite + immutable SHA-256 content-addressed blob store;
-   - independent checker boundary;
-   - three different CandidateSpace backends;
-   - blind targets FL-A / FL-B / FL-C;
-   - negative controls N1-N7;
-   - atomic `U_0 -> U_1` promotion protocol;
-   - native realization + independent equivalence validation;
-   - canonical proof manifest and PASS markers;
-   - implementation sequence B01-B13.
+**P0 — Repository and reproducible build skeleton: PROVED on the isolated implementation branch.**
 
-Design index: [`docs/design/README.md`](docs/design/README.md).
-Research evidence authority: [`docs/research/`](docs/research/).
-
-## Current milestone
-
-**Next milestone: F0 — First-Light implementation campaign.**
-
-No implementation completion is claimed by the frozen design documents. A new chat must inspect the current repository tree/commits for any implementation work added after this handoff before assuming F0 is untouched.
-
-At the handoff boundary represented by this file, the canonical design says F0 should implement D3 stages in this exact order:
+Canonical branch used for P0 development:
 
 ```text
-B01 canonical identity + blob store
-B02 D1 durable schemas + U_0 generation
-B03 Evidence envelope + independent checker process
-B04 Package/Capability contracts + closure resolver
-B05 Query + minimal Campaign IR + Work Cell runner
-B06 FL-A polynomial CandidateSpace + checker
-B07 FL-B route/reduction CandidateSpace + GF2 package/checker
-B08 FL-C observational synthesis CandidateSpace
-B09 promotion transaction U_0 -> U_1
-B10 generated native realization + independent finite-domain validation
-B11 reuse query / no-rediscovery proof
-B12 negative controls
-B13 canonical verifier + full PASS manifest
+implementation/p0-reproducible-skeleton
 ```
 
-Do **not** skip ahead to distributed execution, GPU work, models, large CAS/proof-assistant federation, Ptah integration, UI/API work, advanced e-graphs, or a full roadmap before the canonical F0 proof requires them.
-
-## Current F0 execution handoff
-
-B01 has a frozen implementation plan:
-
-- [`docs/superpowers/plans/2026-08-28-f0-b01-canonical-identity-blob-store.md`](docs/superpowers/plans/2026-08-28-f0-b01-canonical-identity-blob-store.md)
-
-The implementation plan pins **Rust 1.98.0** for First-Light reproducibility and defines the mandatory TDD/proof sequence for:
+P0 proof checkpoint:
 
 ```text
-ArtifactDigest / SHA-256 identity
-restricted canonical UTF-8 JSON
-arbitrary-precision integer/rational canonicalization
-immutable verified SHA-256 blob storage
-frozen authority vectors
-B01 proof note
+docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md
 ```
 
-**B01 is NOT complete.**
+The checkpoint records exact source/toolchain/blob identities, observed RED→GREEN boundaries, dependency trees, runtime allowlist, sealed-fixture boundaries, and the locked/offline proof commands.
 
-The session that created the plan attempted to start the RED/GREEN execution cycle, but its isolated shell environment had:
+The post-checkpoint branch gate also passed with the checkpoint present.
+
+### P0 proof markers
 
 ```text
-no DNS/network access for `git clone`
-no installed `rustc`
-no installed `cargo`
+P0-01 pinned toolchain/source dependency manifest       PASS
+P0-02 formula-check isolated from engine/search         PASS
+P0-03 sealed fixtures unavailable to discovery crates  PASS
+P0-04 canonical runtime dependency allowlist satisfied PASS
+P0-05 deterministic P0 fixture identities              PASS
 ```
 
-Therefore no B01 production implementation or B01 proof was honestly claimed. A new chat with a real Rust 1.98.0 execution environment should recover the plan and start at **Task 1 / RED**, or first inspect `main` for later implementation commits and continue from the first unproven plan task.
-
-Do not bypass the required failing-test-first boundary merely because the plan already contains proposed implementation code.
-
-## Canonical First-Light PASS set
-
-The independent verifier must eventually emit all constitutional markers in one proof manifest:
+Pinned First-Light implementation toolchain at this milestone:
 
 ```text
-PASS_UNIVERSE_BINDING
-PASS_BLIND_DISCOVERY
-PASS_FALSE_CANDIDATE_REJECTION
-PASS_CERTIFICATION
-PASS_PROMOTION_ATOMICITY
-PASS_CAPABILITY_CLOSURE_DELTA
-PASS_REALIZATION_EQUIVALENCE
-PASS_REUSE_WITHOUT_REDISCOVERY
-PASS_AUTHORITY_NOT_DOWNGRADED
-PASS_REPLAY_BINDING
+rustc 1.98.0 (88d9e12ae 2026-08-18)
+cargo 1.98.0 (797e8a9bc 2026-08-05)
 ```
 
-D3 also defines target diagnostics:
+P0 proves only the repository/build and architectural authority boundaries. It does **not** claim mathematical authority implementation, First Light, self-expansion, certificate semantics, promotion, or native mathematical realization.
+
+## Canonical P0 workspace now exists
 
 ```text
-PASS_TARGET_A_EXACT_IDENTITY
-PASS_TARGET_B_REPRESENTATION_REDUCTION
-PASS_TARGET_C_SYNTHESIZED_PRIMITIVE
+crates/
+  formula-core/
+  formula-store/
+  formula-check/
+  formula-engine/
+  formula-packages/
+  formula-realize/
+  formula-first-light/
+  formula-cli/
+
+tests/
+  authority-boundary/
+  first-light/
 ```
 
-## Non-negotiable First-Light boundary
-
-Canonical First Light is:
+Constitutional dependency separation established at P0:
 
 ```text
-local
-CPU-only
-model-free
-network-free during execution
-exact/replay-bound
-independently checked
-content-addressed
-bound to exact Universe/package/grammar/source digests
+formula-check -> formula-core only
+
+formula-engine -> formula-core
+               -> formula-store -> formula-core
+               -> formula-packages -> formula-core
+
+formula-first-light -> formula-core
+                    -> formula-engine
 ```
 
-The purpose is to prove the architecture's complete self-expansion loop on ordinary hardware:
+`formula-engine` does not link the checker implementation. Sealed First-Light fixtures are source-separated from discovery crates. The canonical P0 runtime closure is explicitly allowlisted and contains no third-party runtime package.
+
+## Next implementation boundary
+
+**Next phase: P1 — Core structural identity and authority store.**
+
+Do not return to the older B01 precursor plan as the canonical next task. The later frozen roadmap superseded it.
+
+P1 begins the minimum D1/D2 durable authority implementation:
+
+```text
+Entity
+Relation
+World
+Judgement
+EvidenceEnvelope metadata
+Realization metadata
+ArtifactDigest
+UniverseGeneration
+AuthorityContract
+Observer
+
+canonical encoding v1
+SHA-256 structural digests
+content-addressed immutable blob store
+local authority index/transaction layer
+generation manifest build/load/replay
+```
+
+Required P1 proof obligations from the frozen roadmap:
+
+```text
+D2-P01 deterministic structural identity replay
+D2-P02 atomic generation publication
+D2-P03 semantic equivalence separate from digest identity
+D2-P11 historical generation replay
+```
+
+Required negative boundaries include:
+
+```text
+field-order/canonicalization variation cannot change normalized digest
+non-semantic timestamp/path cannot enter structural digest
+blob mutation changes digest and is rejected
+semantic equivalence never aliases structural digest identity
+```
+
+No P1 mathematical authority implementation is claimed by P0.
+
+## Canonical First-Light end target remains unchanged
+
+First Light must eventually prove the complete growth loop on ordinary local hardware:
 
 ```text
 U_0
@@ -161,6 +152,21 @@ U_0
  -> solve a related second query using the promoted primitive
  -> prove reuse without rediscovery
 ```
+
+Canonical First Light remains:
+
+```text
+local
+CPU-only
+model-free
+network-free during execution
+exact/replay-bound
+independently checked
+content-addressed
+bound to exact Universe/package/grammar/source digests
+```
+
+Ptah remains explicitly deferred until the local First-Light proof requires distributed execution.
 
 ## Constitutional laws to preserve
 
@@ -179,10 +185,10 @@ U_0
 
 1. Read this file.
 2. Read [`docs/design/README.md`](docs/design/README.md).
-3. Recover D1, D2, and D3; D1 wins on constitution, D2 on operational contracts, D3 on First-Light implementation choices.
-4. Inspect current `main` and repository tree before acting; later implementation commits may supersede this handoff's no-F0-work observation.
-5. If F0 has not started, recover the B01 plan and start at its first unproven RED step.
-6. If F0 has started, recover the latest completed B-stage and its proof evidence; continue from the first unproven stage.
+3. Read the frozen implementation roadmap.
+4. Inspect current `main`, branches, and checkpoint evidence before assuming the last phase is still current.
+5. If P0 has not landed on the branch being used, recover `implementation/p0-reproducible-skeleton` and its proof checkpoint before doing P1 work.
+6. If P0 has landed, start P1 from the frozen roadmap using a fresh isolated implementation branch/worktree and mandatory RED→GREEN TDD.
 7. Do not reopen broad research or redesign frozen milestones unless concrete implementation evidence exposes a contradiction or unsupported obligation.
 8. Preserve the temporary project-name rule until the mathematical product identity is mature enough to name.
 
@@ -193,11 +199,11 @@ When sources disagree, use this order:
 ```text
 current repository implementation/proof evidence
     > later frozen design amendment explicitly superseding an older milestone
-    > D3 for First-Light build choices
+    > D5/D4/D3 for later operational/build/self-expansion choices
     > D2 for operational machine contracts
     > D1 for mathematical constitution
     > preserved research checkpoints
     > chat recollection
 ```
 
-No chat should claim work is complete merely because a design or implementation plan exists. F0 completion requires the independently replayable proof manifest and full PASS set defined by D3.
+No chat should claim a later phase is complete merely because a design or implementation plan exists. Every roadmap phase requires its own proof gate.
