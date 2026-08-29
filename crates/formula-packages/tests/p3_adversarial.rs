@@ -102,11 +102,8 @@ fn world_generation_and_activation_boundaries_do_not_leak_capability() {
     );
     assert!(!wrong_world.contains(capability));
 
-    let another_generation_closure = derive_capabilities(
-        &another_generation_context,
-        &[admitted],
-        &[package],
-    );
+    let another_generation_closure =
+        derive_capabilities(&another_generation_context, &[admitted], &[package]);
     assert!(!another_generation_closure.contains(capability));
     assert_ne!(
         active_closure.context_digest(),

@@ -26,7 +26,10 @@ impl AdmittedStructureWitness {
         if !generation.admitted().contains(&witness.structural_digest()) {
             return Err(WitnessAdmissionError::WitnessNotAdmitted);
         }
-        if !generation.authority_bindings().contains(&witness.evidence()) {
+        if !generation
+            .authority_bindings()
+            .contains(&witness.evidence())
+        {
             return Err(WitnessAdmissionError::EvidenceNotAuthorityBound);
         }
 

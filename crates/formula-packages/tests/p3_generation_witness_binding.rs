@@ -71,12 +71,8 @@ fn witness_admission_requires_semantic_and_authority_membership() {
         Err(WitnessAdmissionError::WitnessNotAdmitted)
     );
 
-    let missing_authority = UniverseGeneration::new(
-        1,
-        None,
-        vec![witness.structural_digest()],
-        vec![],
-    );
+    let missing_authority =
+        UniverseGeneration::new(1, None, vec![witness.structural_digest()], vec![]);
     assert_eq!(
         AdmittedStructureWitness::new(&missing_authority, witness),
         Err(WitnessAdmissionError::EvidenceNotAuthorityBound)
