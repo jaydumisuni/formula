@@ -18,5 +18,7 @@ jobs:
         run: |
           rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
           rustup override set 1.98.0
-      - name: Task 1 canonical identity TDD gate
+      - name: Task 1 canonical identity gate
         run: cargo test -p formula-core --test canonical_identity
+      - name: Task 2 artifact identity TDD gate
+        run: cargo test -p formula-core --test artifact_identity
