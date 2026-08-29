@@ -44,6 +44,12 @@ pub enum AuthorityStoreError {
         requested: ArtifactDigest,
         reconstructed: ArtifactDigest,
     },
+    ManifestFileMismatch(ArtifactDigest),
+    ManifestBlobBindingMismatch {
+        generation: ArtifactDigest,
+        blob: ArtifactDigest,
+    },
+    ManifestBlobBytesMismatch(ArtifactDigest),
     InjectedPublishFailure(&'static str),
 }
 
@@ -80,6 +86,22 @@ impl fmt::Display for AuthorityStoreError {
                 "replayed generation digest mismatch: requested {}, reconstructed {}",
                 requested.as_str(),
                 reconstructed.as_str()
+            ),
+            Self::ManifestFileMismatch(digest) => write!(
+                f,
+                "generation manifest file bytes do not match canonical replay for {}",
+                digest.as_str()
+            ),
+            Self::ManifestBlobBindingMismatch { generation, blob } => write!(
+                f,
+                "generation {} is bound to unexpected manifest blob {}",
+                generation.as_str(),
+                blob.as_str()
+            ),
+            Self::ManifestBlobBytesMismatch(digest) => write!(
+                f,
+                "generation manifest blob bytes do not match canonical replay for {}",
+                digest.as_str()
             ),
             Self::InjectedPublishFailure(point) => {
                 write!(f, "injected generation-publication failure at {point}")
@@ -266,15 +288,17 @@ impl AuthorityStore {
         digest: ArtifactDigest,
     ) -> Result<UniverseGeneration, AuthorityStoreError> {
         let digest_string = digest.as_str();
-        let row: Option<(i64, Option<String>)> = self
+        let row: Option<(i64, Option<String>, String)> = self
             .connection
             .query_row(
-                "SELECT generation_number, parent_digest FROM generations WHERE digest = ?1",
+                "SELECT generation_number, parent_digest, manifest_blob_digest
+                 FROM generations WHERE digest = ?1",
                 params![digest_string],
-                |row| Ok((row.get(0)?, row.get(1)?)),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )
             .optional()?;
-        let (number, parent) = row.ok_or(AuthorityStoreError::GenerationNotFound(digest))?;
+        let (number, parent, manifest_blob) =
+            row.ok_or(AuthorityStoreError::GenerationNotFound(digest))?;
         let number =
             u64::try_from(number).map_err(|_| AuthorityStoreError::GenerationNumberOverflow)?;
         let parent = parent
@@ -290,6 +314,7 @@ impl AuthorityStore {
             "SELECT evidence_digest FROM generation_authority_bindings WHERE generation_digest = ?1 ORDER BY evidence_digest",
             &digest_string,
         )?;
+
         let generation = UniverseGeneration::new(number, parent, admitted, bindings);
         let reconstructed = generation.digest();
         if reconstructed != digest {
@@ -298,6 +323,27 @@ impl AuthorityStore {
                 reconstructed,
             });
         }
+
+        let canonical_bytes = generation.canonical_bytes();
+        let manifest_path = self
+            .root
+            .join("generations")
+            .join(format!("{}.json", digest.hex()));
+        if fs::read(manifest_path)? != canonical_bytes {
+            return Err(AuthorityStoreError::ManifestFileMismatch(digest));
+        }
+
+        let manifest_blob = ArtifactDigest::parse(&manifest_blob)?;
+        if manifest_blob != digest {
+            return Err(AuthorityStoreError::ManifestBlobBindingMismatch {
+                generation: digest,
+                blob: manifest_blob,
+            });
+        }
+        if self.blobs.get(manifest_blob)? != canonical_bytes {
+            return Err(AuthorityStoreError::ManifestBlobBytesMismatch(digest));
+        }
+
         Ok(generation)
     }
 
