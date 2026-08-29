@@ -7,3 +7,4 @@ publish = false
 
 [dependencies]
 formula-core = { path = "../formula-core" }
+num-bigint.workspace = true
