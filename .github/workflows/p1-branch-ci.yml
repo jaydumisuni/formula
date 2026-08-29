@@ -22,5 +22,7 @@ jobs:
         run: cargo test -p formula-core --test canonical_identity
       - name: Task 2 artifact identity gate
         run: cargo test -p formula-core --test artifact_identity
-      - name: Task 3 generation identity TDD gate
+      - name: Task 3 generation identity gate
         run: cargo test -p formula-core --test generation_identity
+      - name: Task 4 blob store TDD gate
+        run: cargo test -p formula-store --test blob_store

@@ -7,3 +7,6 @@ publish = false
 
 [dependencies]
 formula-core = { path = "../formula-core" }
+
+[dev-dependencies]
+tempfile.workspace = true
