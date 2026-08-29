@@ -59,13 +59,8 @@ fn certified_witness_unlocks_only_the_matching_world_and_active_package() {
         d("policy"),
     );
 
-    let without = derive_capabilities(
-        &context,
-        &activated,
-        &[],
-        std::slice::from_ref(&package),
-    )
-    .unwrap();
+    let without =
+        derive_capabilities(&context, &activated, &[], std::slice::from_ref(&package)).unwrap();
     let with = derive_capabilities(
         &context,
         &activated,
@@ -77,13 +72,8 @@ fn certified_witness_unlocks_only_the_matching_world_and_active_package() {
     assert!(!without.contains(capability));
     assert!(with.contains(capability));
 
-    let leaked = derive_capabilities(
-        &context,
-        &activated,
-        &[admitted_wrong_world],
-        &[package],
-    )
-    .unwrap();
+    let leaked =
+        derive_capabilities(&context, &activated, &[admitted_wrong_world], &[package]).unwrap();
     assert!(!leaked.contains(capability));
 }
 
@@ -151,13 +141,7 @@ fn closure_is_deterministic_and_context_identity_is_generation_scoped() {
         std::slice::from_ref(&package),
     )
     .unwrap();
-    let b = derive_capabilities(
-        &context_b,
-        &activated_b,
-        &[admitted_b],
-        &[package],
-    )
-    .unwrap();
+    let b = derive_capabilities(&context_b, &activated_b, &[admitted_b], &[package]).unwrap();
 
     assert_eq!(a1, a2);
     assert_ne!(a1.context_digest(), b.context_digest());
