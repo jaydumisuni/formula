@@ -6,6 +6,7 @@ on:
       - implementation/p2-independent-checker-certificate-core
   workflow_dispatch:
 
+# This proof workflow is intentionally read-only; publication authority lives elsewhere.
 permissions:
   contents: read
 
