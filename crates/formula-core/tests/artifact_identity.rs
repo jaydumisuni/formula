@@ -50,10 +50,7 @@ fn semantic_equivalence_does_not_alias_structural_digest() {
     let equivalence = Judgement::new(
         d(b"world"),
         CanonicalValue::Object(BTreeMap::from([
-            (
-                "kind".into(),
-                CanonicalValue::String("Equivalent".into()),
-            ),
+            ("kind".into(), CanonicalValue::String("Equivalent".into())),
             (
                 "left".into(),
                 CanonicalValue::Digest(x_plus_x.structural_digest()),
@@ -65,17 +62,16 @@ fn semantic_equivalence_does_not_alias_structural_digest() {
         ])),
         vec![x_plus_x.structural_digest(), two_x.structural_digest()],
     );
-    assert_ne!(equivalence.structural_digest(), x_plus_x.structural_digest());
+    assert_ne!(
+        equivalence.structural_digest(),
+        x_plus_x.structural_digest()
+    );
     assert_ne!(equivalence.structural_digest(), two_x.structural_digest());
 }
 
 #[test]
 fn machine_local_metadata_cannot_enter_entity_identity() {
-    let entity = Entity::new(
-        d(b"foundation"),
-        CanonicalValue::Integer(17.into()),
-        vec![],
-    );
+    let entity = Entity::new(d(b"foundation"), CanonicalValue::Integer(17.into()), vec![]);
     let bytes = entity.canonical_value().to_canonical_bytes();
     for forbidden in [
         "/tmp/machine-A/17",
@@ -84,7 +80,9 @@ fn machine_local_metadata_cannot_enter_entity_identity() {
         "nonce=machine-random",
     ] {
         assert!(
-            !bytes.windows(forbidden.len()).any(|w| w == forbidden.as_bytes()),
+            !bytes
+                .windows(forbidden.len())
+                .any(|w| w == forbidden.as_bytes()),
             "non-semantic metadata leaked into structural bytes: {forbidden}"
         );
     }
@@ -99,14 +97,7 @@ fn all_p1_schema_families_are_structurally_addressable() {
         CanonicalValue::String("R(x,y)".into()),
         vec![entity.structural_digest()],
     );
-    let world = World::new(
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-        d(b"foundation"),
-    );
+    let world = World::new(vec![], vec![], vec![], vec![], vec![], d(b"foundation"));
     let judgement = Judgement::new(
         world.structural_digest(),
         CanonicalValue::String("R(a,b)".into()),

@@ -3,7 +3,7 @@ use formula_core::{
     digest::{ArtifactDigest, DigestError},
     generation::UniverseGeneration,
 };
-use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 use std::{
     error::Error,
     fmt, fs,
@@ -231,8 +231,8 @@ impl AuthorityStore {
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
 
-        let active = active_generation_in(&transaction)?
-            .ok_or(AuthorityStoreError::NoActiveGeneration)?;
+        let active =
+            active_generation_in(&transaction)?.ok_or(AuthorityStoreError::NoActiveGeneration)?;
         if generation.parent() != Some(active) {
             return Err(AuthorityStoreError::ParentMismatch {
                 expected: Some(active),
@@ -472,10 +472,7 @@ fn write_immutable_manifest(path: &Path, bytes: &[u8]) -> Result<(), AuthoritySt
     let parent = path.parent().expect("generation manifest path has parent");
     loop {
         let counter = MANIFEST_TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-        let temporary = parent.join(format!(
-            ".manifest.tmp-{}-{counter}",
-            std::process::id()
-        ));
+        let temporary = parent.join(format!(".manifest.tmp-{}-{counter}", std::process::id()));
         match OpenOptions::new()
             .write(true)
             .create_new(true)

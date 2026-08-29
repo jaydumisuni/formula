@@ -29,7 +29,10 @@ mod atomicity_tests {
         assert!(store.publish_generation_inner(&u1, failpoint).is_err());
         assert_eq!(store.active_generation().unwrap(), Some(u0_digest));
         assert!(store.replay_generation(u1_digest).is_err());
-        assert_eq!(store.replay_generation(u0_digest).unwrap().digest(), u0_digest);
+        assert_eq!(
+            store.replay_generation(u0_digest).unwrap().digest(),
+            u0_digest
+        );
     }
 
     #[test]

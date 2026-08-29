@@ -100,7 +100,10 @@ impl Relation {
 impl StructuralIdentity for Relation {
     fn canonical_value(&self) -> CanonicalValue {
         let mut object = canonical_object("Relation");
-        object.insert("arity".into(), CanonicalValue::Integer(BigInt::from(self.arity)));
+        object.insert(
+            "arity".into(),
+            CanonicalValue::Integer(BigInt::from(self.arity)),
+        );
         object.insert("definition".into(), self.definition.clone());
         object.insert("foundation".into(), CanonicalValue::Digest(self.foundation));
         object.insert("references".into(), digest_array(&self.references));
@@ -264,7 +267,10 @@ impl StructuralIdentity for EvidenceEnvelope {
             "target_judgement".into(),
             CanonicalValue::Digest(self.target_judgement),
         );
-        object.insert("verdict".into(), CanonicalValue::String(self.verdict.clone()));
+        object.insert(
+            "verdict".into(),
+            CanonicalValue::String(self.verdict.clone()),
+        );
         object.insert("world".into(), CanonicalValue::Digest(self.world));
         CanonicalValue::Object(object)
     }
@@ -303,7 +309,10 @@ impl RealizationMetadata {
 impl StructuralIdentity for RealizationMetadata {
     fn canonical_value(&self) -> CanonicalValue {
         let mut object = canonical_object("RealizationMetadata");
-        object.insert("binary_digest".into(), CanonicalValue::Digest(self.binary_digest));
+        object.insert(
+            "binary_digest".into(),
+            CanonicalValue::Digest(self.binary_digest),
+        );
         object.insert(
             "input_output_semantics".into(),
             self.input_output_semantics.clone(),
@@ -316,7 +325,10 @@ impl StructuralIdentity for RealizationMetadata {
             "semantic_target".into(),
             CanonicalValue::Digest(self.semantic_target),
         );
-        object.insert("source_digest".into(), CanonicalValue::Digest(self.source_digest));
+        object.insert(
+            "source_digest".into(),
+            CanonicalValue::Digest(self.source_digest),
+        );
         object.insert(
             "validation_evidence_digest".into(),
             CanonicalValue::Digest(self.validation_evidence_digest),

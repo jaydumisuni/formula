@@ -1,8 +1,5 @@
 use formula_core::{digest::ArtifactDigest, generation::UniverseGeneration};
-use formula_store::{
-    authority_store::AuthorityStore,
-    blob_store::BlobStore,
-};
+use formula_store::{authority_store::AuthorityStore, blob_store::BlobStore};
 use std::fs;
 use tempfile::tempdir;
 
@@ -26,7 +23,10 @@ fn successful_generation_publish_moves_active_root_once() {
     );
     let u1_digest = store.publish_generation(&u1).unwrap();
     assert_eq!(store.active_generation().unwrap(), Some(u1_digest));
-    assert_eq!(store.replay_generation(u0_digest).unwrap().digest(), u0_digest);
+    assert_eq!(
+        store.replay_generation(u0_digest).unwrap().digest(),
+        u0_digest
+    );
 }
 
 #[test]
@@ -36,12 +36,7 @@ fn wrong_parent_cannot_publish() {
     let u0 = UniverseGeneration::new(0, None, vec![], vec![]);
     let u0_digest = store.initialize_genesis(&u0).unwrap();
 
-    let bad = UniverseGeneration::new(
-        1,
-        Some(d(b"not-active")),
-        vec![d(b"x")],
-        vec![],
-    );
+    let bad = UniverseGeneration::new(1, Some(d(b"not-active")), vec![d(b"x")], vec![]);
     assert!(store.publish_generation(&bad).is_err());
     assert_eq!(store.active_generation().unwrap(), Some(u0_digest));
 }
@@ -65,8 +60,14 @@ fn historical_roots_replay_after_fresh_store_open() {
 
     let reopened = AuthorityStore::open(dir.path()).unwrap();
     assert_eq!(reopened.active_generation().unwrap(), Some(u1_digest));
-    assert_eq!(reopened.replay_generation(u0_digest).unwrap().digest(), u0_digest);
-    assert_eq!(reopened.replay_generation(u1_digest).unwrap().digest(), u1_digest);
+    assert_eq!(
+        reopened.replay_generation(u0_digest).unwrap().digest(),
+        u0_digest
+    );
+    assert_eq!(
+        reopened.replay_generation(u1_digest).unwrap().digest(),
+        u1_digest
+    );
 }
 
 #[test]
