@@ -96,7 +96,10 @@ pub fn derive_capabilities(
         .iter()
         .map(|package| (package.structural_digest(), package))
         .collect();
-    if active.iter().any(|digest| !package_map.contains_key(digest)) {
+    if active
+        .iter()
+        .any(|digest| !package_map.contains_key(digest))
+    {
         return Err(ClosureError::MissingPackageManifest);
     }
 
