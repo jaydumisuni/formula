@@ -1,0 +1,22 @@
+name: P0 branch TDD
+
+on:
+  push:
+    branches:
+      - implementation/p0-reproducible-skeleton
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p0-red-green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Workspace-shape TDD gate
+        run: cargo test -p formula-archtest --test workspace_shape
