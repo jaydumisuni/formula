@@ -1,6 +1,7 @@
 use formula_core::{
     artifacts::StructuralIdentity,
     digest::ArtifactDigest,
+    generation::UniverseGeneration,
     theory::{CompositionClaim, CompositionClass, TheoryPackageManifest},
 };
 use std::collections::{BTreeMap, BTreeSet};
@@ -8,23 +9,37 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ActivationError {
     UnknownPackage,
+    PackageNotAdmitted,
     MissingDependency,
     InterferenceUnproven,
+    CompositionClaimNotAdmitted,
+    CompositionEvidenceNotAuthorityBound,
     CompositionNotAdmissible,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ActivatedPackageSet {
+    generation: ArtifactDigest,
     digests: Vec<ArtifactDigest>,
+    composition_claims: Vec<ArtifactDigest>,
 }
 
 impl ActivatedPackageSet {
+    pub fn generation(&self) -> ArtifactDigest {
+        self.generation
+    }
+
     pub fn digests(&self) -> &[ArtifactDigest] {
         &self.digests
+    }
+
+    pub fn composition_claims(&self) -> &[ArtifactDigest] {
+        &self.composition_claims
     }
 }
 
 pub fn validate_activation(
+    generation: &UniverseGeneration,
     packages: &[TheoryPackageManifest],
     claims: &[CompositionClaim],
     requested: &[ArtifactDigest],
@@ -50,6 +65,9 @@ pub fn validate_activation(
         .collect::<Result<_, _>>()?;
 
     for package in &selected {
+        if !generation.admitted().contains(&package.structural_digest()) {
+            return Err(ActivationError::PackageNotAdmitted);
+        }
         if package
             .dependencies()
             .iter()
@@ -59,6 +77,7 @@ pub fn validate_activation(
         }
     }
 
+    let mut composition_claims = Vec::new();
     for (left_index, left) in selected.iter().enumerate() {
         for right in selected.iter().skip(left_index + 1) {
             let overlap = left
@@ -80,6 +99,13 @@ pub fn validate_activation(
                 return Err(ActivationError::InterferenceUnproven);
             };
 
+            let claim_digest = claim.structural_digest();
+            if !generation.admitted().contains(&claim_digest) {
+                return Err(ActivationError::CompositionClaimNotAdmitted);
+            }
+            if !generation.authority_bindings().contains(&claim.evidence()) {
+                return Err(ActivationError::CompositionEvidenceNotAuthorityBound);
+            }
             if !matches!(
                 claim.class(),
                 CompositionClass::DisjointSafe
@@ -88,8 +114,16 @@ pub fn validate_activation(
             ) {
                 return Err(ActivationError::CompositionNotAdmissible);
             }
+            composition_claims.push(claim_digest);
         }
     }
 
-    Ok(ActivatedPackageSet { digests: requested })
+    composition_claims.sort_unstable();
+    composition_claims.dedup();
+
+    Ok(ActivatedPackageSet {
+        generation: generation.digest(),
+        digests: requested,
+        composition_claims,
+    })
 }

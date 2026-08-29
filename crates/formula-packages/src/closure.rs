@@ -1,10 +1,11 @@
+use crate::activation::ActivatedPackageSet;
 use formula_core::{
     artifacts::StructuralIdentity,
     digest::ArtifactDigest,
     generation::UniverseGeneration,
     theory::{ClosureContext, StructureWitness, TheoryPackageManifest},
 };
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WitnessAdmissionError {
@@ -48,6 +49,13 @@ impl AdmittedStructureWitness {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ClosureError {
+    GenerationMismatch,
+    ActivatedPackageMismatch,
+    MissingPackageManifest,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CapabilityClosure {
     context_digest: ArtifactDigest,
@@ -70,10 +78,28 @@ impl CapabilityClosure {
 
 pub fn derive_capabilities(
     context: &ClosureContext,
+    activated: &ActivatedPackageSet,
     witnesses: &[AdmittedStructureWitness],
     packages: &[TheoryPackageManifest],
-) -> CapabilityClosure {
-    let active: BTreeSet<_> = context.activated_packages().iter().copied().collect();
+) -> Result<CapabilityClosure, ClosureError> {
+    if activated.generation() != context.generation() {
+        return Err(ClosureError::GenerationMismatch);
+    }
+
+    let active: BTreeSet<_> = activated.digests().iter().copied().collect();
+    let context_active: BTreeSet<_> = context.activated_packages().iter().copied().collect();
+    if active != context_active {
+        return Err(ClosureError::ActivatedPackageMismatch);
+    }
+
+    let package_map: BTreeMap<_, _> = packages
+        .iter()
+        .map(|package| (package.structural_digest(), package))
+        .collect();
+    if active.iter().any(|digest| !package_map.contains_key(digest)) {
+        return Err(ClosureError::MissingPackageManifest);
+    }
+
     let proven_goals: BTreeSet<_> = witnesses
         .iter()
         .filter(|admitted| admitted.generation() == context.generation())
@@ -83,10 +109,10 @@ pub fn derive_capabilities(
         .collect();
 
     let mut capabilities = BTreeSet::new();
-    for package in packages {
-        if !active.contains(&package.structural_digest()) {
-            continue;
-        }
+    for digest in &active {
+        let package = package_map
+            .get(digest)
+            .expect("active package manifest prevalidated");
         for contract in package.capabilities() {
             if contract
                 .required_goals()
@@ -98,8 +124,8 @@ pub fn derive_capabilities(
         }
     }
 
-    CapabilityClosure {
+    Ok(CapabilityClosure {
         context_digest: context.structural_digest(),
         capabilities,
-    }
+    })
 }

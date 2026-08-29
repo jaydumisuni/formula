@@ -1,13 +1,34 @@
-use formula_core::{digest::ArtifactDigest, theory::CanonicalMorphism};
+use formula_core::{
+    artifacts::StructuralIdentity,
+    digest::ArtifactDigest,
+    generation::UniverseGeneration,
+    theory::CanonicalMorphism,
+};
 use std::collections::BTreeSet;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MorphismRegistryError {
+    MorphismNotAdmitted,
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MorphismRegistry {
+    generation: ArtifactDigest,
     morphisms: Vec<CanonicalMorphism>,
 }
 
 impl MorphismRegistry {
-    pub fn new(mut morphisms: Vec<CanonicalMorphism>) -> Self {
+    pub fn new(
+        generation: &UniverseGeneration,
+        mut morphisms: Vec<CanonicalMorphism>,
+    ) -> Result<Self, MorphismRegistryError> {
+        if morphisms
+            .iter()
+            .any(|morphism| !generation.admitted().contains(&morphism.structural_digest()))
+        {
+            return Err(MorphismRegistryError::MorphismNotAdmitted);
+        }
+
         morphisms
             .sort_by_key(|morphism| (morphism.source(), morphism.target(), morphism.morphism()));
         morphisms.dedup_by(|left, right| {
@@ -15,7 +36,14 @@ impl MorphismRegistry {
                 && left.target() == right.target()
                 && left.morphism() == right.morphism()
         });
-        Self { morphisms }
+        Ok(Self {
+            generation: generation.digest(),
+            morphisms,
+        })
+    }
+
+    pub fn generation(&self) -> ArtifactDigest {
+        self.generation
     }
 
     pub fn morphisms(&self) -> &[CanonicalMorphism] {
