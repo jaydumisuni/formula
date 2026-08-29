@@ -19,6 +19,9 @@ pub enum CheckFailure {
     WitnessWidthMismatch,
     WitnessMismatch,
     U8Counterexample(u8),
+    PromotionParentMismatch,
+    PromotionEvidenceMismatch,
+    PromotionAdmissionMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
