@@ -6,9 +6,7 @@ use formula_core::{
 };
 use formula_packages::{
     activation::validate_activation,
-    closure::{
-        AdmittedStructureWitness, WitnessAdmissionError, derive_capabilities,
-    },
+    closure::{AdmittedStructureWitness, WitnessAdmissionError, derive_capabilities},
 };
 
 fn d(label: &str) -> ArtifactDigest {
@@ -35,12 +33,8 @@ fn admitted_structure_witness_does_not_leak_across_generations() {
         vec![package_digest, witness.structural_digest()],
         vec![witness.evidence()],
     );
-    let generation_2 = UniverseGeneration::new(
-        2,
-        Some(generation_1.digest()),
-        vec![package_digest],
-        vec![],
-    );
+    let generation_2 =
+        UniverseGeneration::new(2, Some(generation_1.digest()), vec![package_digest], vec![]);
     let activated_1 = validate_activation(
         &generation_1,
         std::slice::from_ref(&package),
@@ -79,13 +73,7 @@ fn admitted_structure_witness_does_not_leak_across_generations() {
         std::slice::from_ref(&package),
     )
     .unwrap();
-    let leaked = derive_capabilities(
-        &context_2,
-        &activated_2,
-        &[admitted],
-        &[package],
-    )
-    .unwrap();
+    let leaked = derive_capabilities(&context_2, &activated_2, &[admitted], &[package]).unwrap();
 
     assert!(matching.contains(capability));
     assert!(!leaked.contains(capability));
