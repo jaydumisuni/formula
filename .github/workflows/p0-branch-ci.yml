@@ -18,7 +18,9 @@ jobs:
         run: |
           rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
           rustup override set 1.98.0
-      - name: Workspace-shape TDD gate
+      - name: Workspace-shape gate
         run: cargo test -p formula-archtest --test workspace_shape
+      - name: Dependency-firewall TDD gate
+        run: cargo test -p formula-archtest --test dependency_firewall
       - name: Show generated lockfile
         run: cat Cargo.lock
