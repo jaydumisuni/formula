@@ -4,3 +4,8 @@ version = "0.0.1"
 edition.workspace = true
 license.workspace = true
 publish = false
+
+[dependencies]
+formula-core = { path = "../formula-core" }
+formula-store = { path = "../formula-store" }
+formula-packages = { path = "../formula-packages" }
