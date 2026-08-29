@@ -52,7 +52,7 @@ fn activation_requires_packages_and_composition_claims_admitted_by_generation() 
         validate_activation(
             &no_packages,
             &[a.clone(), b.clone()],
-            &[claim.clone()],
+            std::slice::from_ref(&claim),
             &requested
         ),
         Err(ActivationError::PackageNotAdmitted)
@@ -68,7 +68,7 @@ fn activation_requires_packages_and_composition_claims_admitted_by_generation() 
         validate_activation(
             &no_claim,
             &[a.clone(), b.clone()],
-            &[claim.clone()],
+            std::slice::from_ref(&claim),
             &requested
         ),
         Err(ActivationError::CompositionClaimNotAdmitted)
@@ -88,7 +88,7 @@ fn activation_requires_packages_and_composition_claims_admitted_by_generation() 
         validate_activation(
             &no_evidence_binding,
             &[a.clone(), b.clone()],
-            &[claim.clone()],
+            std::slice::from_ref(&claim),
             &requested,
         ),
         Err(ActivationError::CompositionEvidenceNotAuthorityBound)
@@ -104,8 +104,13 @@ fn activation_requires_packages_and_composition_claims_admitted_by_generation() 
         ],
         vec![claim.evidence()],
     );
-    let activated =
-        validate_activation(&generation, &[a, b], &[claim.clone()], &requested).unwrap();
+    let activated = validate_activation(
+        &generation,
+        &[a, b],
+        std::slice::from_ref(&claim),
+        &requested,
+    )
+    .unwrap();
     assert_eq!(activated.generation(), generation.digest());
     assert_eq!(activated.composition_claims(), &[claim.structural_digest()]);
 }
