@@ -74,7 +74,11 @@ pub fn validate_federation_adapter(
         let Some(checker_route) = request.checker_route else {
             return Err(FederationError::CheckerRouteMismatch);
         };
-        if adapter.checker_routes().binary_search(&checker_route).is_err() {
+        if adapter
+            .checker_routes()
+            .binary_search(&checker_route)
+            .is_err()
+        {
             return Err(FederationError::CheckerRouteMismatch);
         }
 

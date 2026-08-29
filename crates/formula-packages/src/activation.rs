@@ -41,7 +41,12 @@ pub fn validate_activation(
 
     let selected: Vec<_> = requested
         .iter()
-        .map(|digest| package_map.get(digest).copied().ok_or(ActivationError::UnknownPackage))
+        .map(|digest| {
+            package_map
+                .get(digest)
+                .copied()
+                .ok_or(ActivationError::UnknownPackage)
+        })
         .collect::<Result<_, _>>()?;
 
     for package in &selected {

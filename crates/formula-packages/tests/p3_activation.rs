@@ -3,7 +3,7 @@ use formula_core::{
     digest::ArtifactDigest,
     theory::{CompositionClaim, CompositionClass, TheoryPackageManifest},
 };
-use formula_packages::activation::{validate_activation, ActivationError};
+use formula_packages::activation::{ActivationError, validate_activation};
 
 fn d(label: &str) -> ArtifactDigest {
     ArtifactDigest::of_bytes(label.as_bytes())
@@ -65,7 +65,10 @@ fn non_exact_composition_classes_do_not_enable_exact_activation() {
         CompositionClass::Quarantined,
     ] {
         let claim = CompositionClaim::new(
-            a.structural_digest(), b.structural_digest(), class, d(class.as_str()),
+            a.structural_digest(),
+            b.structural_digest(),
+            class,
+            d(class.as_str()),
         );
         assert_eq!(
             validate_activation(&[a.clone(), b.clone()], &[claim], &requested),

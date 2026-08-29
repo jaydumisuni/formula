@@ -2,9 +2,7 @@ use formula_core::{
     artifacts::StructuralIdentity,
     canonical::CanonicalValue,
     digest::ArtifactDigest,
-    theory::{
-        CapabilityContract, ClosureContext, FactPolarity, SharedFact, TheoryPackageManifest,
-    },
+    theory::{CapabilityContract, ClosureContext, FactPolarity, SharedFact, TheoryPackageManifest},
 };
 
 fn d(label: &str) -> ArtifactDigest {
@@ -17,7 +15,10 @@ fn package_manifest_identity_is_set_normalized() {
         "pkg.integer.v1".into(),
         d("foundation"),
         vec![d("export-b"), d("export-a"), d("export-a")],
-        vec![CapabilityContract::new(d("cap-b"), vec![d("goal-b")]), CapabilityContract::new(d("cap-a"), vec![d("goal-a")])],
+        vec![
+            CapabilityContract::new(d("cap-b"), vec![d("goal-b")]),
+            CapabilityContract::new(d("cap-a"), vec![d("goal-a")]),
+        ],
         vec![d("dependency-b"), d("dependency-a"), d("dependency-a")],
         vec!["rewrite:add".into(), "symbol:+".into(), "symbol:+".into()],
     );
@@ -25,7 +26,10 @@ fn package_manifest_identity_is_set_normalized() {
         "pkg.integer.v1".into(),
         d("foundation"),
         vec![d("export-a"), d("export-b")],
-        vec![CapabilityContract::new(d("cap-a"), vec![d("goal-a")]), CapabilityContract::new(d("cap-b"), vec![d("goal-b")])],
+        vec![
+            CapabilityContract::new(d("cap-a"), vec![d("goal-a")]),
+            CapabilityContract::new(d("cap-b"), vec![d("goal-b")]),
+        ],
         vec![d("dependency-a"), d("dependency-b")],
         vec!["symbol:+".into(), "rewrite:add".into()],
     );
@@ -58,7 +62,10 @@ fn closure_context_identity_is_generation_and_world_scoped() {
     );
 
     assert_ne!(base.structural_digest(), another_world.structural_digest());
-    assert_ne!(base.structural_digest(), another_generation.structural_digest());
+    assert_ne!(
+        base.structural_digest(),
+        another_generation.structural_digest()
+    );
 }
 
 #[test]

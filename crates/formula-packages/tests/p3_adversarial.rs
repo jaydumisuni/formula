@@ -3,18 +3,17 @@ use formula_core::{
     canonical::CanonicalValue,
     digest::ArtifactDigest,
     theory::{
-        CapabilityContract, CanonicalMorphism, ClosureContext, CompositionClaim, CompositionClass,
-        FactPolarity, FederationAdapterManifest, SharedFact, StructureWitness, TheoryPackageManifest,
+        CanonicalMorphism, CapabilityContract, ClosureContext, CompositionClaim, CompositionClass,
+        FactPolarity, FederationAdapterManifest, SharedFact, StructureWitness,
+        TheoryPackageManifest,
     },
 };
 use formula_packages::{
-    activation::{validate_activation, ActivationError},
+    activation::{ActivationError, validate_activation},
     closure::derive_capabilities,
-    federation::{
-        validate_federation_adapter, FederationError, FederationMode, FederationRequest,
-    },
-    morphisms::{resolve_common_parent, CommonParentResolution, MorphismRegistry},
-    shared_facts::{fact_satisfies, FactRequirement, FactUseDecision},
+    federation::{FederationError, FederationMode, FederationRequest, validate_federation_adapter},
+    morphisms::{CommonParentResolution, MorphismRegistry, resolve_common_parent},
+    shared_facts::{FactRequirement, FactUseDecision, fact_satisfies},
 };
 
 fn d(label: &str) -> ArtifactDigest {

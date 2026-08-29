@@ -1,7 +1,7 @@
 use formula_core::{digest::ArtifactDigest, theory::FederationAdapterManifest};
 use formula_packages::federation::{
-    validate_federation_adapter, FederationError, FederationMode, FederationRequest,
-    FederationValidation,
+    FederationError, FederationMode, FederationRequest, FederationValidation,
+    validate_federation_adapter,
 };
 
 fn d(label: &str) -> ArtifactDigest {
@@ -59,7 +59,11 @@ fn checked_modes_require_exact_declared_route_translation_and_result_class() {
         false,
     );
     assert_eq!(
-        validate_federation_adapter(&adapter(vec![]), FederationMode::CheckedResult, &wrong_route),
+        validate_federation_adapter(
+            &adapter(vec![]),
+            FederationMode::CheckedResult,
+            &wrong_route
+        ),
         Err(FederationError::CheckerRouteMismatch)
     );
 
@@ -87,7 +91,11 @@ fn checked_modes_require_exact_declared_route_translation_and_result_class() {
         false,
     );
     assert_eq!(
-        validate_federation_adapter(&adapter(vec![]), FederationMode::CheckedResult, &wrong_result),
+        validate_federation_adapter(
+            &adapter(vec![]),
+            FederationMode::CheckedResult,
+            &wrong_result
+        ),
         Err(FederationError::UnsupportedResultClass)
     );
 }

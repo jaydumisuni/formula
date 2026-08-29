@@ -1,6 +1,6 @@
 use formula_core::{digest::ArtifactDigest, theory::CanonicalMorphism};
 use formula_packages::morphisms::{
-    resolve_common_parent, CommonParentResolution, MorphismRegistry,
+    CommonParentResolution, MorphismRegistry, resolve_common_parent,
 };
 
 fn d(label: &str) -> ArtifactDigest {
@@ -36,7 +36,14 @@ fn multiple_common_parents_are_ambiguous_and_noncanonical_paths_are_ignored() {
 
     let unsafe_registry = MorphismRegistry::new(vec![
         CanonicalMorphism::new(d("left"), d("parent"), d("lossy"), vec![], true, false),
-        CanonicalMorphism::new(d("right"), d("parent"), d("noncanonical"), vec![], false, true),
+        CanonicalMorphism::new(
+            d("right"),
+            d("parent"),
+            d("noncanonical"),
+            vec![],
+            false,
+            true,
+        ),
     ]);
     assert_eq!(
         resolve_common_parent(&unsafe_registry, d("left"), d("right")),

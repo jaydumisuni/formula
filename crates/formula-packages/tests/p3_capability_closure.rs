@@ -54,14 +54,30 @@ fn closure_is_deterministic_and_context_identity_is_generation_scoped() {
     let package_digest = package.structural_digest();
     let witness = StructureWitness::new(d("world-1"), goal, d("evidence"));
     let context_a = ClosureContext::new(
-        d("generation-1"), d("world-1"), vec![package_digest], d("rules"), d("policy"),
+        d("generation-1"),
+        d("world-1"),
+        vec![package_digest],
+        d("rules"),
+        d("policy"),
     );
     let context_b = ClosureContext::new(
-        d("generation-2"), d("world-1"), vec![package_digest], d("rules"), d("policy"),
+        d("generation-2"),
+        d("world-1"),
+        vec![package_digest],
+        d("rules"),
+        d("policy"),
     );
 
-    let a1 = derive_capabilities(&context_a, std::slice::from_ref(&witness), std::slice::from_ref(&package));
-    let a2 = derive_capabilities(&context_a, std::slice::from_ref(&witness), std::slice::from_ref(&package));
+    let a1 = derive_capabilities(
+        &context_a,
+        std::slice::from_ref(&witness),
+        std::slice::from_ref(&package),
+    );
+    let a2 = derive_capabilities(
+        &context_a,
+        std::slice::from_ref(&witness),
+        std::slice::from_ref(&package),
+    );
     let b = derive_capabilities(&context_b, &[witness], &[package]);
 
     assert_eq!(a1, a2);

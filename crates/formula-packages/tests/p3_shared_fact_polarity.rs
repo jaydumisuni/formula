@@ -3,7 +3,7 @@ use formula_core::{
     digest::ArtifactDigest,
     theory::{FactPolarity, SharedFact},
 };
-use formula_packages::shared_facts::{fact_satisfies, FactRequirement, FactUseDecision};
+use formula_packages::shared_facts::{FactRequirement, FactUseDecision, fact_satisfies};
 
 fn d(label: &str) -> ArtifactDigest {
     ArtifactDigest::of_bytes(label.as_bytes())
@@ -73,6 +73,9 @@ fn exact_facts_may_satisfy_exact_and_weaker_directional_consumers() {
         FactRequirement::NecessaryCondition,
         FactRequirement::SufficientCondition,
     ] {
-        assert_eq!(fact_satisfies(&exact, requirement), FactUseDecision::Allowed);
+        assert_eq!(
+            fact_satisfies(&exact, requirement),
+            FactUseDecision::Allowed
+        );
     }
 }

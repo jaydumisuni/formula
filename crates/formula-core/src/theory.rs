@@ -1,6 +1,4 @@
-use crate::{
-    artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest,
-};
+use crate::{artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest};
 use std::collections::BTreeMap;
 
 const THEORY_SCHEMA_V1: &str = "formula-theory-v1";
@@ -126,9 +124,15 @@ impl TheoryPackageManifest {
 impl StructuralIdentity for TheoryPackageManifest {
     fn canonical_value(&self) -> CanonicalValue {
         let mut object = canonical_object("TheoryPackageManifest");
-        object.insert("package_id".into(), CanonicalValue::String(self.package_id.clone()));
+        object.insert(
+            "package_id".into(),
+            CanonicalValue::String(self.package_id.clone()),
+        );
         object.insert("foundation".into(), CanonicalValue::Digest(self.foundation));
-        object.insert("semantic_exports".into(), digest_array(&self.semantic_exports));
+        object.insert(
+            "semantic_exports".into(),
+            digest_array(&self.semantic_exports),
+        );
         object.insert(
             "capabilities".into(),
             CanonicalValue::Array(
@@ -188,7 +192,11 @@ pub struct StructureWitness {
 
 impl StructureWitness {
     pub fn new(world: ArtifactDigest, goal: ArtifactDigest, evidence: ArtifactDigest) -> Self {
-        Self { world, goal, evidence }
+        Self {
+            world,
+            goal,
+            evidence,
+        }
     }
 
     pub fn world(&self) -> ArtifactDigest {
@@ -243,12 +251,24 @@ impl CanonicalMorphism {
         }
     }
 
-    pub fn source(&self) -> ArtifactDigest { self.source }
-    pub fn target(&self) -> ArtifactDigest { self.target }
-    pub fn morphism(&self) -> ArtifactDigest { self.morphism }
-    pub fn preserves(&self) -> &[ArtifactDigest] { &self.preserves }
-    pub fn is_canonical(&self) -> bool { self.canonical }
-    pub fn is_lossless(&self) -> bool { self.lossless }
+    pub fn source(&self) -> ArtifactDigest {
+        self.source
+    }
+    pub fn target(&self) -> ArtifactDigest {
+        self.target
+    }
+    pub fn morphism(&self) -> ArtifactDigest {
+        self.morphism
+    }
+    pub fn preserves(&self) -> &[ArtifactDigest] {
+        &self.preserves
+    }
+    pub fn is_canonical(&self) -> bool {
+        self.canonical
+    }
+    pub fn is_lossless(&self) -> bool {
+        self.lossless
+    }
 }
 
 impl StructuralIdentity for CanonicalMorphism {
@@ -309,21 +329,43 @@ impl CompositionClaim {
         } else {
             (right_package, left_package)
         };
-        Self { left_package, right_package, class, evidence }
+        Self {
+            left_package,
+            right_package,
+            class,
+            evidence,
+        }
     }
 
-    pub fn left_package(&self) -> ArtifactDigest { self.left_package }
-    pub fn right_package(&self) -> ArtifactDigest { self.right_package }
-    pub fn class(&self) -> CompositionClass { self.class }
-    pub fn evidence(&self) -> ArtifactDigest { self.evidence }
+    pub fn left_package(&self) -> ArtifactDigest {
+        self.left_package
+    }
+    pub fn right_package(&self) -> ArtifactDigest {
+        self.right_package
+    }
+    pub fn class(&self) -> CompositionClass {
+        self.class
+    }
+    pub fn evidence(&self) -> ArtifactDigest {
+        self.evidence
+    }
 }
 
 impl StructuralIdentity for CompositionClaim {
     fn canonical_value(&self) -> CanonicalValue {
         let mut object = canonical_object("CompositionClaim");
-        object.insert("left_package".into(), CanonicalValue::Digest(self.left_package));
-        object.insert("right_package".into(), CanonicalValue::Digest(self.right_package));
-        object.insert("class".into(), CanonicalValue::String(self.class.as_str().into()));
+        object.insert(
+            "left_package".into(),
+            CanonicalValue::Digest(self.left_package),
+        );
+        object.insert(
+            "right_package".into(),
+            CanonicalValue::Digest(self.right_package),
+        );
+        object.insert(
+            "class".into(),
+            CanonicalValue::String(self.class.as_str().into()),
+        );
         object.insert("evidence".into(), CanonicalValue::Digest(self.evidence));
         CanonicalValue::Object(object)
     }
@@ -368,29 +410,59 @@ impl FederationAdapterManifest {
         }
     }
 
-    pub fn adapter_id(&self) -> &str { &self.adapter_id }
-    pub fn package(&self) -> ArtifactDigest { self.package }
-    pub fn semantic_inputs(&self) -> &[ArtifactDigest] { &self.semantic_inputs }
-    pub fn semantic_outputs(&self) -> &[ArtifactDigest] { &self.semantic_outputs }
-    pub fn translations(&self) -> &[ArtifactDigest] { &self.translations }
-    pub fn checker_routes(&self) -> &[ArtifactDigest] { &self.checker_routes }
-    pub fn side_effects(&self) -> &[String] { &self.side_effects }
-    pub fn result_classes(&self) -> &[String] { &self.result_classes }
-    pub fn deterministic(&self) -> bool { self.deterministic }
+    pub fn adapter_id(&self) -> &str {
+        &self.adapter_id
+    }
+    pub fn package(&self) -> ArtifactDigest {
+        self.package
+    }
+    pub fn semantic_inputs(&self) -> &[ArtifactDigest] {
+        &self.semantic_inputs
+    }
+    pub fn semantic_outputs(&self) -> &[ArtifactDigest] {
+        &self.semantic_outputs
+    }
+    pub fn translations(&self) -> &[ArtifactDigest] {
+        &self.translations
+    }
+    pub fn checker_routes(&self) -> &[ArtifactDigest] {
+        &self.checker_routes
+    }
+    pub fn side_effects(&self) -> &[String] {
+        &self.side_effects
+    }
+    pub fn result_classes(&self) -> &[String] {
+        &self.result_classes
+    }
+    pub fn deterministic(&self) -> bool {
+        self.deterministic
+    }
 }
 
 impl StructuralIdentity for FederationAdapterManifest {
     fn canonical_value(&self) -> CanonicalValue {
         let mut object = canonical_object("FederationAdapterManifest");
-        object.insert("adapter_id".into(), CanonicalValue::String(self.adapter_id.clone()));
+        object.insert(
+            "adapter_id".into(),
+            CanonicalValue::String(self.adapter_id.clone()),
+        );
         object.insert("package".into(), CanonicalValue::Digest(self.package));
-        object.insert("semantic_inputs".into(), digest_array(&self.semantic_inputs));
-        object.insert("semantic_outputs".into(), digest_array(&self.semantic_outputs));
+        object.insert(
+            "semantic_inputs".into(),
+            digest_array(&self.semantic_inputs),
+        );
+        object.insert(
+            "semantic_outputs".into(),
+            digest_array(&self.semantic_outputs),
+        );
         object.insert("translations".into(), digest_array(&self.translations));
         object.insert("checker_routes".into(), digest_array(&self.checker_routes));
         object.insert("side_effects".into(), string_array(&self.side_effects));
         object.insert("result_classes".into(), string_array(&self.result_classes));
-        object.insert("deterministic".into(), CanonicalValue::Bool(self.deterministic));
+        object.insert(
+            "deterministic".into(),
+            CanonicalValue::Bool(self.deterministic),
+        );
         CanonicalValue::Object(object)
     }
 }
@@ -439,14 +511,30 @@ impl SharedFact {
         polarity: FactPolarity,
         evidence: ArtifactDigest,
     ) -> Self {
-        Self { world, subject, payload, polarity, evidence }
+        Self {
+            world,
+            subject,
+            payload,
+            polarity,
+            evidence,
+        }
     }
 
-    pub fn world(&self) -> ArtifactDigest { self.world }
-    pub fn subject(&self) -> ArtifactDigest { self.subject }
-    pub fn payload(&self) -> &CanonicalValue { &self.payload }
-    pub fn polarity(&self) -> FactPolarity { self.polarity }
-    pub fn evidence(&self) -> ArtifactDigest { self.evidence }
+    pub fn world(&self) -> ArtifactDigest {
+        self.world
+    }
+    pub fn subject(&self) -> ArtifactDigest {
+        self.subject
+    }
+    pub fn payload(&self) -> &CanonicalValue {
+        &self.payload
+    }
+    pub fn polarity(&self) -> FactPolarity {
+        self.polarity
+    }
+    pub fn evidence(&self) -> ArtifactDigest {
+        self.evidence
+    }
 }
 
 impl StructuralIdentity for SharedFact {
@@ -455,7 +543,10 @@ impl StructuralIdentity for SharedFact {
         object.insert("world".into(), CanonicalValue::Digest(self.world));
         object.insert("subject".into(), CanonicalValue::Digest(self.subject));
         object.insert("payload".into(), self.payload.clone());
-        object.insert("polarity".into(), CanonicalValue::String(self.polarity.as_str().into()));
+        object.insert(
+            "polarity".into(),
+            CanonicalValue::String(self.polarity.as_str().into()),
+        );
         object.insert("evidence".into(), CanonicalValue::Digest(self.evidence));
         CanonicalValue::Object(object)
     }
@@ -487,11 +578,21 @@ impl ClosureContext {
         }
     }
 
-    pub fn generation(&self) -> ArtifactDigest { self.generation }
-    pub fn world(&self) -> ArtifactDigest { self.world }
-    pub fn activated_packages(&self) -> &[ArtifactDigest] { &self.activated_packages }
-    pub fn closure_rule_set(&self) -> ArtifactDigest { self.closure_rule_set }
-    pub fn authority_policy(&self) -> ArtifactDigest { self.authority_policy }
+    pub fn generation(&self) -> ArtifactDigest {
+        self.generation
+    }
+    pub fn world(&self) -> ArtifactDigest {
+        self.world
+    }
+    pub fn activated_packages(&self) -> &[ArtifactDigest] {
+        &self.activated_packages
+    }
+    pub fn closure_rule_set(&self) -> ArtifactDigest {
+        self.closure_rule_set
+    }
+    pub fn authority_policy(&self) -> ArtifactDigest {
+        self.authority_policy
+    }
 }
 
 impl StructuralIdentity for ClosureContext {
@@ -499,9 +600,18 @@ impl StructuralIdentity for ClosureContext {
         let mut object = canonical_object("ClosureContext");
         object.insert("generation".into(), CanonicalValue::Digest(self.generation));
         object.insert("world".into(), CanonicalValue::Digest(self.world));
-        object.insert("activated_packages".into(), digest_array(&self.activated_packages));
-        object.insert("closure_rule_set".into(), CanonicalValue::Digest(self.closure_rule_set));
-        object.insert("authority_policy".into(), CanonicalValue::Digest(self.authority_policy));
+        object.insert(
+            "activated_packages".into(),
+            digest_array(&self.activated_packages),
+        );
+        object.insert(
+            "closure_rule_set".into(),
+            CanonicalValue::Digest(self.closure_rule_set),
+        );
+        object.insert(
+            "authority_policy".into(),
+            CanonicalValue::Digest(self.authority_policy),
+        );
         CanonicalValue::Object(object)
     }
 }

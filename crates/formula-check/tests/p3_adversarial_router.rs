@@ -1,4 +1,4 @@
-use formula_check::router::{select_certificate_route, RouteCandidate, RouteError};
+use formula_check::router::{RouteCandidate, RouteError, select_certificate_route};
 use formula_core::{artifacts::AuthorityContract, digest::ArtifactDigest};
 
 fn d(label: &str) -> ArtifactDigest {

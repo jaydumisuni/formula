@@ -25,10 +25,9 @@ pub fn fact_satisfies(fact: &SharedFact, requirement: FactRequirement) -> FactUs
             requirement,
             FactRequirement::OverApproximation | FactRequirement::NecessaryCondition
         ),
-        FactPolarity::UnderApproximation => matches!(
-            requirement,
-            FactRequirement::UnderApproximation
-        ),
+        FactPolarity::UnderApproximation => {
+            matches!(requirement, FactRequirement::UnderApproximation)
+        }
         FactPolarity::LowerBound => matches!(requirement, FactRequirement::LowerBound),
         FactPolarity::UpperBound => matches!(requirement, FactRequirement::UpperBound),
         FactPolarity::NecessaryCondition => {

@@ -8,13 +8,8 @@ pub struct MorphismRegistry {
 
 impl MorphismRegistry {
     pub fn new(mut morphisms: Vec<CanonicalMorphism>) -> Self {
-        morphisms.sort_by_key(|morphism| {
-            (
-                morphism.source(),
-                morphism.target(),
-                morphism.morphism(),
-            )
-        });
+        morphisms
+            .sort_by_key(|morphism| (morphism.source(), morphism.target(), morphism.morphism()));
         morphisms.dedup_by(|left, right| {
             left.source() == right.source()
                 && left.target() == right.target()

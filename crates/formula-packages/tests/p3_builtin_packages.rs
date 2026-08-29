@@ -30,12 +30,19 @@ fn builtin_package_manifests_are_deterministic_and_dependency_bound() {
     assert_eq!(matrix.package_id(), "formula.gf2.matrix.v1.r4c8");
 
     assert!(integer.dependencies().is_empty());
-    assert!(rational.dependencies().contains(&integer.structural_digest()));
+    assert!(
+        rational
+            .dependencies()
+            .contains(&integer.structural_digest())
+    );
     assert!(poly.dependencies().contains(&integer.structural_digest()));
     assert!(vector.dependencies().contains(&gf2.structural_digest()));
     assert!(matrix.dependencies().contains(&gf2.structural_digest()));
 
     assert!(!integer.semantic_exports().is_empty());
     assert!(!integer.capabilities().is_empty());
-    assert_eq!(integer.structural_digest(), integer_package(foundation).structural_digest());
+    assert_eq!(
+        integer.structural_digest(),
+        integer_package(foundation).structural_digest()
+    );
 }

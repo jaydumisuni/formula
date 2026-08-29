@@ -1,6 +1,4 @@
-use formula_check::router::{
-    select_certificate_route, RouteCandidate, RouteError,
-};
+use formula_check::router::{RouteCandidate, RouteError, select_certificate_route};
 use formula_core::{artifacts::AuthorityContract, digest::ArtifactDigest};
 
 fn d(label: &str) -> ArtifactDigest {
@@ -90,12 +88,7 @@ fn unavailable_exact_route_fails_closed() {
         1,
     );
     assert_eq!(
-        select_certificate_route(
-            &exact_contract(),
-            d("checker"),
-            d("trust"),
-            &[weak],
-        ),
+        select_certificate_route(&exact_contract(), d("checker"), d("trust"), &[weak],),
         Err(RouteError::NoAdmissibleRoute)
     );
 }
