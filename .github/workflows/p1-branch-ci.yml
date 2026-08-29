@@ -1,4 +1,4 @@
-name: P1 branch TDD
+name: P1 canonical proof
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  p1-tdd:
+  p1-proof:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -18,15 +18,19 @@ jobs:
         run: |
           rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
           rustup override set 1.98.0
-      - name: Task 1 canonical identity gate
-        run: cargo test -p formula-core --test canonical_identity
-      - name: Task 2 artifact identity gate
-        run: cargo test -p formula-core --test artifact_identity
-      - name: Task 3 generation identity gate
-        run: cargo test -p formula-core --test generation_identity
-      - name: Task 4 blob store gate
-        run: cargo test -p formula-store --test blob_store
-      - name: Task 5 authority publication gate
-        run: cargo test -p formula-store --test generation_replay
-      - name: Task 5 atomic rollback gate
-        run: cargo test -p formula-store failure_
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: Canonical P1 proof gate
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-archtest --locked --offline
+          cargo test -p formula-core --locked --offline
+          cargo test -p formula-store --locked --offline
+          cargo test --workspace --locked --offline
+          cargo build --workspace --locked --offline
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+          cargo tree --locked --offline -p formula-check
+          cargo tree --locked --offline -p formula-engine
+          cargo tree --locked --offline -p formula-first-light
+          test -z "$(git status --porcelain)"
