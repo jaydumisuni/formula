@@ -14,6 +14,10 @@ pub enum CheckFailure {
     UnsupportedCertificateFamilyVersion,
     AuthorityInsufficient,
     SemanticMismatch,
+    InvalidConstraint,
+    TranslationMismatch,
+    WitnessWidthMismatch,
+    WitnessMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -1,4 +1,5 @@
 pub mod envelope;
+pub mod gf2;
 pub mod identity;
 pub mod polynomial;
 pub mod verdict;
