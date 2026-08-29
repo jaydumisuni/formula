@@ -1,0 +1,28 @@
+name: P3 development gate
+
+on:
+  push:
+    branches:
+      - implementation/p3-theory-packages-capability-closure
+
+permissions:
+  contents: read
+
+jobs:
+  p3-dev:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: Development gate
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-core --all-targets --locked --offline
+          cargo test -p formula-packages --all-targets --locked --offline
+          cargo test -p formula-check --all-targets --locked --offline
+          cargo test -p formula-archtest --locked --offline
