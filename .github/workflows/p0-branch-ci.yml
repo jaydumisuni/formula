@@ -1,4 +1,4 @@
-name: P0 branch TDD
+name: P0 proof candidate
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  p0-red-green:
+  p0-proof-candidate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,13 +18,33 @@ jobs:
         run: |
           rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
           rustup override set 1.98.0
-      - name: Workspace-shape gate
-        run: cargo test -p formula-archtest --test workspace_shape
-      - name: Dependency-firewall gate
-        run: cargo test -p formula-archtest --test dependency_firewall
-      - name: Sealed-boundary gate
-        run: cargo test -p formula-archtest --test sealed_boundary
-      - name: Runtime-network policy gate
-        run: cargo test -p formula-archtest --test runtime_network_policy
-      - name: Fixture-identity gate
-        run: cargo test -p formula-archtest --test fixture_identity
+      - name: Capture source and toolchain metadata
+        run: |
+          set -euxo pipefail
+          git status --porcelain
+          git rev-parse HEAD
+          rustc -vV
+          cargo -V
+          git hash-object Cargo.toml Cargo.lock rust-toolchain.toml
+          git hash-object tests/first-light/public/P0_PUBLIC_SENTINEL.txt tests/first-light/sealed/P0_SEALED_SENTINEL.txt
+          mkdir -p target
+          cargo metadata --locked --offline --format-version 1 > target/p0-cargo-metadata.json
+          cat target/p0-cargo-metadata.json
+      - name: Architecture proof gate
+        run: cargo test -p formula-archtest --locked --offline
+      - name: Full workspace tests
+        run: cargo test --workspace --locked --offline
+      - name: Locked offline workspace build
+        run: cargo build --workspace --locked --offline
+      - name: Rustfmt gate
+        run: cargo fmt --all -- --check
+      - name: Clippy gate
+        run: cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+      - name: Inspect checker dependency tree
+        run: cargo tree --locked --offline -p formula-check
+      - name: Inspect engine dependency tree
+        run: cargo tree --locked --offline -p formula-engine
+      - name: Inspect First-Light dependency tree
+        run: cargo tree --locked --offline -p formula-first-light
+      - name: Verify clean source tree after proof
+        run: git status --porcelain
