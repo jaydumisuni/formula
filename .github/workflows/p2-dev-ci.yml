@@ -1,0 +1,27 @@
+name: P2 development TDD
+
+on:
+  push:
+    branches:
+      - implementation/p2-independent-checker-certificate-core
+
+permissions:
+  contents: read
+
+jobs:
+  p2-dev-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: Development TDD gate
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-core --locked --offline
+          cargo test -p formula-check --locked --offline
+          cargo test -p formula-archtest --locked --offline
