@@ -1,4 +1,8 @@
-use std::{fs, path::{Path, PathBuf}, process::Command};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 const FIXTURES: &[(&str, &[u8], &str)] = &[
     (
@@ -39,9 +43,13 @@ fn p0_fixture_bytes_and_source_identities_are_frozen() {
     let root = root();
     for (relative, expected_bytes, expected_oid) in FIXTURES {
         let path = root.join(relative);
-        let bytes = fs::read(&path)
-            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
-        assert_eq!(bytes.as_slice(), *expected_bytes, "fixture byte drift: {relative}");
+        let bytes =
+            fs::read(&path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+        assert_eq!(
+            bytes.as_slice(),
+            *expected_bytes,
+            "fixture byte drift: {relative}"
+        );
         assert_eq!(
             git_blob_oid(&root, relative),
             *expected_oid,

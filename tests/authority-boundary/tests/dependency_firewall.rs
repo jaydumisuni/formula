@@ -6,7 +6,9 @@ fn root() -> PathBuf {
 
 fn cargo_tree(package: &str) -> String {
     let out = Command::new("cargo")
-        .args(["tree", "--prefix", "none", "--edges", "normal", "-p", package])
+        .args([
+            "tree", "--prefix", "none", "--edges", "normal", "-p", package,
+        ])
         .current_dir(root())
         .output()
         .expect("cargo tree must execute");
