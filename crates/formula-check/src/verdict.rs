@@ -18,6 +18,7 @@ pub enum CheckFailure {
     TranslationMismatch,
     WitnessWidthMismatch,
     WitnessMismatch,
+    U8Counterexample(u8),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
