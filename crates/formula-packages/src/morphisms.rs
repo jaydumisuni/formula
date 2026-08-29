@@ -1,7 +1,5 @@
 use formula_core::{
-    artifacts::StructuralIdentity,
-    digest::ArtifactDigest,
-    generation::UniverseGeneration,
+    artifacts::StructuralIdentity, digest::ArtifactDigest, generation::UniverseGeneration,
     theory::CanonicalMorphism,
 };
 use std::collections::BTreeSet;
@@ -22,10 +20,11 @@ impl MorphismRegistry {
         generation: &UniverseGeneration,
         mut morphisms: Vec<CanonicalMorphism>,
     ) -> Result<Self, MorphismRegistryError> {
-        if morphisms
-            .iter()
-            .any(|morphism| !generation.admitted().contains(&morphism.structural_digest()))
-        {
+        if morphisms.iter().any(|morphism| {
+            !generation
+                .admitted()
+                .contains(&morphism.structural_digest())
+        }) {
             return Err(MorphismRegistryError::MorphismNotAdmitted);
         }
 
