@@ -26,5 +26,7 @@ jobs:
         run: cargo test -p formula-core --test generation_identity
       - name: Task 4 blob store gate
         run: cargo test -p formula-store --test blob_store
-      - name: Task 5 authority publication TDD gate
+      - name: Task 5 authority publication gate
         run: cargo test -p formula-store --test generation_replay
+      - name: Task 5 atomic rollback TDD gate
+        run: cargo test -p formula-store failure_
