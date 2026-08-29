@@ -182,6 +182,18 @@ impl Judgement {
             references: sorted_digests(references),
         }
     }
+
+    pub fn world(&self) -> ArtifactDigest {
+        self.world
+    }
+
+    pub fn proposition(&self) -> &CanonicalValue {
+        &self.proposition
+    }
+
+    pub fn references(&self) -> &[ArtifactDigest] {
+        &self.references
+    }
 }
 
 impl StructuralIdentity for Judgement {
@@ -237,6 +249,50 @@ impl EvidenceEnvelope {
             dependency_digests: sorted_digests(dependency_digests),
             replay_binding,
         }
+    }
+
+    pub fn target_judgement(&self) -> ArtifactDigest {
+        self.target_judgement
+    }
+
+    pub fn world(&self) -> ArtifactDigest {
+        self.world
+    }
+
+    pub fn scope(&self) -> &CanonicalValue {
+        &self.scope
+    }
+
+    pub fn evidence_family(&self) -> &str {
+        &self.evidence_family
+    }
+
+    pub fn evidence_body_digest(&self) -> ArtifactDigest {
+        self.evidence_body_digest
+    }
+
+    pub fn producer(&self) -> ArtifactDigest {
+        self.producer
+    }
+
+    pub fn checker(&self) -> ArtifactDigest {
+        self.checker
+    }
+
+    pub fn checker_trust_root(&self) -> ArtifactDigest {
+        self.checker_trust_root
+    }
+
+    pub fn verdict(&self) -> &str {
+        &self.verdict
+    }
+
+    pub fn dependency_digests(&self) -> &[ArtifactDigest] {
+        &self.dependency_digests
+    }
+
+    pub fn replay_binding(&self) -> &CanonicalValue {
+        &self.replay_binding
     }
 }
 
@@ -304,6 +360,30 @@ impl RealizationMetadata {
             validation_evidence_digest,
         }
     }
+
+    pub fn semantic_target(&self) -> ArtifactDigest {
+        self.semantic_target
+    }
+
+    pub fn realization_kind(&self) -> &str {
+        &self.realization_kind
+    }
+
+    pub fn source_digest(&self) -> ArtifactDigest {
+        self.source_digest
+    }
+
+    pub fn binary_digest(&self) -> ArtifactDigest {
+        self.binary_digest
+    }
+
+    pub fn input_output_semantics(&self) -> &CanonicalValue {
+        &self.input_output_semantics
+    }
+
+    pub fn validation_evidence_digest(&self) -> ArtifactDigest {
+        self.validation_evidence_digest
+    }
 }
 
 impl StructuralIdentity for RealizationMetadata {
@@ -356,6 +436,18 @@ impl AuthorityContract {
             exactness_requirement,
         }
     }
+
+    pub fn requested_authority_class(&self) -> &str {
+        &self.requested_authority_class
+    }
+
+    pub fn allowed_evidence_families(&self) -> &[String] {
+        &self.allowed_evidence_families
+    }
+
+    pub fn exactness_requirement(&self) -> &str {
+        &self.exactness_requirement
+    }
 }
 
 impl StructuralIdentity for AuthorityContract {
@@ -389,6 +481,14 @@ impl Observer {
             observer_family,
             semantics,
         }
+    }
+
+    pub fn observer_family(&self) -> &str {
+        &self.observer_family
+    }
+
+    pub fn semantics(&self) -> &CanonicalValue {
+        &self.semantics
     }
 }
 
