@@ -1,5 +1,15 @@
 [workspace]
-members = ["tests/authority-boundary"]
+members = [
+  "crates/formula-core",
+  "crates/formula-store",
+  "crates/formula-check",
+  "crates/formula-engine",
+  "crates/formula-packages",
+  "crates/formula-realize",
+  "crates/formula-first-light",
+  "crates/formula-cli",
+  "tests/authority-boundary",
+]
 resolver = "2"
 
 [workspace.package]
