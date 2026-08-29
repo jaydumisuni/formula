@@ -58,13 +58,8 @@ fn world_generation_and_activation_boundaries_do_not_leak_capability() {
         &[package_digest],
     )
     .unwrap();
-    let deactivated_set = validate_activation(
-        &generation,
-        std::slice::from_ref(&package),
-        &[],
-        &[],
-    )
-    .unwrap();
+    let deactivated_set =
+        validate_activation(&generation, std::slice::from_ref(&package), &[], &[]).unwrap();
     let active = ClosureContext::new(
         generation.digest(),
         d("world-1"),
@@ -79,12 +74,8 @@ fn world_generation_and_activation_boundaries_do_not_leak_capability() {
         d("rules"),
         d("policy"),
     );
-    let another_generation = UniverseGeneration::new(
-        2,
-        Some(generation.digest()),
-        vec![package_digest],
-        vec![],
-    );
+    let another_generation =
+        UniverseGeneration::new(2, Some(generation.digest()), vec![package_digest], vec![]);
     let another_generation_set = validate_activation(
         &another_generation,
         std::slice::from_ref(&package),
