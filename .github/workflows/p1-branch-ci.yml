@@ -28,5 +28,23 @@ jobs:
         run: cargo test -p formula-store --test blob_store
       - name: Task 5 authority publication gate
         run: cargo test -p formula-store --test generation_replay
-      - name: Task 5 atomic rollback TDD gate
+      - name: Task 5 atomic rollback gate
         run: cargo test -p formula-store failure_
+      - name: Generate exact dependency freeze candidates
+        run: |
+          set -euxo pipefail
+          cargo generate-lockfile
+          {
+            cargo tree -p formula-first-light --prefix none --edges normal
+            cargo tree -p formula-cli --prefix none --edges normal
+          } | awk '{print $1}' | sort -u > runtime-allowlist.generated.txt
+          cat runtime-allowlist.generated.txt
+      - name: Upload dependency freeze candidates
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-dependency-freeze-${{ github.sha }}
+          path: |
+            Cargo.lock
+            runtime-allowlist.generated.txt
+          if-no-files-found: error
+          retention-days: 1
