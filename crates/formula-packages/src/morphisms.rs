@@ -21,9 +21,7 @@ impl MorphismRegistry {
         mut morphisms: Vec<CanonicalMorphism>,
     ) -> Result<Self, MorphismRegistryError> {
         if morphisms.iter().any(|morphism| {
-            !generation
-                .admitted()
-                .contains(&morphism.structural_digest())
+            !generation.admitted().contains(&morphism.structural_digest())
         }) {
             return Err(MorphismRegistryError::MorphismNotAdmitted);
         }
