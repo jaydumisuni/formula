@@ -2,6 +2,7 @@ use formula_core::{
     artifacts::StructuralIdentity,
     canonical::CanonicalValue,
     digest::ArtifactDigest,
+    generation::UniverseGeneration,
     theory::{
         CanonicalMorphism, CapabilityContract, ClosureContext, CompositionClaim, CompositionClass,
         FactPolarity, FederationAdapterManifest, SharedFact, StructureWitness,
@@ -10,7 +11,7 @@ use formula_core::{
 };
 use formula_packages::{
     activation::{ActivationError, validate_activation},
-    closure::derive_capabilities,
+    closure::{AdmittedStructureWitness, derive_capabilities},
     federation::{FederationError, FederationMode, FederationRequest, validate_federation_adapter},
     morphisms::{CommonParentResolution, MorphismRegistry, resolve_common_parent},
     shared_facts::{FactRequirement, FactUseDecision, fact_satisfies},
@@ -43,30 +44,37 @@ fn world_generation_and_activation_boundaries_do_not_leak_capability() {
     let package = package("pkg", goal, capability, vec![]);
     let package_digest = package.structural_digest();
     let witness = StructureWitness::new(d("world-1"), goal, d("evidence"));
-
+    let generation = UniverseGeneration::new(
+        1,
+        None,
+        vec![witness.structural_digest()],
+        vec![witness.evidence()],
+    );
+    let admitted = AdmittedStructureWitness::new(&generation, witness).unwrap();
     let active = ClosureContext::new(
-        d("generation-1"),
+        generation.digest(),
         d("world-1"),
         vec![package_digest],
         d("rules"),
         d("policy"),
     );
     let deactivated = ClosureContext::new(
-        d("generation-1"),
+        generation.digest(),
         d("world-1"),
         vec![],
         d("rules"),
         d("policy"),
     );
-    let another_generation = ClosureContext::new(
-        d("generation-2"),
+    let another_generation = UniverseGeneration::new(2, Some(generation.digest()), vec![], vec![]);
+    let another_generation_context = ClosureContext::new(
+        another_generation.digest(),
         d("world-1"),
         vec![package_digest],
         d("rules"),
         d("policy"),
     );
     let another_world = ClosureContext::new(
-        d("generation-1"),
+        generation.digest(),
         d("world-2"),
         vec![package_digest],
         d("rules"),
@@ -75,27 +83,31 @@ fn world_generation_and_activation_boundaries_do_not_leak_capability() {
 
     let active_closure = derive_capabilities(
         &active,
-        std::slice::from_ref(&witness),
+        std::slice::from_ref(&admitted),
         std::slice::from_ref(&package),
     );
     assert!(active_closure.contains(capability));
 
     let deactivated_closure = derive_capabilities(
         &deactivated,
-        std::slice::from_ref(&witness),
+        std::slice::from_ref(&admitted),
         std::slice::from_ref(&package),
     );
     assert!(!deactivated_closure.contains(capability));
 
     let wrong_world = derive_capabilities(
         &another_world,
-        std::slice::from_ref(&witness),
+        std::slice::from_ref(&admitted),
         std::slice::from_ref(&package),
     );
     assert!(!wrong_world.contains(capability));
 
-    let another_generation_closure =
-        derive_capabilities(&another_generation, &[witness], &[package]);
+    let another_generation_closure = derive_capabilities(
+        &another_generation_context,
+        &[admitted],
+        &[package],
+    );
+    assert!(!another_generation_closure.contains(capability));
     assert_ne!(
         active_closure.context_digest(),
         another_generation_closure.context_digest()

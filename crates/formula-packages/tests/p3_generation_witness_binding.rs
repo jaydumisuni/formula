@@ -1,9 +1,12 @@
 use formula_core::{
     artifacts::StructuralIdentity,
     digest::ArtifactDigest,
+    generation::UniverseGeneration,
     theory::{CapabilityContract, ClosureContext, StructureWitness, TheoryPackageManifest},
 };
-use formula_packages::closure::{derive_capabilities, AdmittedStructureWitness};
+use formula_packages::closure::{
+    AdmittedStructureWitness, WitnessAdmissionError, derive_capabilities,
+};
 
 fn d(label: &str) -> ArtifactDigest {
     ArtifactDigest::of_bytes(label.as_bytes())
@@ -22,22 +25,26 @@ fn admitted_structure_witness_does_not_leak_across_generations() {
         vec![],
     );
     let package_digest = package.structural_digest();
-    let generation_1 = d("generation-1");
-    let generation_2 = d("generation-2");
-    let world = d("world-1");
-    let witness = StructureWitness::new(world, goal, d("evidence"));
-    let admitted = AdmittedStructureWitness::new(generation_1, witness, d("admission-edge"));
+    let witness = StructureWitness::new(d("world-1"), goal, d("evidence"));
+    let generation_1 = UniverseGeneration::new(
+        1,
+        None,
+        vec![witness.structural_digest()],
+        vec![witness.evidence()],
+    );
+    let generation_2 = UniverseGeneration::new(2, Some(generation_1.digest()), vec![], vec![]);
+    let admitted = AdmittedStructureWitness::new(&generation_1, witness).unwrap();
 
     let context_1 = ClosureContext::new(
-        generation_1,
-        world,
+        generation_1.digest(),
+        d("world-1"),
         vec![package_digest],
         d("rules"),
         d("policy"),
     );
     let context_2 = ClosureContext::new(
-        generation_2,
-        world,
+        generation_2.digest(),
+        d("world-1"),
         vec![package_digest],
         d("rules"),
         d("policy"),
@@ -52,4 +59,26 @@ fn admitted_structure_witness_does_not_leak_across_generations() {
 
     assert!(matching.contains(capability));
     assert!(!leaked.contains(capability));
+}
+
+#[test]
+fn witness_admission_requires_semantic_and_authority_membership() {
+    let witness = StructureWitness::new(d("world"), d("goal"), d("evidence"));
+
+    let missing_witness = UniverseGeneration::new(1, None, vec![], vec![witness.evidence()]);
+    assert_eq!(
+        AdmittedStructureWitness::new(&missing_witness, witness.clone()),
+        Err(WitnessAdmissionError::WitnessNotAdmitted)
+    );
+
+    let missing_authority = UniverseGeneration::new(
+        1,
+        None,
+        vec![witness.structural_digest()],
+        vec![],
+    );
+    assert_eq!(
+        AdmittedStructureWitness::new(&missing_authority, witness),
+        Err(WitnessAdmissionError::EvidenceNotAuthorityBound)
+    );
 }
