@@ -12,147 +12,174 @@ Primary authorities:
 
 1. [`docs/design/README.md`](docs/design/README.md) — canonical D1–D5 design index and precedence.
 2. [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md) — frozen implementation phases P0 onward.
-3. [`docs/checkpoints/2026-08-29-p1-core-identity-authority-store.md`](docs/checkpoints/2026-08-29-p1-core-identity-authority-store.md) — proved P1 milestone and current implementation authority.
-4. [`docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md`](docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md) — proved P0 milestone retained as predecessor evidence.
-5. [`docs/superpowers/plans/2026-08-29-p1-core-identity-authority-store.md`](docs/superpowers/plans/2026-08-29-p1-core-identity-authority-store.md) — executed P1 RED/GREEN plan.
-6. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for concrete design/implementation gaps.
+3. [`docs/checkpoints/2026-08-29-p2-independent-checker-certificate-core.md`](docs/checkpoints/2026-08-29-p2-independent-checker-certificate-core.md) — proved P2 milestone and current implementation authority.
+4. [`docs/checkpoints/2026-08-29-p1-core-identity-authority-store.md`](docs/checkpoints/2026-08-29-p1-core-identity-authority-store.md) — proved P1 predecessor retained as authority-store evidence.
+5. [`docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md`](docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md) — proved P0 predecessor evidence.
+6. [`docs/superpowers/plans/2026-08-29-p2-independent-checker-certificate-core.md`](docs/superpowers/plans/2026-08-29-p2-independent-checker-certificate-core.md) — executed P2 RED/GREEN plan.
+7. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for concrete design/implementation gaps.
 
 ## Current implementation milestone
 
-**P1 — Core Identity + Authority Store: PROVED on the isolated implementation branch.**
+**P2 — Independent Checker + Certificate-Envelope Core: PROVED on the isolated implementation branch.**
 
 Canonical branch:
 
 ```text
-implementation/p1-core-identity-authority-store
+implementation/p2-independent-checker-certificate-core
 ```
 
-Canonical source-under-test proof boundary:
+Exact P1 predecessor branch head:
 
 ```text
-5218ce5cd35636c080ad569391d48aa62f5d3cc0
-workflow run 33236548151
-job 99058414531
+0247ed7db4b9829b7e0f2f3095e87fbf4a0f39a1
 ```
 
-P1 proof checkpoint:
+Canonical P2 source-under-test proof boundary:
 
 ```text
-docs/checkpoints/2026-08-29-p1-core-identity-authority-store.md
+6f42bc31158fe9121270d36561b86c02e8e956ab
+workflow: P2 canonical proof
+workflow run: 33245330788
+job: 99081697417
+conclusion: success
+```
+
+P2 proof checkpoint:
+
+```text
+docs/checkpoints/2026-08-29-p2-independent-checker-certificate-core.md
 ```
 
 Pinned toolchain:
 
 ```text
 rustc 1.98.0 (88d9e12ae 2026-08-18)
-cargo 1.98.0 (797e8a9bc 2026-08-05)
+cargo 1.98.0
 ```
 
-### P1 proof markers
+### P2 proof markers
 
 ```text
-P1-01 deterministic structural identity               PASS
-P1-02 structural identity separate from equivalence   PASS
-P1-03 immutable content-addressed backing             PASS
-P1-04 atomic generation publication                   PASS
-P1-05 injected publication failures preserve U0       PASS
-P1-06 historical roots replay after fresh reopen      PASS
-P1-07 replay rejects manifest/blob corruption         PASS
-P1-08 explicit locked runtime dependency closure      PASS
-P1-09 P0 architecture/build firewall remains green    PASS
+P2-01 certificate envelope exact binding                     PASS
+P2-02 no silent Authority Contract downgrade                 PASS
+P2-03 independent checker isolated from producer/search      PASS
+P2-04 polynomial exact identity checker                      PASS
+P2-05 GF2/Boolean translation+witness checker                PASS
+P2-06 U8 finite exhaustive semantic equivalence              PASS
+P2-07 frozen candidate required before certification         PASS
+P2-08 promotion manifest structural binding                  PASS
+P2-09 compiler/optimizer cannot self-admit realization       PASS
+P2-10 forged/mismatched/stale evidence rejected              PASS
+P2-11 P0/P1 architecture and authority-store gates preserved PASS
 ```
 
-## What P1 now proves
+## What P2 now proves
 
-P1 adds the minimum durable D1/D2 authority substrate on top of proved P0:
+P2 adds the minimum D2/D4/D5 independent certification substrate on top of proved P0/P1:
 
 ```text
-deterministic canonical encoding
-SHA-256 ArtifactDigest structural identity
-immutable semantic artifact schemas
-structural identity != semantic equivalence
-UniverseGeneration structural roots
-immutable content-addressed blob storage
-SQLite authority index
-atomic generation publication
-rollback-safe failure semantics
-historical root reconstruction/replay
-manifest/blob corruption detection during replay
-explicit locked runtime dependency closure
+immutable frozen-candidate identity
+exact certificate-envelope binding
+checker identity + trust-root binding
+fail-closed Authority Contract matching
+no silent probabilistic/empirical downgrade
+exact polynomial identity checking
+independent Boolean/GF(2) translation verification
+independent GF(2) witness verification against original constraints
+exhaustive U8 equivalence over all 256 inputs
+promotion-manifest structural preflight
+independent realization artifact + binding verification
+independent realization semantic equivalence
+malicious-producer rejection
+checker/producer architecture firewall
 ```
 
-Canonical identity examples include:
+The checker is structurally isolated from the producer/search path:
 
 ```text
-SHA-256(b"abc")
-sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+formula-check -> formula-core
+              -> num-bigint
 
-{z:1,a:2} canonical object bytes
-{"a":2,"z":1}
+formula-check -/-> formula-engine
+formula-check -/-> formula-realize
+formula-check -/-> formula-first-light
+formula-check -/-> formula-store
 
-2/-4 -> -1/2
-0/-9 -> 0/1
+formula-engine -/-> formula-check implementation
 ```
 
-Publication failure has been injected both before active-root movement and after active-root movement but before commit. Both failures roll back and preserve the previous authoritative generation.
+A producer-local success claim cannot create authority. Certification requires the independent checker path and exact frozen inputs.
 
-Historical generations replay after a fresh store reopen, and replay rejects corruption in either the generation manifest file or its content-addressed blob backing.
+## Negative controls proved
+
+The dedicated malicious-producer fixture rejects:
+
+```text
+forged certificate body
+certificate reused for another target
+candidate mutation after certification
+PROBABILISTIC/EMPIRICAL downgrade under exact contract
+compiler success without independent realized-output proof
+```
+
+The exhaustive U8 near-miss without the zero guard fails at exact counterexample `x = 0`.
 
 ## Dependency authority
 
-The exact P1 `Cargo.lock` is frozen and the normal First-Light/CLI runtime closure is explicitly allowlisted.
+P2 adds only one direct checker dependency edge:
 
 ```text
-Cargo.lock Git blob SHA:
-ccf6e1cb9e64e5ff0cf80ce6bdcc92e9a594ad4d
-
-Cargo.lock byte SHA-256:
-b9e8452c3d354de5c98e36492c9117fb88aa8b2d234ac3286cf8899d5edd56db
+formula-check -> num-bigint 0.4.8
 ```
 
-P1 runtime allowlist contains 26 package names and is enforced by the existing authority-boundary dependency firewall.
+`num-bigint` already existed in the proved P1 dependency closure through `formula-core`; P2 introduced no new package version for this checker feature. The exact lock metadata change was generated by pinned Cargo.
 
-## P0 remains proved
+The canonical P2 dependency-tree proof confirms that `formula-check` contains no engine, realization-producer, First-Light, or store implementation dependency.
 
-P1 does not replace P0. The P0 repository/build and architecture boundaries remain required and remained green in the P1 canonical proof:
+## P0 and P1 remain proved
+
+P2 does not replace predecessor authority. The canonical P2 workflow reruns and preserves:
 
 ```text
-formula-check -> formula-core only
-
-formula-engine -> formula-core
-               -> formula-store -> formula-core
-               -> formula-packages -> formula-core
-
-formula-first-light -> formula-core
-                    -> formula-engine
+P0 repository/build architecture firewall
+P0 sealed First-Light fixture boundary
+P1 deterministic structural identity
+P1 immutable content-addressed backing
+P1 atomic generation publication
+P1 rollback/fault-injection semantics
+P1 historical generation replay
+P1 replay corruption rejection
 ```
 
-`formula-engine` still does not link checker implementation. Sealed First-Light fixtures remain source-separated from discovery crates.
+P1 artifact canonical identity was not redesigned for P2. P2 adds read-only accessors needed by the checker; canonical structural projections remain unchanged.
 
 ## Not proved yet
 
-P1 intentionally stops before later mathematical/execution semantics. Do **not** claim any of the following from P1:
+P2 intentionally stops at the independent checker/certificate core and initial exact evidence families. Do **not** claim any of the following from P2:
 
 ```text
-P2 dimension/unit algebra correctness
-P2 affine/delta semantics
+P3 theory-package semantics
+P3 structure inference
+P3 capability closure
+P3 federation contracts
+full discovery/search correctness
+full promotion orchestration beyond structural preflight
 parser correctness
 evaluator correctness
-discovery/search correctness
-certificate checker semantics
-full promotion semantics beyond the P1 generation transaction
 First Light
-native realization correctness
+native realization generation correctness beyond the P2 independent comparison harness
 Ptah/distributed execution
 ```
 
 ## Next implementation boundary
 
-**Next phase: P2 — Dimensions, Units, Affine/Delta Semantics.**
+The frozen roadmap names the next phase:
 
-P2 must build on, and preserve, the proved P1 identity/authority substrate. Do not bypass structural identity, immutable backing, or atomic generation authority to simplify later semantic work.
+**P3 — Theory packages, structure inference, capability closure, federation contracts.**
 
-Use the frozen roadmap for P2 scope and proof obligations before implementation. Mandatory RED→GREEN TDD remains in force.
+P3 is **not started** by this checkpoint and requires separate authorization.
+
+P3 must build on and preserve the proved P0/P1/P2 authority substrate. It may consume P2 checker/certificate interfaces but must not let search, package logic, realization production, or resource pressure manufacture or weaken authority.
 
 ## Canonical First-Light end target remains unchanged
 
@@ -205,12 +232,13 @@ Ptah remains explicitly deferred until the local First-Light proof requires dist
 1. Read this file.
 2. Read [`docs/design/README.md`](docs/design/README.md).
 3. Read the frozen implementation roadmap.
-4. Read the P1 checkpoint and inspect the current branch/head before assuming the checkpoint is still the latest proved state.
-5. Verify the post-checkpoint P1 proof remains green before treating P1 as the final branch candidate.
-6. Start P2 only from the proved P1 substrate using a fresh isolated implementation boundary and mandatory RED→GREEN TDD.
-7. Do not return to the older B01 precursor as canonical authority; the later frozen roadmap supersedes it.
-8. Do not reopen broad research or redesign frozen milestones unless concrete implementation evidence exposes a contradiction or unsupported obligation.
-9. Preserve the temporary project-name rule until the mathematical product identity is mature enough to name.
+4. Read the P2 checkpoint and inspect the current P2 branch/head before assuming the source-proof commit is still the latest proved state.
+5. Verify the post-checkpoint P2 proof remains green before treating the documentation-bearing branch head as the final P2 branch candidate.
+6. Preserve the exact P1 predecessor evidence at `0247ed7db4b9829b7e0f2f3095e87fbf4a0f39a1` when reviewing P2 history.
+7. Do not start P3 without separate authorization and a fresh isolated implementation boundary.
+8. Do not return to the older B01 precursor as canonical authority; the later frozen roadmap supersedes it.
+9. Do not reopen broad research or redesign frozen milestones unless concrete implementation evidence exposes a contradiction or unsupported obligation.
+10. Preserve the temporary project-name rule until the mathematical product identity is mature enough to name.
 
 ## Evidence precedence
 
@@ -227,3 +255,9 @@ current repository implementation/proof evidence
 ```
 
 No chat should claim a later phase is complete merely because a design or implementation plan exists. Every roadmap phase requires its own proof gate.
+
+## Freeze state
+
+P2 is frozen on its isolated implementation branch pending only the post-checkpoint proof of the documentation-bearing branch head.
+
+This branch has **not** been merged to `main`. P3 has **not** been started.
