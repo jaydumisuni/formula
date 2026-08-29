@@ -22,5 +22,7 @@ jobs:
         run: cargo test -p formula-archtest --test workspace_shape
       - name: Dependency-firewall gate
         run: cargo test -p formula-archtest --test dependency_firewall
-      - name: Sealed-boundary TDD gate
+      - name: Sealed-boundary gate
         run: cargo test -p formula-archtest --test sealed_boundary
+      - name: Runtime-network policy TDD gate
+        run: cargo test -p formula-archtest --test runtime_network_policy
