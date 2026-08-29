@@ -12,94 +12,203 @@ Primary authorities:
 
 1. [`docs/design/README.md`](docs/design/README.md) — canonical D1–D5 design index and precedence.
 2. [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md) — frozen implementation phases P0 onward.
-3. [`docs/checkpoints/2026-08-29-p2-independent-checker-certificate-core.md`](docs/checkpoints/2026-08-29-p2-independent-checker-certificate-core.md) — proved P2 milestone and current implementation authority.
-4. [`docs/checkpoints/2026-08-29-p1-core-identity-authority-store.md`](docs/checkpoints/2026-08-29-p1-core-identity-authority-store.md) — proved P1 predecessor retained as authority-store evidence.
-5. [`docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md`](docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md) — proved P0 predecessor evidence.
-6. [`docs/superpowers/plans/2026-08-29-p2-independent-checker-certificate-core.md`](docs/superpowers/plans/2026-08-29-p2-independent-checker-certificate-core.md) — executed P2 RED/GREEN plan.
-7. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for concrete design/implementation gaps.
+3. [`docs/checkpoints/2026-08-29-p3-theory-packages-capability-closure.md`](docs/checkpoints/2026-08-29-p3-theory-packages-capability-closure.md) — proved P3 source milestone and current implementation authority.
+4. [`docs/checkpoints/2026-08-29-p2-independent-checker-certificate-core.md`](docs/checkpoints/2026-08-29-p2-independent-checker-certificate-core.md) — proved P2 predecessor retained as independent-checker authority.
+5. [`docs/checkpoints/2026-08-29-p1-core-identity-authority-store.md`](docs/checkpoints/2026-08-29-p1-core-identity-authority-store.md) — proved P1 authority-store predecessor.
+6. [`docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md`](docs/checkpoints/2026-08-29-p0-repository-reproducible-build-skeleton.md) — proved P0 predecessor evidence.
+7. [`docs/superpowers/plans/2026-08-29-p3-theory-packages-capability-closure.md`](docs/superpowers/plans/2026-08-29-p3-theory-packages-capability-closure.md) — executed P3 RED/GREEN/freeze plan.
+8. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for concrete design/implementation gaps.
 
 ## Current implementation milestone
 
-**P2 — Independent Checker + Certificate-Envelope Core: PROVED on the isolated implementation branch.**
+**P3 — Theory Packages + Capability Closure: SOURCE PROVED and review-clean on the isolated implementation branch.**
 
 Canonical branch:
 
 ```text
-implementation/p2-independent-checker-certificate-core
+implementation/p3-theory-packages-capability-closure
 ```
 
-Exact P1 predecessor branch head:
+Exact final P2 predecessor branch head:
 
 ```text
-0247ed7db4b9829b7e0f2f3095e87fbf4a0f39a1
+05d2c433f89c02ebe5187151284d1442c65bfe8e
 ```
 
-Canonical P2 source-under-test proof boundary:
+Canonical P3 source-under-test proof boundary:
 
 ```text
-6f42bc31158fe9121270d36561b86c02e8e956ab
-workflow: P2 canonical proof
-workflow run: 33245330788
-job: 99081697417
+296902f4dac1d3e0f2b4e6e2e64cfb3c7306c4f7
+workflow: P3 canonical proof
+workflow run: 33263907506
+job: 99130422586
 conclusion: success
 ```
 
-P2 proof checkpoint:
+Exact P2 -> P3 compare at the source proof boundary:
 
 ```text
-docs/checkpoints/2026-08-29-p2-independent-checker-certificate-core.md
+base:    05d2c433f89c02ebe5187151284d1442c65bfe8e
+head:    296902f4dac1d3e0f2b4e6e2e64cfb3c7306c4f7
+status:  ahead
+ahead:   46 commits
+behind:  0 commits
+```
+
+P3 proof checkpoint:
+
+```text
+docs/checkpoints/2026-08-29-p3-theory-packages-capability-closure.md
 ```
 
 Pinned toolchain:
 
 ```text
 rustc 1.98.0 (88d9e12ae 2026-08-18)
-cargo 1.98.0
+cargo 1.98.0 (797e8a9bc 2026-08-05)
 ```
 
-### P2 proof markers
+### P3 proof markers
 
 ```text
-P2-01 certificate envelope exact binding                     PASS
-P2-02 no silent Authority Contract downgrade                 PASS
-P2-03 independent checker isolated from producer/search      PASS
-P2-04 polynomial exact identity checker                      PASS
-P2-05 GF2/Boolean translation+witness checker                PASS
-P2-06 U8 finite exhaustive semantic equivalence              PASS
-P2-07 frozen candidate required before certification         PASS
-P2-08 promotion manifest structural binding                  PASS
-P2-09 compiler/optimizer cannot self-admit realization       PASS
-P2-10 forged/mismatched/stale evidence rejected              PASS
-P2-11 P0/P1 architecture and authority-store gates preserved PASS
+P3-01 theory package structural identity deterministic          PASS
+P3-02 minimum builtin package manifests dependency-bound      PASS
+P3-03 capability closure scoped by generation/world           PASS
+P3-04 witness activation/deactivation deterministic           PASS
+P3-05 package composition/interference fails closed           PASS
+P3-06 canonical/common-parent ambiguity fails closed          PASS
+P3-07 shared mathematical fact polarity enforced              PASS
+P3-08 federation adapter cannot manufacture authority         PASS
+P3-09 certificate router preserves Authority Contract         PASS
+P3-10 P0/P1/P2 architecture and authority gates preserved    PASS
 ```
 
-## What P2 now proves
+## What P3 now proves
 
-P2 adds the minimum D2/D4/D5 independent certification substrate on top of proved P0/P1:
+P3 adds the minimum D2 semantic package/capability substrate required by the frozen roadmap before P4 can begin:
 
 ```text
-immutable frozen-candidate identity
-exact certificate-envelope binding
-checker identity + trust-root binding
-fail-closed Authority Contract matching
-no silent probabilistic/empirical downgrade
-exact polynomial identity checking
-independent Boolean/GF(2) translation verification
-independent GF(2) witness verification against original constraints
-exhaustive U8 equivalence over all 256 inputs
-promotion-manifest structural preflight
-independent realization artifact + binding verification
-independent realization semantic equivalence
-malicious-producer rejection
-checker/producer architecture firewall
+content-addressed TheoryPackageManifest identity
+CapabilityContract
+StructureGoal / StructureWitness
+minimum Integer/Rational/Boolean/U8/GF2/Polynomial/GF2Vector/GF2Matrix manifests
+generation/world-scoped ClosureContext
+generation-admitted structure witnesses
+deterministic capability derivation
+package activation/deactivation
+fail-closed package interference/composition
+canonical/lossless morphism registry
+bounded common-parent resolution
+Shared Fact polarity enforcement
+FederationAdapter contract validation
+Certificate Router v1 exact authority-route selection
 ```
 
-The checker is structurally isolated from the producer/search path:
+Capability closure is derived state. It does not become durable authority merely because a package, witness, route, or federation adapter exists.
+
+## Generation-bound authority rules
+
+The corrected P3 authority boundary is explicit:
 
 ```text
-formula-check -> formula-core
-              -> num-bigint
+package activation requires package digests admitted by the exact UniverseGeneration
+composition activation requires the CompositionClaim admitted by that generation
+composition evidence must also be authority-bound in that generation
+morphism registry accepts only generation-admitted canonical morphisms
+structure witnesses require semantic admission + evidence authority membership
+ActivatedPackageSet is bound to its exact generation digest
+closure rejects package/witness state from another generation
+closure remains World-scoped
+```
 
+The dedicated `p3_authority_admission` and generation-witness tests are part of the successful canonical P3 proof.
+
+## Authority/non-authority separation
+
+P3 preserves the constitutional authority direction:
+
+```text
+package manifest             != authority
+active package selection     != authority
+structure inference proposal != authority
+federation producer output   != authority
+cheap certificate route      != authority
+candidate-only adapter       != authority
+```
+
+Only inputs already admitted/certified through the existing P1/P2 authority substrate can enable authoritative package/capability behavior.
+
+Search/compiler/campaign implementation does not yet exist in P3.
+
+## Shared Fact polarity
+
+Shared Mathematical Facts carry explicit polarity. The compatibility gate rejects strength escalation.
+
+Examples:
+
+```text
+OVER_APPROXIMATION -/-> EXACT
+OVER_APPROXIMATION -/-> existence witness
+LOWER_BOUND        -/-> upper-bound consumer
+UPPER_BOUND        -/-> lower-bound consumer
+heuristic fact     -/-> exact authority requirement
+```
+
+Exact facts may satisfy weaker semantically compatible consumers; weak facts cannot discharge stronger obligations.
+
+## Canonical morphisms/common parents
+
+Only generation-admitted, canonical, lossless morphisms can participate in the bounded common-parent path.
+
+```text
+unique admissible common parent -> RESOLVED
+missing admissible path          -> UNKNOWN
+multiple non-equivalent parents  -> AMBIGUOUS
+```
+
+No lossy/noncanonical coercion is silently chosen.
+
+## Federation boundary
+
+P3 validates FederationAdapter contracts only; it does not invoke external SAT/SMT/CAS binaries.
+
+```text
+CANDIDATE_ONLY result -> non-authoritative
+checked/certified mode -> exact declared translation/checker route required
+undeclared side effect -> fail closed
+unsupported result class -> fail closed
+producer identity -> no authority
+```
+
+## Certificate Router v1
+
+Route selection preserves the exact requested Authority Contract.
+
+```text
+1. filter out every route that fails authority/checker/trust-root requirements
+2. order cost only among already-admissible routes
+```
+
+A cheaper probabilistic/empirical/heuristic route cannot beat an exact request. If no exact route exists, routing fails closed.
+
+## Dependency authority
+
+Canonical P3 dependency trees:
+
+```text
+formula-packages
+└── formula-core
+
+formula-check
+├── formula-core
+└── num-bigint 0.4.8
+```
+
+P3 adds no external runtime dependency to `formula-packages`. The P2 checker dependency closure remains unchanged.
+
+The canonical architecture tests still preserve:
+
+```text
 formula-check -/-> formula-engine
 formula-check -/-> formula-realize
 formula-check -/-> formula-first-light
@@ -108,66 +217,45 @@ formula-check -/-> formula-store
 formula-engine -/-> formula-check implementation
 ```
 
-A producer-local success claim cannot create authority. Certification requires the independent checker path and exact frozen inputs.
+## P0/P1/P2 remain proved
 
-## Negative controls proved
-
-The dedicated malicious-producer fixture rejects:
-
-```text
-forged certificate body
-certificate reused for another target
-candidate mutation after certification
-PROBABILISTIC/EMPIRICAL downgrade under exact contract
-compiler success without independent realized-output proof
-```
-
-The exhaustive U8 near-miss without the zero guard fails at exact counterexample `x = 0`.
-
-## Dependency authority
-
-P2 adds only one direct checker dependency edge:
-
-```text
-formula-check -> num-bigint 0.4.8
-```
-
-`num-bigint` already existed in the proved P1 dependency closure through `formula-core`; P2 introduced no new package version for this checker feature. The exact lock metadata change was generated by pinned Cargo.
-
-The canonical P2 dependency-tree proof confirms that `formula-check` contains no engine, realization-producer, First-Light, or store implementation dependency.
-
-## P0 and P1 remain proved
-
-P2 does not replace predecessor authority. The canonical P2 workflow reruns and preserves:
+The canonical P3 workflow reruns and preserves predecessor gates, including:
 
 ```text
 P0 repository/build architecture firewall
-P0 sealed First-Light fixture boundary
+P0 sealed First-Light fixture identity and boundary
+P0 runtime-network allowlist boundary
 P1 deterministic structural identity
 P1 immutable content-addressed backing
-P1 atomic generation publication
-P1 rollback/fault-injection semantics
-P1 historical generation replay
-P1 replay corruption rejection
+P1 atomic generation publication/rollback
+P1 historical replay and corruption rejection
+P2 certificate-envelope exact binding
+P2 no silent Authority Contract downgrade
+P2 malicious-producer rejection
+P2 exact polynomial/GF2/U8 checker families
+P2 promotion-manifest structural preflight
+P2 independent realization-equivalence harness
+P2 checker/producer dependency firewall
 ```
 
-P1 artifact canonical identity was not redesigned for P2. P2 adds read-only accessors needed by the checker; canonical structural projections remain unchanged.
+P3 extends these boundaries; it does not replace them.
 
 ## Not proved yet
 
-P2 intentionally stops at the independent checker/certificate core and initial exact evidence families. Do **not** claim any of the following from P2:
+Do **not** claim any of the following from P3:
 
 ```text
-P3 theory-package semantics
-P3 structure inference
-P3 capability closure
-P3 federation contracts
-full discovery/search correctness
-full promotion orchestration beyond structural preflight
-parser correctness
-evaluator correctness
-First Light
-native realization generation correctness beyond the P2 independent comparison harness
+P4 QueryIR semantic elaboration
+P4 TheoryProfile
+P4 Representation/Reduction/Campaign IR
+P4 Obligation IR / WorkCellPlan / Result Bundle
+P4 replay-manifest compiler correctness
+P5 CandidateSpace/discovery correctness
+full promotion orchestration / U_g -> U_(g+1) beyond existing P1/P2 substrate
+First-Light target blindness/discovery proof
+native realization generation correctness
+external SAT/SMT/CAS federation execution
+models as mathematical authority
 Ptah/distributed execution
 ```
 
@@ -175,11 +263,11 @@ Ptah/distributed execution
 
 The frozen roadmap names the next phase:
 
-**P3 — Theory packages, structure inference, capability closure, federation contracts.**
+**P4 — Query, Theory Profile, Campaign IR, Obligation compiler.**
 
-P3 is **not started** by this checkpoint and requires separate authorization.
+P4 has not been started by this checkpoint. P4 must preserve exact query semantics, reject lossy implicit morphisms, maintain representation/reduction result-class metadata, keep Work Cells outside authority writes, and produce complete replay manifests.
 
-P3 must build on and preserve the proved P0/P1/P2 authority substrate. It may consume P2 checker/certificate interfaces but must not let search, package logic, realization production, or resource pressure manufacture or weaken authority.
+P4 is downstream of P3. It must consume the proved package/capability substrate rather than bypassing its generation/world/authority boundaries.
 
 ## Canonical First-Light end target remains unchanged
 
@@ -218,25 +306,27 @@ Ptah remains explicitly deferred until the local First-Light proof requires dist
 
 1. Search may propose mathematics. Only Certification + Promotion can create mathematical authority.
 2. Execution may consume authority. Execution cannot manufacture authority.
-3. No representation, implementation, proof language, model, or solver is the mathematics itself.
+3. No representation, implementation, proof language, model, solver, federation adapter, or theory package is the mathematics itself.
 4. Mathematical correctness and realization correctness are separate proof obligations.
-5. Candidate/search state is outside admitted `U_g` authority.
+5. Candidate/search/compiler state is outside admitted `U_g` authority unless explicitly promoted through the authority path.
 6. Resource exhaustion never weakens the requested Authority Contract.
 7. Models may generate candidates later but have no mathematical authority.
 8. Promotion is generation-producing and atomic; accepted history is immutable.
 9. A false/broken realization cannot invalidate already admitted mathematics.
-10. Research reopens only when an implementation/design choice is unsupported, contradicted, or materially under-specified by preserved evidence.
+10. Capability closure is rebuildable derived state from exact admitted inputs; it is not an independent authority source.
+11. Weak Shared Facts cannot be silently consumed as stronger facts.
+12. Federation/certificate routing cannot weaken authority for cost or availability.
 
 ## Recovery procedure for any new chat
 
 1. Read this file.
 2. Read [`docs/design/README.md`](docs/design/README.md).
 3. Read the frozen implementation roadmap.
-4. Read the P2 checkpoint and inspect the current P2 branch/head before assuming the source-proof commit is still the latest proved state.
-5. Verify the post-checkpoint P2 proof remains green before treating the documentation-bearing branch head as the final P2 branch candidate.
-6. Preserve the exact P1 predecessor evidence at `0247ed7db4b9829b7e0f2f3095e87fbf4a0f39a1` when reviewing P2 history.
-7. Do not start P3 without separate authorization and a fresh isolated implementation boundary.
-8. Do not return to the older B01 precursor as canonical authority; the later frozen roadmap supersedes it.
+4. Read the P3 checkpoint and inspect `implementation/p3-theory-packages-capability-closure` before assuming the source-proof SHA is still the branch head.
+5. Verify the post-checkpoint P3 canonical proof on the exact documentation-bearing branch head before treating P3 as finally frozen.
+6. Preserve the exact final P2 predecessor head `05d2c433f89c02ebe5187151284d1442c65bfe8e` when reviewing P3 history.
+7. Do not start P4 until P3's documentation-bearing head has passed the unchanged P3 canonical proof and P3 is explicitly treated as frozen.
+8. Do not return to the older B01 precursor as canonical authority; the frozen D1-D5 roadmap supersedes it.
 9. Do not reopen broad research or redesign frozen milestones unless concrete implementation evidence exposes a contradiction or unsupported obligation.
 10. Preserve the temporary project-name rule until the mathematical product identity is mature enough to name.
 
@@ -258,6 +348,12 @@ No chat should claim a later phase is complete merely because a design or implem
 
 ## Freeze state
 
-P2 is frozen on its isolated implementation branch pending only the post-checkpoint proof of the documentation-bearing branch head.
+P3 source is proved and review-clean on exact commit:
 
-This branch has **not** been merged to `main`. P3 has **not** been started.
+```text
+296902f4dac1d3e0f2b4e6e2e64cfb3c7306c4f7
+```
+
+The P3 checkpoint and this `CURRENT.md` update now form the documentation-bearing branch candidate. **P3 is not finally frozen until the unchanged canonical P3 workflow succeeds on that exact documentation-bearing head.**
+
+This branch has **not** been merged to `main`. P4 has **not** been started.
