@@ -1,6 +1,4 @@
-use crate::{
-    artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest,
-};
+use crate::{artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest};
 use std::collections::BTreeMap;
 
 const CERTIFICATION_SCHEMA_V1: &str = "formula-certification-v1";
@@ -454,7 +452,10 @@ impl StructuralIdentity for RealizationCheckManifest {
             CanonicalValue::Digest(self.authority_contract),
         );
         object.insert("observer".into(), CanonicalValue::Digest(self.observer));
-        object.insert("realization".into(), CanonicalValue::Digest(self.realization));
+        object.insert(
+            "realization".into(),
+            CanonicalValue::Digest(self.realization),
+        );
         object.insert(
             "realization_artifact_digest".into(),
             CanonicalValue::Digest(self.realization_artifact_digest),

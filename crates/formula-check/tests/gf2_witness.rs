@@ -1,7 +1,5 @@
 use formula_check::{
-    gf2::{
-        check_gf2_witness, BooleanXorRow, BooleanXorSystem, Gf2Row, Gf2System,
-    },
+    gf2::{BooleanXorRow, BooleanXorSystem, Gf2Row, Gf2System, check_gf2_witness},
     verdict::CheckVerdict,
 };
 
@@ -54,10 +52,7 @@ fn changed_rhs_translation_fails() {
 fn missing_variable_in_translated_row_fails() {
     let translated = Gf2System::new(
         3,
-        vec![
-            Gf2Row::new(vec![0], true),
-            Gf2Row::new(vec![1, 2], false),
-        ],
+        vec![Gf2Row::new(vec![0], true), Gf2Row::new(vec![1, 2], false)],
     );
     assert_ne!(
         check_gf2_witness(&problem(), &translated, &[true, false, false]),

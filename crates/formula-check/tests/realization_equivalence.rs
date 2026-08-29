@@ -1,5 +1,5 @@
 use formula_check::{
-    realization::{check_u8_realization_equivalence, RealizationCheckRequest},
+    realization::{RealizationCheckRequest, check_u8_realization_equivalence},
     u8::{BoolExpr, ByteExpr},
     verdict::{CheckFailure, CheckVerdict},
 };
@@ -24,10 +24,7 @@ fn admitted_semantics() -> BoolExpr {
 }
 
 fn mutated_semantics() -> BoolExpr {
-    BoolExpr::EqZero(ByteExpr::BitAnd(
-        Box::new(ByteExpr::X),
-        Box::new(sub_one()),
-    ))
+    BoolExpr::EqZero(ByteExpr::BitAnd(Box::new(ByteExpr::X), Box::new(sub_one())))
 }
 
 fn outputs(expr: &BoolExpr) -> Vec<bool> {
@@ -74,12 +71,7 @@ fn compiler_claim_without_independent_output_check_is_not_authority() {
     let artifact = b"compiled-native-artifact";
     let manifest = manifest(artifact);
     let semantic = admitted_semantics();
-    let verdict = check_u8_realization_equivalence(&request(
-        &manifest,
-        artifact,
-        &semantic,
-        &[],
-    ));
+    let verdict = check_u8_realization_equivalence(&request(&manifest, artifact, &semantic, &[]));
 
     assert_eq!(
         verdict,
@@ -95,12 +87,7 @@ fn exact_realization_outputs_for_all_256_inputs_pass() {
     let realized = outputs(&semantic);
 
     assert_eq!(
-        check_u8_realization_equivalence(&request(
-            &manifest,
-            artifact,
-            &semantic,
-            &realized,
-        )),
+        check_u8_realization_equivalence(&request(&manifest, artifact, &semantic, &realized,)),
         CheckVerdict::Pass
     );
 }
@@ -113,12 +100,7 @@ fn mutated_realization_missing_zero_guard_fails() {
     let realized = outputs(&mutated_semantics());
 
     assert_eq!(
-        check_u8_realization_equivalence(&request(
-            &manifest,
-            artifact,
-            &semantic,
-            &realized,
-        )),
+        check_u8_realization_equivalence(&request(&manifest, artifact, &semantic, &realized,)),
         CheckVerdict::Fail(CheckFailure::RealizationCounterexample(0))
     );
 }
@@ -158,12 +140,7 @@ fn manifest_binding_mismatch_fails_before_output_comparison() {
     let realized = outputs(&semantic);
 
     assert_eq!(
-        check_u8_realization_equivalence(&request(
-            &manifest,
-            artifact,
-            &semantic,
-            &realized,
-        )),
+        check_u8_realization_equivalence(&request(&manifest, artifact, &semantic, &realized,)),
         CheckVerdict::Fail(CheckFailure::RealizationBindingMismatch)
     );
 }

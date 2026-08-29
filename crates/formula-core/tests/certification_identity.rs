@@ -145,10 +145,7 @@ fn p1_accessors_are_read_only_and_do_not_change_structural_identity() {
         vec!["fixture".into()],
         "exact".into(),
     );
-    let observer = Observer::new(
-        "full-value".into(),
-        CanonicalValue::String("exact".into()),
-    );
+    let observer = Observer::new("full-value".into(), CanonicalValue::String("exact".into()));
     let realization = RealizationMetadata::new(
         d(b"semantic-target"),
         "rust-cpu".into(),
@@ -204,5 +201,8 @@ fn promotion_and_realization_manifests_are_structurally_addressable() {
         d(b"binary"),
     );
 
-    assert_ne!(promotion.structural_digest(), realization.structural_digest());
+    assert_ne!(
+        promotion.structural_digest(),
+        realization.structural_digest()
+    );
 }

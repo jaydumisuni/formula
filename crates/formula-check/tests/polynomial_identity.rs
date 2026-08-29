@@ -1,5 +1,5 @@
 use formula_check::{
-    polynomial::{check_polynomial_identity, IntegerPolynomial},
+    polynomial::{IntegerPolynomial, check_polynomial_identity},
     verdict::CheckVerdict,
 };
 

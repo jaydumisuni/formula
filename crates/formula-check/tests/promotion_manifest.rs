@@ -104,12 +104,7 @@ fn wrong_parent_generation_fails_expected_binding() {
     );
 
     assert_ne!(
-        check_promotion_manifest(
-            &manifest,
-            &candidate,
-            &[d(b"evidence")],
-            d(b"parent-b"),
-        ),
+        check_promotion_manifest(&manifest, &candidate, &[d(b"evidence")], d(b"parent-b"),),
         CheckVerdict::Pass
     );
 }

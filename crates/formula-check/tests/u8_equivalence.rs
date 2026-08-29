@@ -1,5 +1,5 @@
 use formula_check::{
-    u8::{check_u8_equivalence, BoolExpr, ByteExpr},
+    u8::{BoolExpr, ByteExpr, check_u8_equivalence},
     verdict::{CheckFailure, CheckVerdict},
 };
 
@@ -31,10 +31,7 @@ fn power_of_two_candidate_with_nonzero_guard_passes_all_256_inputs() {
 
 #[test]
 fn classic_missing_zero_guard_near_miss_fails_at_zero() {
-    let near_miss = BoolExpr::EqZero(ByteExpr::BitAnd(
-        Box::new(ByteExpr::X),
-        Box::new(sub_one()),
-    ));
+    let near_miss = BoolExpr::EqZero(ByteExpr::BitAnd(Box::new(ByteExpr::X), Box::new(sub_one())));
     assert_eq!(
         check_u8_equivalence(&near_miss, power_of_two_spec),
         CheckVerdict::Fail(CheckFailure::U8Counterexample(0))

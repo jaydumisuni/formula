@@ -1,5 +1,5 @@
 use formula_check::{
-    envelope::{validate_envelope, CheckRequest},
+    envelope::{CheckRequest, validate_envelope},
     identity::CheckerDescriptor,
     verdict::CheckFailure,
 };
@@ -23,10 +23,7 @@ fn authority(family: &str, exactness: &str) -> AuthorityContract {
 }
 
 fn observer() -> Observer {
-    Observer::new(
-        "full-value".into(),
-        CanonicalValue::String("exact".into()),
-    )
+    Observer::new("full-value".into(), CanonicalValue::String("exact".into()))
 }
 
 fn candidate(

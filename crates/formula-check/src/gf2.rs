@@ -48,10 +48,7 @@ impl Gf2System {
     }
 }
 
-fn canonical_variables(
-    variables: &[usize],
-    width: usize,
-) -> Result<Vec<usize>, CheckFailure> {
+fn canonical_variables(variables: &[usize], width: usize) -> Result<Vec<usize>, CheckFailure> {
     if variables.iter().any(|&index| index >= width) {
         return Err(CheckFailure::InvalidConstraint);
     }
@@ -81,12 +78,7 @@ fn canonical_boolean_rows(
     let mut rows = system
         .rows
         .iter()
-        .map(|row| {
-            Ok((
-                canonical_variables(&row.variables, system.width)?,
-                row.rhs,
-            ))
-        })
+        .map(|row| Ok((canonical_variables(&row.variables, system.width)?, row.rhs)))
         .collect::<Result<Vec<_>, CheckFailure>>()?;
     rows.sort_unstable();
     rows.dedup();
@@ -97,12 +89,7 @@ fn canonical_gf2_rows(system: &Gf2System) -> Result<Vec<(Vec<usize>, bool)>, Che
     let mut rows = system
         .rows
         .iter()
-        .map(|row| {
-            Ok((
-                canonical_variables(&row.variables, system.width)?,
-                row.rhs,
-            ))
-        })
+        .map(|row| Ok((canonical_variables(&row.variables, system.width)?, row.rhs)))
         .collect::<Result<Vec<_>, CheckFailure>>()?;
     rows.sort_unstable();
     rows.dedup();

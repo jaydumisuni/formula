@@ -1,7 +1,7 @@
 use formula_check::{
-    envelope::{validate_envelope, CheckRequest},
+    envelope::{CheckRequest, validate_envelope},
     identity::CheckerDescriptor,
-    realization::{check_u8_realization_equivalence, RealizationCheckRequest},
+    realization::{RealizationCheckRequest, check_u8_realization_equivalence},
     u8::{BoolExpr, ByteExpr},
     verdict::{CheckFailure, CheckVerdict},
 };
@@ -25,10 +25,7 @@ fn authority() -> AuthorityContract {
 }
 
 fn observer() -> Observer {
-    Observer::new(
-        "full-value".into(),
-        CanonicalValue::String("exact".into()),
-    )
+    Observer::new("full-value".into(), CanonicalValue::String("exact".into()))
 }
 
 fn candidate(

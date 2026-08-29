@@ -95,7 +95,9 @@ pub fn validate_envelope(request: &CheckRequest<'_>) -> Result<AuthorityMatch, C
     }
 
     let observer_digest = request.observer.structural_digest();
-    if envelope.observer() != observer_digest || request.frozen_candidate.observer() != observer_digest {
+    if envelope.observer() != observer_digest
+        || request.frozen_candidate.observer() != observer_digest
+    {
         return Err(CheckFailure::ObserverMismatch);
     }
 
