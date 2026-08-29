@@ -16,3 +16,11 @@ resolver = "2"
 edition = "2024"
 license = "MIT"
 publish = false
+
+[workspace.dependencies]
+sha2 = "0.10"
+num-bigint = "0.4"
+num-integer = "0.1"
+num-traits = "0.2"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+tempfile = "3"
