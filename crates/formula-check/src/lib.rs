@@ -4,6 +4,7 @@ pub mod identity;
 pub mod polynomial;
 pub mod promotion;
 pub mod realization;
+pub mod router;
 pub mod u8;
 pub mod verdict;
 
