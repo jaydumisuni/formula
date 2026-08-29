@@ -49,7 +49,12 @@ fn activation_requires_packages_and_composition_claims_admitted_by_generation() 
 
     let no_packages = UniverseGeneration::new(1, None, vec![], vec![]);
     assert_eq!(
-        validate_activation(&no_packages, &[a.clone(), b.clone()], &[claim.clone()], &requested),
+        validate_activation(
+            &no_packages,
+            &[a.clone(), b.clone()],
+            &[claim.clone()],
+            &requested
+        ),
         Err(ActivationError::PackageNotAdmitted)
     );
 
@@ -60,7 +65,12 @@ fn activation_requires_packages_and_composition_claims_admitted_by_generation() 
         vec![claim.evidence()],
     );
     assert_eq!(
-        validate_activation(&no_claim, &[a.clone(), b.clone()], &[claim.clone()], &requested),
+        validate_activation(
+            &no_claim,
+            &[a.clone(), b.clone()],
+            &[claim.clone()],
+            &requested
+        ),
         Err(ActivationError::CompositionClaimNotAdmitted)
     );
 
@@ -94,33 +104,22 @@ fn activation_requires_packages_and_composition_claims_admitted_by_generation() 
         ],
         vec![claim.evidence()],
     );
-    let activated = validate_activation(&generation, &[a, b], &[claim.clone()], &requested).unwrap();
+    let activated =
+        validate_activation(&generation, &[a, b], &[claim.clone()], &requested).unwrap();
     assert_eq!(activated.generation(), generation.digest());
     assert_eq!(activated.composition_claims(), &[claim.structural_digest()]);
 }
 
 #[test]
 fn morphism_registry_accepts_only_generation_admitted_morphisms() {
-    let morphism = CanonicalMorphism::new(
-        d("source"),
-        d("target"),
-        d("map"),
-        vec![],
-        true,
-        true,
-    );
+    let morphism = CanonicalMorphism::new(d("source"), d("target"), d("map"), vec![], true, true);
     let empty = UniverseGeneration::new(1, None, vec![], vec![]);
     assert_eq!(
         MorphismRegistry::new(&empty, vec![morphism.clone()]),
         Err(MorphismRegistryError::MorphismNotAdmitted)
     );
 
-    let admitted = UniverseGeneration::new(
-        1,
-        None,
-        vec![morphism.structural_digest()],
-        vec![],
-    );
+    let admitted = UniverseGeneration::new(1, None, vec![morphism.structural_digest()], vec![]);
     assert!(MorphismRegistry::new(&admitted, vec![morphism]).is_ok());
 }
 
@@ -137,12 +136,8 @@ fn closure_rejects_an_activated_package_set_from_another_generation() {
         vec![package_digest, witness.structural_digest()],
         vec![witness.evidence()],
     );
-    let generation_2 = UniverseGeneration::new(
-        2,
-        Some(generation_1.digest()),
-        vec![package_digest],
-        vec![],
-    );
+    let generation_2 =
+        UniverseGeneration::new(2, Some(generation_1.digest()), vec![package_digest], vec![]);
     let activated_1 = validate_activation(
         &generation_1,
         std::slice::from_ref(&package),
@@ -160,12 +155,7 @@ fn closure_rejects_an_activated_package_set_from_another_generation() {
     );
 
     assert_eq!(
-        derive_capabilities(
-            &context_2,
-            &activated_1,
-            &[admitted_witness],
-            &[package],
-        ),
+        derive_capabilities(&context_2, &activated_1, &[admitted_witness], &[package],),
         Err(ClosureError::GenerationMismatch)
     );
 }
