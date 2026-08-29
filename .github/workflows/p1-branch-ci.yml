@@ -20,5 +20,7 @@ jobs:
           rustup override set 1.98.0
       - name: Task 1 canonical identity gate
         run: cargo test -p formula-core --test canonical_identity
-      - name: Task 2 artifact identity TDD gate
+      - name: Task 2 artifact identity gate
         run: cargo test -p formula-core --test artifact_identity
+      - name: Task 3 generation identity TDD gate
+        run: cargo test -p formula-core --test generation_identity
