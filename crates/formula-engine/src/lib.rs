@@ -1,3 +1,4 @@
+pub mod decomposition;
 pub mod query;
 pub mod reduction;
 pub mod region;
