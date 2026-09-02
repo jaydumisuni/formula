@@ -1,3 +1,4 @@
+pub mod affine_polynomial;
 pub mod campaign;
 pub mod candidate_space;
 pub mod compiler;
