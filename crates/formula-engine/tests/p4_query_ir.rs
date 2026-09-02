@@ -5,7 +5,7 @@ use formula_engine::query::{
 };
 
 fn d(byte: u8) -> ArtifactDigest {
-    ArtifactDigest::from_bytes([byte; 32])
+    ArtifactDigest::of_bytes(&[byte; 32])
 }
 
 fn fixture() -> QueryIR {
