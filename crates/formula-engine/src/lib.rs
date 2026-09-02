@@ -1,4 +1,5 @@
 pub mod campaign;
+pub mod compiler;
 pub mod decomposition;
 pub mod obligation;
 pub mod query;
