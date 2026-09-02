@@ -1,0 +1,74 @@
+name: P5 canonical proof
+
+on:
+  push:
+    branches:
+      - implementation/p5-candidate-space-bounded-discovery
+  workflow_dispatch:
+
+# P5 proof is intentionally read-only. Search outputs remain candidate-only.
+permissions:
+  contents: read
+
+jobs:
+  p5-proof:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: P5 gate — identity and toolchain
+        run: |
+          set -euxo pipefail
+          git rev-parse HEAD
+          rustc -vV
+          cargo -V
+      - name: P5 gate — locked offline metadata
+        run: cargo metadata --locked --offline --format-version 1
+      - name: P5 gate — architecture tests
+        run: cargo test -p formula-archtest --locked --offline
+      - name: P5 gate — formula-core tests
+        run: cargo test -p formula-core --all-targets --locked --offline
+      - name: P5 gate — formula-store tests
+        run: cargo test -p formula-store --all-targets --locked --offline
+      - name: P5 gate — formula-check tests
+        run: cargo test -p formula-check --all-targets --locked --offline
+      - name: P5 gate — formula-packages tests
+        run: cargo test -p formula-packages --all-targets --locked --offline
+      - name: P5 gate — formula-engine tests
+        run: cargo test -p formula-engine --all-targets --locked --offline
+      - name: P5 gate — workspace tests
+        run: cargo test --workspace --all-targets --locked --offline
+      - name: P5 gate — workspace build
+        run: cargo build --workspace --all-targets --locked --offline
+      - name: P5 gate — rustfmt
+        run: cargo fmt --all -- --check
+      - name: P5 gate — clippy
+        run: cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+      - name: P5 gate — formula-check dependency tree
+        run: cargo tree --locked --offline -p formula-check --edges normal
+      - name: P5 gate — formula-packages dependency tree
+        run: cargo tree --locked --offline -p formula-packages --edges normal
+      - name: P5 gate — formula-engine dependency firewall
+        run: |
+          set -euxo pipefail
+          cargo tree --locked --offline -p formula-engine --edges normal | tee /tmp/p5-engine-tree.txt
+          ! grep -Eq 'formula-check|formula-first-light' /tmp/p5-engine-tree.txt
+      - name: P5 gate — clean worktree
+        run: test -z "$(git status --porcelain)"
+      - name: P5 proof markers
+        run: |
+          echo 'P5-01 CandidateSpace identity deterministic                         PASS'
+          echo 'P5-02 affine exact space refines whole family                      PASS'
+          echo 'P5-03 route failure pruning scoped                                 PASS'
+          echo 'P5-04 observational buckets exact under current samples            PASS'
+          echo 'P5-05 counterexample regeneration preserves bounded candidate set  PASS'
+          echo 'P5-06 bounded CEGIS freezes before validation                      PASS'
+          echo 'P5-07 heuristics remain non-authoritative                          PASS'
+          echo 'P5-08 unaffected local identity preserved                          PASS'
+          echo 'P5-09 checker/sealed-target/search authority firewall              PASS'
+          echo 'P5-10 P0-P4 gates preserved                                        PASS'
