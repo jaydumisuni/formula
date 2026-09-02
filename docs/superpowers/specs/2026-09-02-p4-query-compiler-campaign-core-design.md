@@ -20,6 +20,8 @@ The constitutional boundary is:
 ```text
 proved mathematical authority inputs
         ↓
+read-only compiler snapshot
+        ↓
 QueryIR / semantic compilation
         ↓
 TheoryProfile / RelevantRegion
@@ -35,7 +37,7 @@ No object produced by P4 can create or weaken mathematical authority.
 
 ---
 
-## 2. Crate boundary
+## 2. Crate and authority boundary
 
 P4 lives in `crates/formula-engine`.
 
@@ -45,7 +47,7 @@ Existing role declaration already reserves this crate for:
 query campaign and search orchestration
 ```
 
-P4 must preserve the existing dependency direction:
+P4 preserves the existing dependency direction:
 
 ```text
 formula-engine
@@ -58,6 +60,13 @@ formula-engine -/-> formula-check implementation
 
 `formula-core` remains the durable authority/schema substrate. P4 does not move campaign/search state into core.
 
+`formula-store` is used only to obtain/read immutable authority snapshots needed for compilation. P4 compiler/campaign/work-cell modules must not invoke generation publication, authority mutation, activation, rollback, or promotion APIs. The compiler operates on an immutable `CompilerAuthoritySnapshot` assembled before semantic compilation begins.
+
+The P4 architecture gate therefore checks both:
+
+1. `formula-engine` still does not depend on `formula-check` implementation; and
+2. P4 compiler/campaign/work-cell source has no authority-publication/mutation call path into `formula-store`.
+
 No new crate is introduced in P4.
 
 No new external runtime dependency is introduced unless implementation evidence proves one is necessary. The default plan uses only the existing workspace dependency closure.
@@ -69,6 +78,7 @@ No new external runtime dependency is introduced unless implementation evidence 
 `formula-engine` is split into focused modules:
 
 ```text
+snapshot.rs
 query.rs
 region.rs
 theory_profile.rs
@@ -89,7 +99,35 @@ Each module owns one semantic responsibility and exposes immutable, structurally
 
 ---
 
-## 4. QueryIR
+## 4. CompilerAuthoritySnapshot
+
+Compilation begins from a read-only authority snapshot rather than a live mutable store handle.
+
+Conceptual fields:
+
+```text
+CompilerAuthoritySnapshot {
+    universe_generation
+    world
+    admitted_artifacts
+    admitted_capabilities
+    admitted_structure_witnesses
+    admitted_morphisms
+    activated_package_set
+    package_manifests
+    authority_policy_identity
+}
+```
+
+The snapshot is immutable for one compilation. If authority changes, a new compilation/recompilation receives a new snapshot with a new generation/context identity.
+
+The snapshot does not expose publication, mutation, rollback, promotion, or transaction handles.
+
+This prevents campaign/search state from becoming an authority writer merely because `formula-engine` has a read dependency on `formula-store`.
+
+---
+
+## 5. QueryIR
 
 `QueryIR` binds the exact semantic inputs to compilation:
 
@@ -119,17 +157,19 @@ Required behavior:
 - activated package set bound explicitly;
 - unknown artifact classes explicit rather than inferred from operation names.
 
+The compiler rejects a `QueryIR` whose generation/World/package context does not match the supplied `CompilerAuthoritySnapshot`.
+
 No timeout/resource state may rewrite the requested Authority Contract.
 
 ---
 
-## 5. Semantic elaboration
+## 6. Semantic elaboration
 
 Semantic elaboration converts a `QueryIR` into explicit semantic prerequisites and open obligations.
 
 P4 may:
 
-- resolve exact structural identities;
+- resolve exact structural identities from the immutable snapshot;
 - resolve admitted parents/domains;
 - use admitted canonical lossless morphisms;
 - detect ambiguity and emit an open/blocked obligation;
@@ -142,15 +182,16 @@ P4 may **not**:
 - insert a lossy morphism implicitly;
 - silently choose among ambiguous common parents;
 - synthesize a missing theorem/witness in P4;
-- treat a heuristic estimate as a semantic fact.
+- treat a heuristic estimate as a semantic fact;
+- mutate the authority source to make an elaboration succeed.
 
 This directly enforces D3-P01 and D3-P02.
 
 ---
 
-## 6. RelevantRegion
+## 7. RelevantRegion
 
-`RelevantRegion` is a deterministic projection of the exact generation/world/package context into the semantic artifacts needed for the current query.
+`RelevantRegion` is a deterministic projection of the immutable authority snapshot into the semantic artifacts needed for the current query.
 
 Conceptual fields:
 
@@ -168,7 +209,7 @@ RelevantRegion {
 }
 ```
 
-P4 v1 keeps retrieval deliberately bounded and deterministic. It uses only already-admitted/indexed semantic inputs available through P1/P3 interfaces.
+P4 v1 keeps retrieval deliberately bounded and deterministic. It uses only already-admitted/indexed semantic inputs present in the supplied snapshot and existing P1/P3 read interfaces.
 
 P4 does not implement heuristic theorem retrieval or learned relevance ranking.
 
@@ -176,7 +217,7 @@ The region is expandable in later phases, but replay identity must bind the exac
 
 ---
 
-## 7. TheoryProfile v1
+## 8. TheoryProfile v1
 
 `TheoryProfile` separates certified semantic properties from operational estimates.
 
@@ -202,7 +243,7 @@ P4 v1 supports only the profile facts needed by First-Light-era compiler tests. 
 
 ---
 
-## 8. Representation contracts
+## 9. Representation contracts
 
 Representation changes are explicit graph edges.
 
@@ -235,7 +276,7 @@ D3-P03 is therefore structural, not conventional documentation.
 
 ---
 
-## 9. Reduction contracts
+## 10. Reduction contracts
 
 `ReductionEdge` declares exactly which result classes survive a reduction.
 
@@ -274,7 +315,7 @@ This enforces D3-P04.
 
 ---
 
-## 10. Decomposition
+## 11. Decomposition
 
 `Decomposition` makes child obligations and reconstruction semantics explicit.
 
@@ -297,7 +338,7 @@ This enforces D3-P05.
 
 ---
 
-## 11. CampaignIR
+## 12. CampaignIR
 
 P4 compiles a typed AND/OR campaign graph.
 
@@ -341,7 +382,7 @@ CampaignIR is planning/search state. It is never durable mathematical authority 
 
 ---
 
-## 12. ObligationIR
+## 13. ObligationIR
 
 `ObligationIR` is the fundamental unit of mathematical work.
 
@@ -386,7 +427,7 @@ This enforces D3-P12.
 
 ---
 
-## 13. WorkCellPlan
+## 14. WorkCellPlan
 
 `WorkCellPlan` is an authority-inert execution request.
 
@@ -407,7 +448,9 @@ WorkCellPlan {
 
 P4 Work Cells are **plans only**. They do not execute external solvers in P4.
 
-The data type exposes no `AuthorityStore` mutation API and no method that can weaken the root Authority Contract.
+A `WorkCellPlan` contains no authority-store handle, transaction, publication callback, promotion callback, or checker implementation pointer. Its side-effect policy is descriptive and can only narrow execution permissions.
+
+The architecture test must prove P4 source does not invoke generation publication/authority mutation from WorkCell or compiler paths.
 
 `formula-engine` continues not to depend on `formula-check` implementation.
 
@@ -415,7 +458,7 @@ This enforces D3-P09 and keeps Ptah absence semantically irrelevant under D3-P13
 
 ---
 
-## 14. ReplayManifest
+## 15. ReplayManifest
 
 Every compiled campaign has a deterministic replay manifest binding all semantic and policy inputs that may affect its structure/verdict.
 
@@ -445,7 +488,7 @@ This enforces D3-P11.
 
 ---
 
-## 15. ResultBundle
+## 16. ResultBundle
 
 P4 defines the structural result envelope without creating mathematical authority.
 
@@ -468,12 +511,13 @@ A `ResultBundle` may reference evidence already certified elsewhere, but constru
 
 ---
 
-## 16. Compiler v1
+## 17. Compiler v1
 
 The P4 compiler performs deterministic structural compilation only:
 
 ```text
-QueryIR
+CompilerAuthoritySnapshot
+  + QueryIR
   -> validate exact context
   -> semantic elaboration
   -> RelevantRegion
@@ -500,7 +544,7 @@ Those belong to later phases.
 
 ---
 
-## 17. Structural rejection rules
+## 18. Structural rejection rules
 
 P4 must fail closed for at least:
 
@@ -516,7 +560,8 @@ representation edge with missing preservation metadata
 reduction path that loses requested result class
 reduction missing reconstruction for requested witness
 invalid decomposition without reconstruction semantics
-WorkCell plan attempting authority-write capability
+WorkCell plan requesting authority-write capability
+compiler/work-cell source invoking authority-publication/mutation path
 replay manifest missing semantic/policy input
 ```
 
@@ -524,7 +569,7 @@ Failures remain compiler/structural errors unless an authoritative mathematical 
 
 ---
 
-## 18. Tests and proof obligations
+## 19. Tests and proof obligations
 
 P4 test groups map directly to the frozen roadmap obligations.
 
@@ -550,7 +595,7 @@ Reject decomposition with missing aggregation/reconstruction semantics.
 
 ### D3-P09 Work Cells cannot modify authority
 
-Dependency/API tests prove `formula-engine` has no checker/store authority mutation route through WorkCellPlan construction.
+Prove `WorkCellPlan` is pure data with no authority handles and architecture-test the P4 compiler/work-cell source against generation publication, authority mutation, rollback, and promotion call paths.
 
 ### D3-P11 Replay complete
 
@@ -566,17 +611,18 @@ PASS only when:
 
 1. identical exact inputs compile/replay to the same semantic campaign identity;
 2. invalid representation/reduction/decomposition compositions are structurally rejected;
-3. P0/P1/P2/P3 proof gates remain green;
-4. the canonical P4 workflow passes locked/offline tests, build, formatting, Clippy `-D warnings`, dependency-tree checks, and clean-worktree verification.
+3. P4 source has no authority-publication/mutation path;
+4. P0/P1/P2/P3 proof gates remain green;
+5. the canonical P4 workflow passes locked/offline tests, build, formatting, Clippy `-D warnings`, dependency-tree checks, and clean-worktree verification.
 
 ---
 
-## 19. Implementation sequence
+## 20. Implementation sequence
 
 The implementation plan should use RED -> GREEN tasks in this order:
 
 ```text
-1. QueryIR + exact semantic identity
+1. CompilerAuthoritySnapshot + QueryIR exact semantic identity
 2. RelevantRegion + TheoryProfile
 3. representation contracts
 4. reduction contracts + composition validation
@@ -586,7 +632,7 @@ The implementation plan should use RED -> GREEN tasks in this order:
 8. WorkCellPlan authority-inert boundary
 9. ReplayManifest deterministic binding
 10. Compiler v1 end-to-end deterministic compile/replay
-11. adversarial invalid-route integration tests
+11. adversarial invalid-route and authority-write integration tests
 12. canonical P0-P4 proof workflow
 13. exact P3->P4 diff review
 14. checkpoint + CURRENT update
@@ -597,7 +643,7 @@ No later task may silently pull P5 CandidateSpace/discovery behavior into P4.
 
 ---
 
-## 20. Freeze boundary
+## 21. Freeze boundary
 
 P4 is complete only when the exact documentation-bearing branch SHA independently passes the canonical P4 workflow.
 
