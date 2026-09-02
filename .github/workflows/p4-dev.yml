@@ -1,0 +1,27 @@
+name: P4 development gate
+
+on:
+  push:
+    branches:
+      - implementation/p4-query-compiler-campaign-core
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p4-dev:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: P4 development gate
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-engine --all-targets --locked --offline
+          cargo test -p formula-archtest --locked --offline
