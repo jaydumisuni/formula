@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 
 # P4 proof is intentionally read-only. Compiler/work-cell paths cannot publish authority.
+# Exact-head trigger after the pinned Rust 1.98.0 formatter repair.
 permissions:
   contents: read
 
