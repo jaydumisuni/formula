@@ -6,5 +6,6 @@ pub mod reduction;
 pub mod region;
 pub mod representation;
 pub mod theory_profile;
+pub mod work_cell;
 
 pub const CRATE_ROLE: &str = "query campaign and search orchestration";
