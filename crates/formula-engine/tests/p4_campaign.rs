@@ -10,8 +10,20 @@ fn d(byte: u8) -> ArtifactDigest {
 
 fn nodes() -> Vec<CampaignNode> {
     vec![
-        CampaignNode::new(d(10), CampaignNodeKind::Goal, d(1), d(2), Some(CampaignAggregation::Or)),
-        CampaignNode::new(d(11), CampaignNodeKind::Route, d(1), d(2), Some(CampaignAggregation::And)),
+        CampaignNode::new(
+            d(10),
+            CampaignNodeKind::Goal,
+            d(1),
+            d(2),
+            Some(CampaignAggregation::Or),
+        ),
+        CampaignNode::new(
+            d(11),
+            CampaignNodeKind::Route,
+            d(1),
+            d(2),
+            Some(CampaignAggregation::And),
+        ),
         CampaignNode::new(d(12), CampaignNodeKind::Obligation, d(1), d(2), None),
     ]
 }
@@ -48,7 +60,11 @@ fn campaign_rejects_dangling_edges() {
 fn node_generation_and_world_must_match_campaign() {
     let mut wrong_generation = nodes();
     wrong_generation.push(CampaignNode::new(
-        d(20), CampaignNodeKind::FactRef, d(99), d(2), None,
+        d(20),
+        CampaignNodeKind::FactRef,
+        d(99),
+        d(2),
+        None,
     ));
     assert_eq!(
         CampaignIR::new(d(1), d(2), wrong_generation, edges()).validate(),
@@ -57,7 +73,11 @@ fn node_generation_and_world_must_match_campaign() {
 
     let mut wrong_world = nodes();
     wrong_world.push(CampaignNode::new(
-        d(20), CampaignNodeKind::FactRef, d(1), d(99), None,
+        d(20),
+        CampaignNodeKind::FactRef,
+        d(1),
+        d(99),
+        None,
     ));
     assert_eq!(
         CampaignIR::new(d(1), d(2), wrong_world, edges()).validate(),
@@ -87,7 +107,11 @@ fn route_requires_at_least_one_obligation() {
         d(1),
         d(2),
         nodes(),
-        vec![CampaignEdge::new(d(10), d(11), CampaignEdgeKind::AlternativeTo)],
+        vec![CampaignEdge::new(
+            d(10),
+            d(11),
+            CampaignEdgeKind::AlternativeTo,
+        )],
     );
     assert_eq!(
         campaign.validate(),

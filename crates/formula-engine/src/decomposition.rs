@@ -31,10 +31,7 @@ impl ChildObligation {
 
     fn canonical_value(&self) -> CanonicalValue {
         CanonicalValue::Object(BTreeMap::from([
-            (
-                "obligation".into(),
-                CanonicalValue::Digest(self.obligation),
-            ),
+            ("obligation".into(), CanonicalValue::Digest(self.obligation)),
             ("world".into(), CanonicalValue::Digest(self.world)),
         ]))
     }

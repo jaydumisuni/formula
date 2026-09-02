@@ -258,7 +258,10 @@ impl RepresentationEdge {
                     .map(CanonicalValue::Digest)
                     .unwrap_or(CanonicalValue::Null),
             ),
-            ("schema".into(), CanonicalValue::String(REPRESENTATION_EDGE_SCHEMA_V1.into())),
+            (
+                "schema".into(),
+                CanonicalValue::String(REPRESENTATION_EDGE_SCHEMA_V1.into()),
+            ),
             ("source".into(), CanonicalValue::Digest(self.source)),
             ("target".into(), CanonicalValue::Digest(self.target)),
             (

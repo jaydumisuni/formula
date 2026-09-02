@@ -127,8 +127,14 @@ impl RelevantRegion {
                 "admitted_morphisms".into(),
                 digest_array(&self.admitted_morphisms),
             ),
-            ("query_digest".into(), CanonicalValue::Digest(self.query_digest)),
-            ("schema".into(), CanonicalValue::String(REGION_SCHEMA_V1.into())),
+            (
+                "query_digest".into(),
+                CanonicalValue::Digest(self.query_digest),
+            ),
+            (
+                "schema".into(),
+                CanonicalValue::String(REGION_SCHEMA_V1.into()),
+            ),
             (
                 "semantic_artifacts".into(),
                 digest_array(&self.semantic_artifacts),

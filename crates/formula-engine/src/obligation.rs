@@ -198,10 +198,7 @@ impl ObligationOutcome {
 
     pub fn canonical_bytes(&self) -> Vec<u8> {
         CanonicalValue::Object(BTreeMap::from([
-            (
-                "obligation".into(),
-                CanonicalValue::Digest(self.obligation),
-            ),
+            ("obligation".into(), CanonicalValue::Digest(self.obligation)),
             (
                 "schema".into(),
                 CanonicalValue::String(OBLIGATION_OUTCOME_SCHEMA_V1.into()),

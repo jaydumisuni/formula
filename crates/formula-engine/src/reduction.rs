@@ -44,7 +44,9 @@ impl ReductionEdge {
     }
 
     pub fn preserves(&self, requested: ResultClass) -> bool {
-        self.preserved_result_classes.binary_search(&requested).is_ok()
+        self.preserved_result_classes
+            .binary_search(&requested)
+            .is_ok()
     }
 
     pub fn reconstruction_relation(&self) -> Option<ArtifactDigest> {

@@ -67,7 +67,10 @@ fn identical_exact_inputs_compile_to_identical_campaign_and_replay() {
     let right = CompilerV1::compile(&query(), &snapshot(), inputs()).unwrap();
 
     assert_eq!(left.campaign.digest(), right.campaign.digest());
-    assert_eq!(left.replay_manifest.digest(), right.replay_manifest.digest());
+    assert_eq!(
+        left.replay_manifest.digest(),
+        right.replay_manifest.digest()
+    );
     assert_eq!(left.obligations, right.obligations);
     assert_eq!(left.work_cells, right.work_cells);
 }
@@ -75,17 +78,14 @@ fn identical_exact_inputs_compile_to_identical_campaign_and_replay() {
 #[test]
 fn exact_context_mismatches_fail_closed() {
     let q = query();
-    let bad_generation = CompilerAuthoritySnapshot::new(
-        d(99), d(2), packages(), vec![], vec![], vec![],
-    );
+    let bad_generation =
+        CompilerAuthoritySnapshot::new(d(99), d(2), packages(), vec![], vec![], vec![]);
     assert_eq!(
         CompilerV1::compile(&q, &bad_generation, inputs()).unwrap_err(),
         CompilerError::GenerationMismatch
     );
 
-    let bad_world = CompilerAuthoritySnapshot::new(
-        d(1), d(99), packages(), vec![], vec![], vec![],
-    );
+    let bad_world = CompilerAuthoritySnapshot::new(d(1), d(99), packages(), vec![], vec![], vec![]);
     assert_eq!(
         CompilerV1::compile(&q, &bad_world, inputs()).unwrap_err(),
         CompilerError::WorldMismatch
@@ -95,7 +95,9 @@ fn exact_context_mismatches_fail_closed() {
         d(1),
         d(2),
         ActivatedPackageBinding::new(d(1), vec![d(88)], vec![]),
-        vec![], vec![], vec![],
+        vec![],
+        vec![],
+        vec![],
     );
     assert_eq!(
         CompilerV1::compile(&q, &bad_packages, inputs()).unwrap_err(),
@@ -124,7 +126,8 @@ fn lossy_implicit_morphism_and_ambiguous_parent_fail_closed() {
         CompilerError::ImplicitLossyMorphism
     );
 
-    let ambiguous = inputs().with_parent_resolution(ParentResolution::Ambiguous(vec![d(61), d(62)]));
+    let ambiguous =
+        inputs().with_parent_resolution(ParentResolution::Ambiguous(vec![d(61), d(62)]));
     assert_eq!(
         CompilerV1::compile(&query(), &snapshot(), ambiguous).unwrap_err(),
         CompilerError::AmbiguousParent

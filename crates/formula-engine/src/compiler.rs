@@ -8,7 +8,7 @@ use crate::{
     decomposition::Decomposition,
     obligation::{ObligationIR, TerminalState},
     query::{QueryIR, SideEffectPolicy},
-    reduction::{compose_reduction_path, ReductionEdge, ReductionError},
+    reduction::{ReductionEdge, ReductionError, compose_reduction_path},
     region::{CompilerAuthoritySnapshot, RegionError, RelevantRegion},
     replay::ReplayManifest,
     representation::{InformationLoss, RepresentationEdge, RepresentationNode},
@@ -250,12 +250,13 @@ impl CompilerV1 {
         }
 
         for path in &inputs.reduction_paths {
-            let composed = compose_reduction_path(path, requested).map_err(|error| match error {
-                ReductionError::RequestedResultNotPreserved => {
-                    CompilerError::ReductionResultClassLoss
-                }
-                _ => CompilerError::InvalidReduction,
-            })?;
+            let composed =
+                compose_reduction_path(path, requested).map_err(|error| match error {
+                    ReductionError::RequestedResultNotPreserved => {
+                        CompilerError::ReductionResultClassLoss
+                    }
+                    _ => CompilerError::InvalidReduction,
+                })?;
             route_digests.push(composed.digest());
         }
 
@@ -382,19 +383,13 @@ impl CompilerV1 {
             ));
         }
 
-        let campaign = CampaignIR::new(
-            query.universe_generation(),
-            query.world(),
-            nodes,
-            edges,
-        );
+        let campaign = CampaignIR::new(query.universe_generation(), query.world(), nodes, edges);
         campaign
             .validate()
             .map_err(|_| CompilerError::InvalidCampaign)?;
 
-        let activated_package_set = ArtifactDigest::of_bytes(
-            format!("{:?}", query.activated_packages()).as_bytes(),
-        );
+        let activated_package_set =
+            ArtifactDigest::of_bytes(format!("{:?}", query.activated_packages()).as_bytes());
         let replay_manifest = ReplayManifest::new(
             query.universe_generation(),
             query.world(),

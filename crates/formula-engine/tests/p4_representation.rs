@@ -25,7 +25,10 @@ fn exact_lossless_representation_edge_validates() {
         d(12),
         Some(PreservationMetadata::new(
             ExactnessClass::Exact,
-            vec![RequestedResultClass::Decision, RequestedResultClass::Witness],
+            vec![
+                RequestedResultClass::Decision,
+                RequestedResultClass::Witness,
+            ],
         )),
         InformationLoss::None,
         Some(d(13)),

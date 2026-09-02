@@ -1,6 +1,6 @@
 use formula_core::digest::ArtifactDigest;
 use formula_engine::reduction::{
-    compose_reduction_path, ReductionEdge, ReductionError, ResultClass,
+    ReductionEdge, ReductionError, ResultClass, compose_reduction_path,
 };
 
 fn d(byte: u8) -> ArtifactDigest {
@@ -49,17 +49,9 @@ fn witness_preservation_requires_reconstruction_on_every_edge() {
 #[test]
 fn one_weak_edge_invalidates_the_whole_path() {
     let path = [
-        edge(
-            1,
-            vec![ResultClass::Decision, ResultClass::Witness],
-            true,
-        ),
+        edge(1, vec![ResultClass::Decision, ResultClass::Witness], true),
         edge(2, vec![ResultClass::Decision], false),
-        edge(
-            3,
-            vec![ResultClass::Decision, ResultClass::Witness],
-            true,
-        ),
+        edge(3, vec![ResultClass::Decision, ResultClass::Witness], true),
     ];
 
     assert_eq!(
@@ -71,16 +63,8 @@ fn one_weak_edge_invalidates_the_whole_path() {
 #[test]
 fn exact_witness_path_composes_deterministically() {
     let path = [
-        edge(
-            1,
-            vec![ResultClass::Witness, ResultClass::Decision],
-            true,
-        ),
-        edge(
-            2,
-            vec![ResultClass::Decision, ResultClass::Witness],
-            true,
-        ),
+        edge(1, vec![ResultClass::Witness, ResultClass::Decision], true),
+        edge(2, vec![ResultClass::Decision, ResultClass::Witness], true),
     ];
     let first = compose_reduction_path(&path, ResultClass::Witness).unwrap();
     let second = compose_reduction_path(&path, ResultClass::Witness).unwrap();

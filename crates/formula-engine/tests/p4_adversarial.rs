@@ -4,10 +4,10 @@ use formula_engine::{
     decomposition::{AggregationSemantics, ChildObligation, Decomposition, DecompositionError},
     obligation::{ObligationOutcome, TerminalState},
     query::{
-        ActivatedPackageBinding, QueryIR, RequestedResultClass, ResourceContract,
-        SideEffectPolicy, TargetRequest,
+        ActivatedPackageBinding, QueryIR, RequestedResultClass, ResourceContract, SideEffectPolicy,
+        TargetRequest,
     },
-    reduction::{compose_reduction_path, ReductionEdge, ReductionError},
+    reduction::{ReductionEdge, ReductionError, compose_reduction_path},
     region::{CompilerAuthoritySnapshot, RelevantRegion},
     replay::ReplayManifest,
     representation::InformationLoss,

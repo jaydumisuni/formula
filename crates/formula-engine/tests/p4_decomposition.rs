@@ -11,7 +11,10 @@ fn valid() -> Decomposition {
     Decomposition::new(
         d(1),
         d(2),
-        vec![ChildObligation::new(d(3), d(2)), ChildObligation::new(d(4), d(2))],
+        vec![
+            ChildObligation::new(d(3), d(2)),
+            ChildObligation::new(d(4), d(2)),
+        ],
         Some(d(5)),
         Some(AggregationSemantics::And),
         Some(d(6)),
@@ -25,7 +28,10 @@ fn valid_decomposition_is_deterministic() {
     let right = Decomposition::new(
         d(1),
         d(2),
-        vec![ChildObligation::new(d(4), d(2)), ChildObligation::new(d(3), d(2))],
+        vec![
+            ChildObligation::new(d(4), d(2)),
+            ChildObligation::new(d(3), d(2)),
+        ],
         Some(d(5)),
         Some(AggregationSemantics::And),
         Some(d(6)),
@@ -38,12 +44,27 @@ fn valid_decomposition_is_deterministic() {
 #[test]
 fn decomposition_requires_children_aggregation_reconstruction_and_evidence() {
     let no_children = Decomposition::new(
-        d(1), d(2), vec![], Some(d(5)), Some(AggregationSemantics::And), Some(d(6)), Some(d(7)),
+        d(1),
+        d(2),
+        vec![],
+        Some(d(5)),
+        Some(AggregationSemantics::And),
+        Some(d(6)),
+        Some(d(7)),
     );
-    assert_eq!(no_children.validate(), Err(DecompositionError::EmptyChildren));
+    assert_eq!(
+        no_children.validate(),
+        Err(DecompositionError::EmptyChildren)
+    );
 
     let no_aggregation = Decomposition::new(
-        d(1), d(2), vec![ChildObligation::new(d(3), d(2))], Some(d(5)), None, Some(d(6)), Some(d(7)),
+        d(1),
+        d(2),
+        vec![ChildObligation::new(d(3), d(2))],
+        Some(d(5)),
+        None,
+        Some(d(6)),
+        Some(d(7)),
     );
     assert_eq!(
         no_aggregation.validate(),
@@ -51,7 +72,13 @@ fn decomposition_requires_children_aggregation_reconstruction_and_evidence() {
     );
 
     let no_reconstruction = Decomposition::new(
-        d(1), d(2), vec![ChildObligation::new(d(3), d(2))], Some(d(5)), Some(AggregationSemantics::Or), None, Some(d(7)),
+        d(1),
+        d(2),
+        vec![ChildObligation::new(d(3), d(2))],
+        Some(d(5)),
+        Some(AggregationSemantics::Or),
+        None,
+        Some(d(7)),
     );
     assert_eq!(
         no_reconstruction.validate(),
@@ -59,9 +86,18 @@ fn decomposition_requires_children_aggregation_reconstruction_and_evidence() {
     );
 
     let no_evidence = Decomposition::new(
-        d(1), d(2), vec![ChildObligation::new(d(3), d(2))], Some(d(5)), Some(AggregationSemantics::And), Some(d(6)), None,
+        d(1),
+        d(2),
+        vec![ChildObligation::new(d(3), d(2))],
+        Some(d(5)),
+        Some(AggregationSemantics::And),
+        Some(d(6)),
+        None,
     );
-    assert_eq!(no_evidence.validate(), Err(DecompositionError::MissingEvidence));
+    assert_eq!(
+        no_evidence.validate(),
+        Err(DecompositionError::MissingEvidence)
+    );
 }
 
 #[test]

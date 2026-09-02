@@ -47,7 +47,10 @@ impl OperationalEstimate {
     fn canonical_value(&self) -> CanonicalValue {
         CanonicalValue::Object(BTreeMap::from([
             ("name".into(), CanonicalValue::String(self.name.clone())),
-            ("score".into(), CanonicalValue::String(self.score.to_string())),
+            (
+                "score".into(),
+                CanonicalValue::String(self.score.to_string()),
+            ),
         ]))
     }
 }

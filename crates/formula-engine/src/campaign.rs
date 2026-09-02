@@ -192,7 +192,11 @@ impl CampaignIR {
     }
 
     pub fn validate(&self) -> Result<(), CampaignError> {
-        if self.nodes.iter().any(|node| node.generation != self.generation) {
+        if self
+            .nodes
+            .iter()
+            .any(|node| node.generation != self.generation)
+        {
             return Err(CampaignError::GenerationMismatch);
         }
         if self.nodes.iter().any(|node| node.world != self.world) {

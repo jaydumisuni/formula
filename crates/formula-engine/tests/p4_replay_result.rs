@@ -1,8 +1,6 @@
 use formula_core::digest::ArtifactDigest;
 use formula_engine::{
-    obligation::TerminalState,
-    query::ResourceContract,
-    replay::ReplayManifest,
+    obligation::TerminalState, query::ResourceContract, replay::ReplayManifest,
     result_bundle::ResultBundle,
 };
 
@@ -44,8 +42,12 @@ fn every_replay_semantic_and_policy_input_is_identity_binding() {
         replay().with_activated_package_set(d(23)).digest(),
         replay().with_relevant_region_digest(d(24)).digest(),
         replay().with_theory_profile_digest(d(25)).digest(),
-        replay().with_compiler_policy_version("compiler-v2").digest(),
-        replay().with_scheduler_policy_version("scheduler-v2").digest(),
+        replay()
+            .with_compiler_policy_version("compiler-v2")
+            .digest(),
+        replay()
+            .with_scheduler_policy_version("scheduler-v2")
+            .digest(),
         replay()
             .with_resource_contract(ResourceContract::new(200, 1024, 50))
             .digest(),

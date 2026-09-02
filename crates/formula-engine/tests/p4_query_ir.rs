@@ -56,7 +56,10 @@ fn every_semantic_query_input_is_identity_binding() {
             .with_known_bindings(vec![KnownBinding::new("a", d(30))])
             .digest(),
         fixture()
-            .with_targets(vec![TargetRequest::new(d(31), RequestedResultClass::Witness)])
+            .with_targets(vec![TargetRequest::new(
+                d(31),
+                RequestedResultClass::Witness,
+            )])
             .digest(),
         fixture()
             .with_resource_contract(ResourceContract::new(20_000, 64 * 1024 * 1024, 1_000))
@@ -78,5 +81,8 @@ fn every_semantic_query_input_is_identity_binding() {
 fn resource_contract_does_not_rewrite_requested_authority() {
     let query = fixture().with_resource_contract(ResourceContract::new(1, 1, 1));
     assert_eq!(query.authority_contract(), d(7));
-    assert_eq!(query.requested_result_class(), RequestedResultClass::Witness);
+    assert_eq!(
+        query.requested_result_class(),
+        RequestedResultClass::Witness
+    );
 }
