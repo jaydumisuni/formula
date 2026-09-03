@@ -106,7 +106,7 @@
 - [ ] RED tests must fail if `formula-engine` or `formula-packages` references `formula-first-light`, `tests/first-light/sealed`, FL-A expanded answer literals, or the final FL-C compact answer as a source literal.
 - [ ] Add checks that `formula-first-light` owns sealed semantics and discovery crates do not depend on it in Cargo manifests.
 - [ ] Keep public near-miss literals permitted while final hidden answer literals remain forbidden.
-- [ ] Run `cargo test -p authority-boundary-tests --locked`; require GREEN.
+- [ ] Run `cargo test -p formula-archtest --locked`; require GREEN.
 - [ ] Commit as `test(p6): enforce first-light blindness firewall`.
 
 ### Task 6: Runtime blindness/adversarial harness
@@ -137,7 +137,7 @@
 
 ```bash
 cargo metadata --locked --offline --format-version 1
-cargo test -p authority-boundary-tests --locked --offline
+cargo test -p formula-archtest --locked --offline
 cargo test -p formula-core --locked --offline
 cargo test -p formula-store --locked --offline
 cargo test -p formula-check --locked --offline
