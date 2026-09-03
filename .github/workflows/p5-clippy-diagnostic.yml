@@ -16,24 +16,25 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install pinned Rust
         run: |
-          rustup toolchain install 1.98.0 --profile minimal --component clippy
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
           rustup override set 1.98.0
       - name: Prime locked dependency cache
         run: cargo fetch --locked
-      - name: Capture exact Clippy diagnostics
-        shell: bash
+      - name: Generate exact source correction
         run: |
-          set +e
-          cargo clippy --workspace --all-targets --locked --offline -- -D warnings > p5-clippy.txt 2>&1
-          status=$?
-          cat p5-clippy.txt
-          printf '%s\n' "$status" > p5-clippy-status.txt
-          exit 0
-      - name: Upload Clippy diagnostic
-        if: always()
+          set -euxo pipefail
+          python3 .github/scripts/p5_clippy_patch.py
+          cargo fmt --all
+          git diff --check
+      - name: Verify corrected source
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-engine --all-targets --locked --offline
+          cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+      - name: Upload verified corrected sources
         uses: actions/upload-artifact@v4
         with:
-          name: p5-clippy-diagnostic
+          name: p5-clippy-corrected-sources
           path: |
-            p5-clippy.txt
-            p5-clippy-status.txt
+            crates/formula-engine/src/affine_polynomial.rs
+            crates/formula-engine/src/search_policy.rs
