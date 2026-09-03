@@ -20,7 +20,9 @@ jobs:
           rustup override set 1.98.0
       - name: Prime locked dependency cache
         run: cargo fetch --locked
-      - name: P6 focused manifest test
-        run: cargo test -p formula-first-light --test p6_manifest --locked
+      - name: P6 formula-engine regression
+        run: cargo test -p formula-engine --all-targets --locked
+      - name: P6 formula-first-light tests
+        run: cargo test -p formula-first-light --all-targets --locked
       - name: P6 architecture regression
         run: cargo test -p formula-archtest --locked
