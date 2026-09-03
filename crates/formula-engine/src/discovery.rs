@@ -9,10 +9,8 @@ pub enum CandidateValidation {
 
 pub trait DiscoveryOracle {
     fn output_for_sample(&mut self, input: u8) -> bool;
-    fn validate_frozen_candidate(
-        &mut self,
-        candidate: &FrozenExprCandidate,
-    ) -> CandidateValidation;
+    fn validate_frozen_candidate(&mut self, candidate: &FrozenExprCandidate)
+    -> CandidateValidation;
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]

@@ -1,7 +1,7 @@
 use formula_core::digest::ArtifactDigest;
 use formula_engine::{
     candidate_space::{CandidateSpaceContext, SearchAuthority},
-    discovery::{run_bounded_cegis, CandidateValidation, CegisOutcome, DiscoveryOracle},
+    discovery::{CandidateValidation, CegisOutcome, DiscoveryOracle, run_bounded_cegis},
     observational::{FrozenExprCandidate, ObservationalExprSpace, U8BoolGrammar},
     search_policy::{FairRoundRobin, HeuristicRanking},
 };
@@ -24,11 +24,17 @@ impl DiscoveryOracle for ScriptedOracle {
         input != 0
     }
 
-    fn validate_frozen_candidate(&mut self, candidate: &FrozenExprCandidate) -> CandidateValidation {
+    fn validate_frozen_candidate(
+        &mut self,
+        candidate: &FrozenExprCandidate,
+    ) -> CandidateValidation {
         self.seen_frozen.push(candidate.frozen().digest());
         self.validations += 1;
         if self.validations == 1 {
-            CandidateValidation::Counterexample { input: 0, expected: false }
+            CandidateValidation::Counterexample {
+                input: 0,
+                expected: false,
+            }
         } else {
             CandidateValidation::Equivalent
         }
@@ -38,10 +44,18 @@ impl DiscoveryOracle for ScriptedOracle {
 #[test]
 fn cegis_freezes_before_validation_and_refines_on_counterexample() {
     let mut space = ObservationalExprSpace::new(context(), U8BoolGrammar::minimal(), 7);
-    let mut oracle = ScriptedOracle { validations: 0, seen_frozen: vec![] };
+    let mut oracle = ScriptedOracle {
+        validations: 0,
+        seen_frozen: vec![],
+    };
     let result = run_bounded_cegis(&mut space, &mut oracle, &[1], 4);
-    let CegisOutcome::Candidate(candidate, trace) = result else { panic!("expected candidate") };
-    assert_eq!(candidate.frozen().authority(), SearchAuthority::CandidateOnly);
+    let CegisOutcome::Candidate(candidate, trace) = result else {
+        panic!("expected candidate")
+    };
+    assert_eq!(
+        candidate.frozen().authority(),
+        SearchAuthority::CandidateOnly
+    );
     assert_eq!(oracle.seen_frozen, trace.frozen_before_validation());
     assert_eq!(trace.counterexamples(), &[(0, false)]);
 }
@@ -50,9 +64,17 @@ fn cegis_freezes_before_validation_and_refines_on_counterexample() {
 fn iteration_exhaustion_is_resource_unknown_not_refutation() {
     struct NeverDone;
     impl DiscoveryOracle for NeverDone {
-        fn output_for_sample(&mut self, input: u8) -> bool { input != 0 }
-        fn validate_frozen_candidate(&mut self, _candidate: &FrozenExprCandidate) -> CandidateValidation {
-            CandidateValidation::Counterexample { input: 0, expected: false }
+        fn output_for_sample(&mut self, input: u8) -> bool {
+            input != 0
+        }
+        fn validate_frozen_candidate(
+            &mut self,
+            _candidate: &FrozenExprCandidate,
+        ) -> CandidateValidation {
+            CandidateValidation::Counterexample {
+                input: 0,
+                expected: false,
+            }
         }
     }
     let mut space = ObservationalExprSpace::new(context(), U8BoolGrammar::minimal(), 5);

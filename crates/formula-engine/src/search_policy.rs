@@ -32,12 +32,7 @@ pub struct HeuristicRanking {
 
 impl HeuristicRanking {
     pub fn new(mut scores: Vec<(ArtifactDigest, u64)>) -> Self {
-        scores.sort_by(|left, right| {
-            right
-                .1
-                .cmp(&left.1)
-                .then_with(|| left.0.cmp(&right.0))
-        });
+        scores.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
         scores.dedup_by_key(|entry| entry.0);
         Self { scores }
     }

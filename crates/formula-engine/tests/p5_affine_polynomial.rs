@@ -14,7 +14,10 @@ fn context() -> CandidateSpaceContext {
 
 #[test]
 fn rational128_normalizes_exactly() {
-    assert_eq!(Rational128::new(6, -8).unwrap(), Rational128::new(-3, 4).unwrap());
+    assert_eq!(
+        Rational128::new(6, -8).unwrap(),
+        Rational128::new(-3, 4).unwrap()
+    );
     assert!(Rational128::new(1, 0).is_err());
 }
 
@@ -31,7 +34,10 @@ fn exact_samples_refine_an_affine_family_not_one_enumerated_candidate() {
     assert_eq!(space.affine_dimension().unwrap(), 0);
 
     let candidate = space.extract_min_degree_unique().unwrap();
-    assert_eq!(candidate.coefficients(), &[Rational128::integer(3), Rational128::integer(2)]);
+    assert_eq!(
+        candidate.coefficients(),
+        &[Rational128::integer(3), Rational128::integer(2)]
+    );
 }
 
 #[test]
@@ -56,5 +62,8 @@ fn sample_order_is_non_semantic_for_freeze_identity() {
         b.add_exact_sample(x, y).unwrap();
     }
     assert_eq!(a.freeze().digest(), b.freeze().digest());
-    assert_eq!(a.extract_min_degree_unique().unwrap().digest(), b.extract_min_degree_unique().unwrap().digest());
+    assert_eq!(
+        a.extract_min_degree_unique().unwrap().digest(),
+        b.extract_min_degree_unique().unwrap().digest()
+    );
 }

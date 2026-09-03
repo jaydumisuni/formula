@@ -76,8 +76,10 @@ fn public_zero_related_near_miss_is_eliminated_by_counterexample() {
     let after = space.freeze().digest();
 
     assert_ne!(before, after);
-    assert!(space
-        .behavior_representatives()
-        .iter()
-        .all(|representative| representative.expression().eval(3)));
+    assert!(
+        space
+            .behavior_representatives()
+            .iter()
+            .all(|representative| representative.expression().eval(3))
+    );
 }

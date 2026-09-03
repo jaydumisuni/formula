@@ -13,14 +13,35 @@ fn context() -> CandidateSpaceContext {
     CandidateSpaceContext::new(d(1), d(2), d(3), d(4), d(5), d(6))
 }
 
-fn route(id: u8, target: &str, classes: Vec<RequestedResultClass>, caps: Vec<ArtifactDigest>, cost: u64) -> RouteCandidate {
+fn route(
+    id: u8,
+    target: &str,
+    classes: Vec<RequestedResultClass>,
+    caps: Vec<ArtifactDigest>,
+    cost: u64,
+) -> RouteCandidate {
     RouteCandidate::new(d(id), "boolean-xor", target, classes, caps, true, cost)
 }
 
 #[test]
 fn inadmissible_cheaper_route_cannot_win() {
-    let direct = route(10, "boolean-direct", vec![RequestedResultClass::Decision], vec![], 1);
-    let gf2 = route(11, "gf2-affine", vec![RequestedResultClass::Decision, RequestedResultClass::Witness], vec![d(20)], 3);
+    let direct = route(
+        10,
+        "boolean-direct",
+        vec![RequestedResultClass::Decision],
+        vec![],
+        1,
+    );
+    let gf2 = route(
+        11,
+        "gf2-affine",
+        vec![
+            RequestedResultClass::Decision,
+            RequestedResultClass::Witness,
+        ],
+        vec![d(20)],
+        3,
+    );
     let mut space = ReductionRouteSpace::new(context(), vec![direct, gf2]);
     space.restrict_result_class(RequestedResultClass::Witness);
     space.restrict_capabilities(&[d(20)]);

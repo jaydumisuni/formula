@@ -76,10 +76,7 @@ impl Rational128 {
     }
 
     fn checked_sub(self, rhs: Self) -> Result<Self, RationalError> {
-        let neg = rhs
-            .numerator
-            .checked_neg()
-            .ok_or(RationalError::Overflow)?;
+        let neg = rhs.numerator.checked_neg().ok_or(RationalError::Overflow)?;
         self.checked_add(Self::new(neg, rhs.denominator)?)
     }
 
@@ -214,9 +211,7 @@ impl AffinePolynomialSpace {
             if solved.rank != degree + 1 {
                 continue;
             }
-            let mut coefficients = solved
-                .solution
-                .ok_or(AffinePolynomialError::NotUnique)?;
+            let mut coefficients = solved.solution.ok_or(AffinePolynomialError::NotUnique)?;
             while coefficients.len() > 1 && coefficients.last() == Some(&Rational128::integer(0)) {
                 coefficients.pop();
             }
@@ -301,8 +296,8 @@ impl AffinePolynomialSpace {
         let mut pivot_row = 0usize;
         let mut pivot_columns = Vec::new();
         for column in 0..variables {
-            let Some(found_row) = (pivot_row..matrix.len())
-                .find(|row| !matrix[*row][column].is_zero())
+            let Some(found_row) =
+                (pivot_row..matrix.len()).find(|row| !matrix[*row][column].is_zero())
             else {
                 continue;
             };

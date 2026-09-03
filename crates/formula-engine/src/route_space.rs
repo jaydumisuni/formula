@@ -61,7 +61,11 @@ impl RouteCandidate {
     }
 
     fn preserves(&self, requested: RequestedResultClass) -> bool {
-        self.exact && self.preserved_result_classes.binary_search(&requested).is_ok()
+        self.exact
+            && self
+                .preserved_result_classes
+                .binary_search(&requested)
+                .is_ok()
     }
 
     fn capabilities_available(&self, available: &BTreeSet<ArtifactDigest>) -> bool {
@@ -93,7 +97,10 @@ impl RouteCandidate {
                         .collect(),
                 ),
             ),
-            ("route_digest".into(), CanonicalValue::Digest(self.route_digest)),
+            (
+                "route_digest".into(),
+                CanonicalValue::Digest(self.route_digest),
+            ),
             (
                 "schema".into(),
                 CanonicalValue::String(ROUTE_SCHEMA_V1.into()),
@@ -190,8 +197,7 @@ impl ReductionRouteSpace {
     pub fn subtract_scoped_failure(&mut self, failure: &ScopedRouteFailure) {
         if !self.failures.contains(failure) {
             self.failures.push(failure.clone());
-            self.failures
-                .sort_by_key(|entry| entry.failure_digest);
+            self.failures.sort_by_key(|entry| entry.failure_digest);
         }
     }
 
@@ -272,12 +278,7 @@ impl ReductionRouteSpace {
         CanonicalValue::Object(BTreeMap::from([
             (
                 "active_routes".into(),
-                CanonicalValue::Array(
-                    active
-                        .iter()
-                        .map(|route| route.canonical_value())
-                        .collect(),
-                ),
+                CanonicalValue::Array(active.iter().map(|route| route.canonical_value()).collect()),
             ),
             (
                 "available_capabilities".into(),
@@ -285,11 +286,7 @@ impl ReductionRouteSpace {
                     .as_ref()
                     .map(|values| {
                         CanonicalValue::Array(
-                            values
-                                .iter()
-                                .copied()
-                                .map(CanonicalValue::Digest)
-                                .collect(),
+                            values.iter().copied().map(CanonicalValue::Digest).collect(),
                         )
                     })
                     .unwrap_or(CanonicalValue::Null),

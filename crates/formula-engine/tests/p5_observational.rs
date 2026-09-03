@@ -49,7 +49,10 @@ fn observational_space_rebuild_is_equivalent_to_fresh_space() {
     fresh.restrict_exact_sample(1, true);
 
     assert_eq!(incremental.freeze().digest(), fresh.freeze().digest());
-    assert_eq!(incremental.extract_min_cost().map(|c| c.digest()), fresh.extract_min_cost().map(|c| c.digest()));
+    assert_eq!(
+        incremental.extract_min_cost().map(|c| c.digest()),
+        fresh.extract_min_cost().map(|c| c.digest())
+    );
 }
 
 #[test]

@@ -140,10 +140,7 @@ impl BoolExpr {
     fn canonical_value(&self) -> CanonicalValue {
         match self {
             Self::EqZero(value) => CanonicalValue::Object(BTreeMap::from([
-                (
-                    "argument".into(),
-                    value.canonical_value(),
-                ),
+                ("argument".into(), value.canonical_value()),
                 ("kind".into(), CanonicalValue::String("EQ_ZERO".into())),
                 (
                     "schema".into(),
@@ -151,10 +148,7 @@ impl BoolExpr {
                 ),
             ])),
             Self::NeqZero(value) => CanonicalValue::Object(BTreeMap::from([
-                (
-                    "argument".into(),
-                    value.canonical_value(),
-                ),
+                ("argument".into(), value.canonical_value()),
                 ("kind".into(), CanonicalValue::String("NEQ_ZERO".into())),
                 (
                     "schema".into(),
@@ -387,14 +381,8 @@ impl ObservationalExprSpace {
                         .iter()
                         .map(|(input, expected)| {
                             CanonicalValue::Object(BTreeMap::from([
-                                (
-                                    "expected".into(),
-                                    CanonicalValue::Bool(*expected),
-                                ),
-                                (
-                                    "input".into(),
-                                    CanonicalValue::String(input.to_string()),
-                                ),
+                                ("expected".into(), CanonicalValue::Bool(*expected)),
+                                ("input".into(), CanonicalValue::String(input.to_string())),
                             ]))
                         })
                         .collect(),

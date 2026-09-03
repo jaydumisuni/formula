@@ -2,7 +2,7 @@ use formula_core::digest::ArtifactDigest;
 use formula_engine::{
     affine_polynomial::AffinePolynomialSpace,
     candidate_space::{CandidateSpaceContext, SearchAuthority},
-    discovery::{run_bounded_cegis, CandidateValidation, CegisOutcome, DiscoveryOracle},
+    discovery::{CandidateValidation, CegisOutcome, DiscoveryOracle, run_bounded_cegis},
     observational::{FrozenExprCandidate, ObservationalExprSpace, U8BoolGrammar},
     query::RequestedResultClass,
     route_space::{ReductionRouteSpace, RouteCandidate, ScopedRouteFailure},

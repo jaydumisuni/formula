@@ -42,7 +42,9 @@ fn unrelated_campaign_state_cannot_perturb_local_candidate_space_identity() {
 
     assert_eq!(before.freeze().digest(), after.freeze().digest());
     assert_eq!(
-        before.extract_min_cost().map(|candidate| candidate.digest()),
+        before
+            .extract_min_cost()
+            .map(|candidate| candidate.digest()),
         after.extract_min_cost().map(|candidate| candidate.digest())
     );
 }

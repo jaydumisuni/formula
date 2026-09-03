@@ -279,10 +279,7 @@ impl FrozenCandidate {
                 "candidate_digest".into(),
                 CanonicalValue::Digest(self.candidate_digest),
             ),
-            (
-                "cost".into(),
-                CanonicalValue::String(self.cost.to_string()),
-            ),
+            ("cost".into(), CanonicalValue::String(self.cost.to_string())),
             (
                 "schema".into(),
                 CanonicalValue::String(CANDIDATE_SCHEMA_V1.into()),
