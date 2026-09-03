@@ -1,0 +1,152 @@
+name: P5 clippy repair
+
+on:
+  push:
+    branches:
+      - implementation/p5-candidate-space-bounded-discovery
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: Apply exact Clippy-backed source patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          affine = Path('crates/formula-engine/src/affine_polynomial.rs')
+          text = affine.read_text()
+          old = '''            let pivot = matrix[pivot_row][column];
+            for entry in column..=variables {
+                matrix[pivot_row][entry] = matrix[pivot_row][entry].checked_div(pivot)?;
+            }
+
+            for row in 0..matrix.len() {
+                if row == pivot_row {
+                    continue;
+                }
+                let factor = matrix[row][column];
+                if factor.is_zero() {
+                    continue;
+                }
+                for entry in column..=variables {
+                    let scaled = factor.checked_mul(matrix[pivot_row][entry])?;
+                    matrix[row][entry] = matrix[row][entry].checked_sub(scaled)?;
+                }
+            }
+'''
+          new = '''            let pivot = matrix[pivot_row][column];
+            for entry in &mut matrix[pivot_row][column..=variables] {
+                *entry = (*entry).checked_div(pivot)?;
+            }
+
+            let pivot_tail = matrix[pivot_row][column..=variables].to_vec();
+            for row in 0..matrix.len() {
+                if row == pivot_row {
+                    continue;
+                }
+                let factor = matrix[row][column];
+                if factor.is_zero() {
+                    continue;
+                }
+                for (entry, pivot_entry) in matrix[row][column..=variables]
+                    .iter_mut()
+                    .zip(&pivot_tail)
+                {
+                    let scaled = factor.checked_mul(*pivot_entry)?;
+                    *entry = (*entry).checked_sub(scaled)?;
+                }
+            }
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'affine patch guard failed: expected 1 match, found {text.count(old)}')
+          affine.write_text(text.replace(old, new))
+
+          policy = Path('crates/formula-engine/src/search_policy.rs')
+          text = policy.read_text()
+          old = '''impl<T: Clone> FairRoundRobin<T> {
+    pub fn new(items: Vec<T>) -> Self {
+        Self {
+            items,
+            next_index: 0,
+        }
+    }
+
+    pub fn next(&mut self) -> Option<T> {
+        if self.items.is_empty() {
+            return None;
+        }
+        let item = self.items[self.next_index].clone();
+        self.next_index = (self.next_index + 1) % self.items.len();
+        Some(item)
+    }
+}
+'''
+          new = '''impl<T> FairRoundRobin<T> {
+    pub fn new(items: Vec<T>) -> Self {
+        Self {
+            items,
+            next_index: 0,
+        }
+    }
+}
+
+impl<T: Clone> Iterator for FairRoundRobin<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.items.is_empty() {
+            return None;
+        }
+        let item = self.items[self.next_index].clone();
+        self.next_index = (self.next_index + 1) % self.items.len();
+        Some(item)
+    }
+}
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'policy patch guard failed: expected 1 match, found {text.count(old)}')
+          policy.write_text(text.replace(old, new))
+          PY
+          cargo fmt --all
+      - name: Verify source correction
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-engine --all-targets --locked --offline
+          cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+          git diff --check
+      - name: Scope guard and self-remove
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm .github/workflows/p5-clippy-repair.yml
+          actual="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' \
+            .github/workflows/p5-clippy-repair.yml \
+            crates/formula-engine/src/affine_polynomial.rs \
+            crates/formula-engine/src/search_policy.rs | sort)"
+          test "$actual" = "$expected"
+      - name: Commit verified repair
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix(p5): satisfy pinned clippy without changing search authority'
+          git push origin HEAD:implementation/p5-candidate-space-bounded-discovery
