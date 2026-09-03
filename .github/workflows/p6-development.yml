@@ -1,0 +1,26 @@
+name: P6 development gate
+
+on:
+  push:
+    branches:
+      - implementation/p6-first-light-target-harness-blindness
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p6-development:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: P6 focused manifest test
+        run: cargo test -p formula-first-light --test p6_manifest --locked
+      - name: P6 architecture regression
+        run: cargo test -p formula-archtest --locked
