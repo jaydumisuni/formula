@@ -8,45 +8,48 @@ Recover repository evidence before reasoning. Do not reconstruct implementation 
 
 1. [`docs/design/README.md`](docs/design/README.md) — frozen D1–D5 design precedence.
 2. [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md) — frozen roadmap P0 onward.
-3. [`docs/checkpoints/2026-09-02-p4-query-compiler-campaign-core.md`](docs/checkpoints/2026-09-02-p4-query-compiler-campaign-core.md) — current P4 source-proof checkpoint.
-4. [`docs/checkpoints/2026-08-29-p3-theory-packages-capability-closure.md`](docs/checkpoints/2026-08-29-p3-theory-packages-capability-closure.md) — exact proved/frozen P3 predecessor.
-5. [`docs/superpowers/specs/2026-09-02-p4-query-compiler-campaign-core-design.md`](docs/superpowers/specs/2026-09-02-p4-query-compiler-campaign-core-design.md) — approved P4 design.
-6. [`docs/superpowers/plans/2026-09-02-p4-query-compiler-campaign-core.md`](docs/superpowers/plans/2026-09-02-p4-query-compiler-campaign-core.md) — executed P4 implementation plan.
+3. [`docs/checkpoints/2026-09-02-p5-candidate-space-bounded-discovery.md`](docs/checkpoints/2026-09-02-p5-candidate-space-bounded-discovery.md) — current P5 source-proof checkpoint.
+4. [`docs/checkpoints/2026-09-02-p4-query-compiler-campaign-core.md`](docs/checkpoints/2026-09-02-p4-query-compiler-campaign-core.md) — exact frozen P4 predecessor checkpoint.
+5. [`docs/superpowers/specs/2026-09-02-p5-candidate-space-bounded-discovery-design.md`](docs/superpowers/specs/2026-09-02-p5-candidate-space-bounded-discovery-design.md) — approved P5 design and freeze boundary.
+6. [`docs/superpowers/plans/2026-09-02-p5-candidate-space-bounded-discovery.md`](docs/superpowers/plans/2026-09-02-p5-candidate-space-bounded-discovery.md) — executed P5 implementation plan.
 7. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for a concrete contradiction or missing obligation.
 
 ## Exact current implementation state
 
-**P4 — Query Compiler + Campaign Core: SOURCE PROVED and review-clean; documentation-bearing head awaiting exact-head proof.**
+**P5 — CandidateSpace + Bounded Discovery: SOURCE PROVED and scope/review-clean; documentation-bearing head awaiting exact-head proof.**
 
 Canonical branch:
 
 ```text
-implementation/p4-query-compiler-campaign-core
+implementation/p5-candidate-space-bounded-discovery
 ```
 
-Exact frozen P3 predecessor:
+Exact frozen P4 predecessor:
 
 ```text
-5c15368440ad9cc387708dae3c3d73135009f053
-```
-
-Canonical P4 source-under-test proof boundary:
-
-```text
-2eb1ddef2530d3a46190b4bb62dc7f98ed85dc93
+d6f92a3a5872d9634d74a5fef688e28adfcec2cf
 workflow: P4 canonical proof
-workflow run: 33684127872
-job: 100427383372
+workflow run: 33684561410
 conclusion: success
 ```
 
-Exact P3 -> P4 source compare:
+Canonical P5 source-under-test proof boundary:
 
 ```text
-base:    5c15368440ad9cc387708dae3c3d73135009f053
-head:    2eb1ddef2530d3a46190b4bb62dc7f98ed85dc93
+3ae3fd1432bae90e3af01d94ab967aa9d7cd7165
+workflow: P5 canonical proof
+workflow run: 33754844401
+job: 100646677420
+conclusion: success
+```
+
+Exact P4 -> P5 source compare:
+
+```text
+base:    d6f92a3a5872d9634d74a5fef688e28adfcec2cf
+head:    3ae3fd1432bae90e3af01d94ab967aa9d7cd7165
 status:  ahead
-ahead:   45 commits
+ahead:   34 commits
 behind:  0 commits
 ```
 
@@ -59,39 +62,38 @@ Cargo proof commands: --locked / --offline where applicable
 workflow permissions: contents: read
 ```
 
-## What P4 now proves
+## What P5 now proves
 
-P4 supplies the deterministic compiler/campaign front end required before discovery can begin:
-
-```text
-QueryIR exact semantic identity
-CompilerAuthoritySnapshot immutable compilation input
-RelevantRegion deterministic snapshot projection
-TheoryProfile exact-fact / operational-estimate separation
-RepresentationEdge preservation/information-loss/reconstruction contracts
-ReductionEdge path-wide requested-result preservation
-Decomposition explicit aggregation/reconstruction
-CampaignIR deterministic typed AND/OR graph
-ObligationIR distinct semantic/resource terminal states
-WorkCellPlan authority-inert execution request
-ReplayManifest complete deterministic binding
-ResultBundle non-authoritative structural envelope
-CompilerV1 deterministic structural compilation
-```
-
-Critical result-state law remains:
+P5 supplies the bounded exact discovery substrate required before sealed First-Light orchestration can begin:
 
 ```text
-REFUTED != SEMANTIC_UNKNOWN != RESOURCE_BOUNDED_UNKNOWN
+CandidateSpaceContext deterministic local semantic identity
+CandidatePolarity / CompletenessClass explicit and non-upgradable
+FrozenCandidateSpace deterministic structural identity
+FrozenCandidate deterministic identity + structural cost
+SearchAuthority::CandidateOnly
+AffinePolynomialSpace exact rational family refinement
+ReductionRouteSpace exact result/capability filtering
+scoped route failure pruning
+ObservationalExprSpace exact bounded behavior buckets
+counterexample regeneration/rebucketing from grammar bound
+bounded CEGIS with candidate freeze before validation
+deterministic minimal-cost extraction
+fair round-robin fallback
+heuristic ranking remains non-authoritative
+unaffected local CandidateSpace identity
+checker/sealed-target/search-authority firewall
 ```
 
-Resource exhaustion cannot become mathematical refutation.
+Search/resource exhaustion remains distinct from mathematical refutation.
+
+A discovered candidate remains candidate-only until a later independent certification/promotion path acts on it.
 
 ## Authority boundary
 
-P4 consumes authority requirements; it does not manufacture authority.
+P5 consumes P4 planning contracts; it does not manufacture authority.
 
-The direct production dependency direction remains:
+The production dependency direction remains:
 
 ```text
 formula-engine
@@ -100,117 +102,167 @@ formula-engine
 └── formula-packages
 
 formula-engine -/-> formula-check implementation
+formula-engine -/-> formula-first-light implementation
 ```
 
-`CompilerAuthoritySnapshot` is immutable planning input. It contains no publication/rollback/promotion transaction handle.
+P5 cannot certify, admit, activate, publish, promote, or mutate mathematical authority.
 
-`WorkCellPlan` contains no authority-store mutation handle or checker implementation pointer. Its public side-effect policies do not permit authority writes.
+The P5 authority-boundary test rejects checker implementation coupling, sealed target imports, and authority publication/promotion paths from search code.
 
-The authority-boundary test rejects P4 engine source containing known authority publication/mutation call paths or checker implementation coupling.
+Candidate/search state remains outside admitted `U_g` unless later certified/promoted through the existing authority path.
 
-Search/compiler/campaign state remains outside admitted `U_g` unless later certified/promoted through the existing P1/P2 authority path.
+## CandidateSpace identity law
 
-## Representation/reduction law
-
-No lossy morphism is inserted implicitly.
-
-Representation routes must carry explicit preservation metadata. A lossy witness route requires reconstruction semantics.
-
-Reduction composition is valid only when the requested result class survives every edge in the path.
-
-A representation or route may exist as heuristic/approximate planning metadata, but that never rewrites the original obligation's required Authority Contract and never constitutes certification.
-
-## Replay law
-
-Replay identity binds the exact semantic and policy context, including:
+Candidate-space identity binds local semantic inputs only:
 
 ```text
 Universe generation
 World
-QueryIR
-activated package context
-RelevantRegion
-TheoryProfile
-compiler policy version
-scheduler policy version
-resource contract
-deterministic random key
-CampaignIR digest
+query digest
+obligation digest
+grammar-or-route-set digest
+policy digest
+exact backend state
 ```
 
-Identical exact inputs produce identical campaign/replay identity. A semantically relevant input change changes replay binding.
+Identical local semantic inputs and exact state reproduce identical frozen-space and candidate identity.
+
+A relevant local change perturbs identity.
+
+Unrelated campaign state does not perturb an otherwise unchanged local CandidateSpace.
+
+## Exact affine-polynomial law
+
+`AffinePolynomialSpace` stores an exact linear system over normalized bounded rational arithmetic rather than enumerating coefficient tuples.
+
+Adding an exact sample refines the entire compatible affine family. Tests prove dimension/class refinement, deterministic minimal-degree unique extraction, and deterministic freeze independent of sample insertion order.
+
+## Reduction-route law
+
+Route admissibility is exact and precedes cost ranking.
+
+Requested result class and capabilities must be preserved before a route can be considered. A cheaper inadmissible route remains inadmissible.
+
+Failure subtraction is scoped by declared applicability; failure of one route cannot remove an unrelated route outside that scope.
+
+## Observational bounded-space law
+
+The P5 U8/Boolean grammar and evaluator are public and exact; sealed First-Light target definitions are not imported.
+
+Behavior buckets retain deterministic lowest-cost representatives under the current exact sample set.
+
+On a new counterexample/sample, P5 regenerates/rebuckets from the grammar bound. It does not refine only retained representatives, because previously equivalent expressions may split under the new sample.
+
+## Bounded CEGIS law
+
+The P5 loop is:
+
+```text
+exact samples
+ -> build/refine CandidateSpace
+ -> extract deterministic candidate
+ -> freeze candidate
+ -> invoke caller-supplied oracle
+ -> Equivalent or exact Counterexample
+ -> refine whole bounded space
+ -> repeat within explicit bound
+```
+
+Candidate freeze occurs before oracle validation.
+
+The oracle is caller supplied; P5 does not import sealed First-Light fixtures.
+
+Iteration/resource exhaustion returns search/resource unknown, never mathematical refutation.
+
+## Search-policy law
+
+Within an exact space, extraction is deterministic by structural cost and stable identity.
+
+Fair round-robin fallback prevents a heuristic preference from permanently starving another admissible candidate/route.
+
+Heuristics may reorder work only. They cannot:
+
+```text
+remove sound candidates
+strengthen CandidateSpace polarity
+create a Judgement
+create PASS
+admit/publish/promote authority
+```
 
 ## Canonical proof correction
 
-The initial monolithic P4 canonical run failed closed.
+The source implementation's semantic tests, build, and rustfmt gates were already green when pinned Clippy exposed three traversal/API-shape issues.
 
-Systematic debugging split the **same canonical commands in the same order** into named read-only workflow steps. This mechanically proved the first canonical-only failure was:
-
-```text
-cargo fmt --all -- --check
-```
-
-All preceding semantic/package/workspace tests and workspace build already passed.
-
-A one-shot Rust 1.98.0 formatter helper applied `cargo fmt --all` under a strict `crates/**/*.rs` scope guard and deleted itself in the same commit. No semantic, authority, dependency, or contract weakening was used to satisfy the gate.
-
-The complete source proof then passed on exact SHA `2eb1ddef2530d3a46190b4bb62dc7f98ed85dc93`, including rustfmt, Clippy `-D warnings`, dependency trees, and clean-tree verification.
-
-## P4 proof markers
+The exact correction was isolated and proved before application:
 
 ```text
-P4-01 QueryIR exact semantics preserved                         PASS
-P4-02 no lossy implicit morphism                              PASS
-P4-03 representation preservation metadata enforced          PASS
-P4-04 reduction result classes preserved                      PASS
-P4-05 decomposition reconstruction explicit                   PASS
-P4-06 CampaignIR deterministic AND/OR                         PASS
-P4-07 terminal states remain distinct                         PASS
-P4-08 WorkCells authority-inert                               PASS
-P4-09 replay manifest complete/deterministic                  PASS
-P4-10 P0-P3 gates preserved                                   PASS
+affine Gaussian elimination: index loops -> slice/iterator traversal
+FairRoundRobin::next        -> real Iterator implementation
 ```
 
-## P0–P3 remain authority
+The correction preserved behavior and changed no authority contract, candidate set, completeness claim, dependency direction, or sealed-target boundary.
 
-P4 extends rather than replaces predecessor proofs:
+An isolated diagnostic proof passed engine tests and full workspace Clippy under Rust 1.98.0 before the correction was applied to P5.
+
+A self-removing helper then applied only the verified correction, reran engine tests + full Clippy, removed itself, and pushed the corrected source.
+
+Canonical run `33754844401` subsequently passed the full unchanged P5 proof on exact SHA `3ae3fd1432bae90e3af01d94ab967aa9d7cd7165`.
+
+## P5 proof markers
+
+```text
+P5-01 CandidateSpace identity deterministic                         PASS
+P5-02 affine exact space refines whole family                      PASS
+P5-03 route failure pruning scoped                                 PASS
+P5-04 observational buckets exact under current samples            PASS
+P5-05 counterexample regeneration preserves bounded candidate set  PASS
+P5-06 bounded CEGIS freezes before validation                      PASS
+P5-07 heuristics remain non-authoritative                          PASS
+P5-08 unaffected local identity preserved                          PASS
+P5-09 checker/sealed-target/search authority firewall              PASS
+P5-10 P0-P4 gates preserved                                        PASS
+```
+
+## P0–P4 remain authority
+
+P5 extends rather than replaces predecessor proofs:
 
 ```text
 P0 reproducible repository/build + architecture firewall
 P1 deterministic identity + immutable generation authority store
 P2 independent checker/certificate authority
 P3 theory packages + generation/world-scoped capability closure
+P4 deterministic query compiler + campaign/obligation/work-cell planning
 ```
 
-The P4 canonical workflow reruns predecessor crate/workspace tests and architecture gates.
+The P5 canonical workflow reruns predecessor crate/workspace tests, build, formatting, lint, dependency, architecture, and clean-tree gates.
 
-## Not proved by P4
+## Not proved by P5
 
-Do not claim from P4:
+Do not claim from P5:
 
 ```text
-P5 CandidateSpace enumeration/refinement
-CEGIS or adaptive discovery correctness
-sealed First-Light target blindness
-promotion orchestration beyond the existing P1/P2 substrate
-U_g -> U_(g+1) First-Light growth proof
+sealed FL-A/B/C target knowledge
+independent certification of discovered candidates
+promotion/admission of discovered mathematics
+U0 -> U1 First-Light growth
 native CPU realization generation
-related-query reuse without rediscovery
-full First-Light run
-external SAT/SMT/CAS federation execution
-models as mathematical authority
+full sealed First-Light execution
+external SAT/SMT/CAS execution
+model/LLM mathematical authority
 Ptah/distributed execution
+unbounded/universal search completeness
+P6 completion
 ```
 
 ## Next implementation boundary
 
-After the documentation-bearing P4 branch head passes the unchanged canonical P4 proof, P4 becomes frozen/proved and the next frozen roadmap phase is:
+The frozen roadmap phase after P5 is P6.
 
-```text
-P5 — CandidateSpace + bounded discovery
-```
+Do **not** start P6 until the documentation-bearing P5 branch head passes the unchanged P5 canonical workflow.
 
-P5 must consume P4 CampaignIR/ObligationIR/WorkCellPlan contracts without allowing candidate/search state to create or weaken authority.
+P6 must consume P5's candidate-only outputs without weakening the independent certification/promotion authority boundary or leaking sealed targets backward into P5.
 
 ## Constitutional laws to preserve
 
@@ -218,33 +270,35 @@ P5 must consume P4 CampaignIR/ObligationIR/WorkCellPlan contracts without allowi
 2. Execution may consume authority. Execution cannot manufacture authority.
 3. Mathematical correctness and realization correctness are separate proof obligations.
 4. Candidate/search/compiler state is outside admitted `U_g` authority unless explicitly promoted.
-5. Resource exhaustion never weakens the requested Authority Contract.
+5. Resource exhaustion never weakens the requested Authority Contract and never becomes mathematical refutation.
 6. Promotion is generation-producing and atomic; accepted history is immutable.
 7. A false realization cannot invalidate already admitted mathematics.
 8. Capability closure is derived state from exact admitted inputs, not an authority source.
 9. Weak Shared Facts cannot silently satisfy stronger obligations.
 10. Federation/certificate routing cannot weaken authority for cost or availability.
-11. Compiler/campaign/work-cell state cannot publish or mutate authority.
-12. Replay/provenance identity must bind every semantic/policy input capable of changing the campaign or verdict.
+11. Compiler/campaign/work-cell/search state cannot publish or mutate authority.
+12. Replay/provenance/candidate identity must bind every local semantic input capable of changing the result while excluding unrelated state.
+13. Heuristic ranking cannot delete exact candidates or create authority.
+14. Sealed First-Light targets cannot leak backward into P5 search implementation.
 
 ## Recovery procedure
 
 1. Read this file.
-2. Read the P4 checkpoint and approved P4 design/plan.
-3. Inspect `implementation/p4-query-compiler-campaign-core` before assuming the source-proof SHA is still the branch head.
-4. Verify the post-checkpoint P4 canonical proof on the **exact documentation-bearing branch head** before treating P4 as finally frozen.
-5. Preserve frozen P3 head `5c15368440ad9cc387708dae3c3d73135009f053` as the predecessor review boundary.
-6. Do not start P5 unless P4's documentation-bearing exact head has passed canonical proof.
+2. Read the P5 checkpoint and approved P5 design/plan.
+3. Inspect `implementation/p5-candidate-space-bounded-discovery` before assuming the source-proof SHA is still the branch head.
+4. Verify the post-checkpoint P5 canonical proof on the **exact documentation-bearing branch head** before treating P5 as finally frozen.
+5. Preserve frozen P4 head `d6f92a3a5872d9634d74a5fef688e28adfcec2cf` as the predecessor review boundary.
+6. Do not start P6 unless P5's documentation-bearing exact head has passed canonical proof.
 7. Do not reopen broad research unless implementation evidence exposes a concrete contradiction or missing requirement.
 
 ## Freeze state
 
-P4 source is proved and review-clean on:
+P5 source is proved and scope/review-clean on:
 
 ```text
-2eb1ddef2530d3a46190b4bb62dc7f98ed85dc93
+3ae3fd1432bae90e3af01d94ab967aa9d7cd7165
 ```
 
-The P4 checkpoint and this `CURRENT.md` update now form the documentation-bearing branch candidate. **P4 is not finally frozen until the unchanged canonical P4 workflow succeeds on that exact documentation-bearing head.**
+The P5 checkpoint and this `CURRENT.md` update now form the documentation-bearing branch candidate. **P5 is not finally frozen until the unchanged P5 canonical workflow succeeds on that exact documentation-bearing head.**
 
-This branch has **not** been merged to `main`. P5 has **not** started.
+This branch has **not** been merged to `main`. P6 has **not** started.
