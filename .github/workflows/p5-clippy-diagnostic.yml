@@ -1,0 +1,39 @@
+name: P5 clippy diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/p5-clippy-e971bb5b
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clippy-diagnostic:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: Capture exact Clippy diagnostics
+        shell: bash
+        run: |
+          set +e
+          cargo clippy --workspace --all-targets --locked --offline -- -D warnings > p5-clippy.txt 2>&1
+          status=$?
+          cat p5-clippy.txt
+          printf '%s\n' "$status" > p5-clippy-status.txt
+          exit 0
+      - name: Upload Clippy diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p5-clippy-diagnostic
+          path: |
+            p5-clippy.txt
+            p5-clippy-status.txt
