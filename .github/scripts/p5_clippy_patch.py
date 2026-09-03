@@ -37,18 +37,15 @@ replace_exact(
             }
 
             let pivot_tail = matrix[pivot_row][column..=variables].to_vec();
-            for row in 0..matrix.len() {
-                if row == pivot_row {
+            for (row_index, row) in matrix.iter_mut().enumerate() {
+                if row_index == pivot_row {
                     continue;
                 }
-                let factor = matrix[row][column];
+                let factor = row[column];
                 if factor.is_zero() {
                     continue;
                 }
-                for (entry, pivot_entry) in matrix[row][column..=variables]
-                    .iter_mut()
-                    .zip(&pivot_tail)
-                {
+                for (entry, pivot_entry) in row[column..=variables].iter_mut().zip(&pivot_tail) {
                     let scaled = factor.checked_mul(*pivot_entry)?;
                     *entry = (*entry).checked_sub(scaled)?;
                 }
