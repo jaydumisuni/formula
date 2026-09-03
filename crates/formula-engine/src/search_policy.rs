@@ -7,15 +7,19 @@ pub struct FairRoundRobin<T> {
     next_index: usize,
 }
 
-impl<T: Clone> FairRoundRobin<T> {
+impl<T> FairRoundRobin<T> {
     pub fn new(items: Vec<T>) -> Self {
         Self {
             items,
             next_index: 0,
         }
     }
+}
 
-    pub fn next(&mut self) -> Option<T> {
+impl<T: Clone> Iterator for FairRoundRobin<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
         if self.items.is_empty() {
             return None;
         }

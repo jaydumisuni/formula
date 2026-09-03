@@ -304,21 +304,22 @@ impl AffinePolynomialSpace {
             matrix.swap(pivot_row, found_row);
 
             let pivot = matrix[pivot_row][column];
-            for entry in column..=variables {
-                matrix[pivot_row][entry] = matrix[pivot_row][entry].checked_div(pivot)?;
+            for entry in &mut matrix[pivot_row][column..=variables] {
+                *entry = (*entry).checked_div(pivot)?;
             }
 
-            for row in 0..matrix.len() {
-                if row == pivot_row {
+            let pivot_tail = matrix[pivot_row][column..=variables].to_vec();
+            for (row_index, row) in matrix.iter_mut().enumerate() {
+                if row_index == pivot_row {
                     continue;
                 }
-                let factor = matrix[row][column];
+                let factor = row[column];
                 if factor.is_zero() {
                     continue;
                 }
-                for entry in column..=variables {
-                    let scaled = factor.checked_mul(matrix[pivot_row][entry])?;
-                    matrix[row][entry] = matrix[row][entry].checked_sub(scaled)?;
+                for (entry, pivot_entry) in row[column..=variables].iter_mut().zip(&pivot_tail) {
+                    let scaled = factor.checked_mul(*pivot_entry)?;
+                    *entry = (*entry).checked_sub(scaled)?;
                 }
             }
 
