@@ -26,15 +26,28 @@ jobs:
           python3 .github/scripts/p5_clippy_patch.py
           cargo fmt --all
           git diff --check
-      - name: Verify corrected source
+      - name: Capture post-fix verification
+        shell: bash
         run: |
-          set -euxo pipefail
-          cargo test -p formula-engine --all-targets --locked --offline
-          cargo clippy --workspace --all-targets --locked --offline -- -D warnings
-      - name: Upload verified corrected sources
+          set +e
+          cargo test -p formula-engine --all-targets --locked --offline > p5-engine-test.txt 2>&1
+          test_status=$?
+          cargo clippy --workspace --all-targets --locked --offline -- -D warnings > p5-clippy-after.txt 2>&1
+          clippy_status=$?
+          printf '%s\n' "$test_status" > p5-engine-test-status.txt
+          printf '%s\n' "$clippy_status" > p5-clippy-after-status.txt
+          cat p5-engine-test.txt
+          cat p5-clippy-after.txt
+          exit 0
+      - name: Upload post-fix evidence and corrected sources
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: p5-clippy-corrected-sources
+          name: p5-clippy-post-fix
           path: |
+            p5-engine-test.txt
+            p5-engine-test-status.txt
+            p5-clippy-after.txt
+            p5-clippy-after-status.txt
             crates/formula-engine/src/affine_polynomial.rs
             crates/formula-engine/src/search_policy.rs
