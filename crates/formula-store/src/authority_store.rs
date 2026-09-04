@@ -1,3 +1,4 @@
+mod activation_store;
 mod realization_store;
 
 pub use realization_store::AdmittedRealization;
@@ -54,6 +55,18 @@ pub enum AuthorityStoreError {
         blob: ArtifactDigest,
     },
     ManifestBlobBytesMismatch(ArtifactDigest),
+    SemanticActivationStateMismatch,
+    SemanticActivationGenerationMismatch {
+        expected: ArtifactDigest,
+        actual: ArtifactDigest,
+    },
+    SemanticActivationPrimitiveNotAdmitted(ArtifactDigest),
+    SemanticActivationPrimitiveNotRecorded(ArtifactDigest),
+    SemanticActivationEvidenceNotAuthorityBound(ArtifactDigest),
+    SemanticActivationDigestMismatch {
+        stored: ArtifactDigest,
+        reconstructed: ArtifactDigest,
+    },
     RealizationGenerationMismatch {
         expected: ArtifactDigest,
         actual: ArtifactDigest,
@@ -114,6 +127,36 @@ impl fmt::Display for AuthorityStoreError {
                 f,
                 "generation manifest blob bytes do not match canonical replay for {}",
                 digest.as_str()
+            ),
+            Self::SemanticActivationStateMismatch => {
+                f.write_str("semantic activation requires ACTIVATED state")
+            }
+            Self::SemanticActivationGenerationMismatch { expected, actual } => write!(
+                f,
+                "semantic activation generation mismatch: expected {}, got {}",
+                expected.as_str(),
+                actual.as_str()
+            ),
+            Self::SemanticActivationPrimitiveNotAdmitted(digest) => write!(
+                f,
+                "semantic activation primitive is not admitted: {}",
+                digest.as_str()
+            ),
+            Self::SemanticActivationPrimitiveNotRecorded(digest) => write!(
+                f,
+                "semantic activation record does not contain primitive: {}",
+                digest.as_str()
+            ),
+            Self::SemanticActivationEvidenceNotAuthorityBound(digest) => write!(
+                f,
+                "semantic activation evidence is not authority-bound: {}",
+                digest.as_str()
+            ),
+            Self::SemanticActivationDigestMismatch { stored, reconstructed } => write!(
+                f,
+                "semantic activation digest mismatch: stored {}, reconstructed {}",
+                stored.as_str(),
+                reconstructed.as_str()
             ),
             Self::RealizationGenerationMismatch { expected, actual } => write!(
                 f,
