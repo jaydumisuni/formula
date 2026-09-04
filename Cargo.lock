@@ -167,6 +167,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "formula-p9-canonical"
+version = "0.0.0"
+dependencies = [
+ "formula-check",
+ "formula-core",
+ "formula-engine",
+ "formula-first-light",
+ "formula-packages",
+ "formula-realize",
+ "formula-store",
+ "tempfile",
+]
+
+[[package]]
 name = "formula-packages"
 version = "0.0.1"
 dependencies = [
