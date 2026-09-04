@@ -449,11 +449,6 @@ impl CompilerV1 {
             return Err(CompilerError::RequiredCapabilityUnavailable);
         }
 
-        let theory_profile = TheoryProfile::compile(
-            &region,
-            &inputs.exact_properties,
-            &inputs.operational_estimates,
-        );
         let resolved = ResolvedCapability::new(request);
         let execution = ReuseExecutionPlan::new(query, &resolved);
         let metrics = ReuseMetrics::canonical_single_reuse();
