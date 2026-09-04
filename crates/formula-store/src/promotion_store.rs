@@ -1,4 +1,4 @@
-use crate::authority_store::{AuthorityStore, AuthorityStoreError};
+use crate::authority_store::{AuthorityStore, AuthorityStoreError, PublishFailpoint};
 use formula_check::promotion::PromotionAuthorization;
 use formula_core::{
     digest::ArtifactDigest,
@@ -32,6 +32,14 @@ impl AuthorityStore {
         &mut self,
         authorization: &PromotionAuthorization,
     ) -> Result<PromotionOutcome, AuthorityStoreError> {
+        self.promote_inner(authorization, PublishFailpoint::None)
+    }
+
+    pub(crate) fn promote_inner(
+        &mut self,
+        authorization: &PromotionAuthorization,
+        failpoint: PublishFailpoint,
+    ) -> Result<PromotionOutcome, AuthorityStoreError> {
         let active = self
             .active_generation()?
             .ok_or(AuthorityStoreError::NoActiveGeneration)?;
@@ -59,7 +67,7 @@ impl AuthorityStore {
             admitted,
             authority_bindings,
         );
-        let new_generation = self.publish_generation(&next)?;
+        let new_generation = self.publish_generation_inner(&next, failpoint)?;
         let admitted_record = PromotionRecord::new(
             authorization.promotion_candidate(),
             PromotionState::Admitted,
