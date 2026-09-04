@@ -1,0 +1,29 @@
+name: P9 activation parent patch
+
+on:
+  push:
+    branches:
+      - implementation/p9-canonical-first-light-proof
+    paths:
+      - .github/workflows/p9-activation-parent-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply deterministic parent patch
+        run: python .github/scripts/p9_patch_activation_parent.py
+      - name: Commit exact patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff -- crates/formula-store/src/authority_store.rs
+          test -n "$(git status --porcelain -- crates/formula-store/src/authority_store.rs)"
+          git add crates/formula-store/src/authority_store.rs
+          test "$(git diff --cached --name-only)" = "crates/formula-store/src/authority_store.rs"
+          git commit -m "feat(p9): wire semantic activation store"
+          git push
