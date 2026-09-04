@@ -76,6 +76,49 @@ impl CapabilityClosure {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CapabilityClosureDelta {
+    before_context_digest: ArtifactDigest,
+    after_context_digest: ArtifactDigest,
+    added: BTreeSet<ArtifactDigest>,
+    removed: BTreeSet<ArtifactDigest>,
+}
+
+impl CapabilityClosureDelta {
+    pub fn between(before: &CapabilityClosure, after: &CapabilityClosure) -> Self {
+        Self {
+            before_context_digest: before.context_digest,
+            after_context_digest: after.context_digest,
+            added: after
+                .capabilities
+                .difference(&before.capabilities)
+                .copied()
+                .collect(),
+            removed: before
+                .capabilities
+                .difference(&after.capabilities)
+                .copied()
+                .collect(),
+        }
+    }
+
+    pub fn before_context_digest(&self) -> ArtifactDigest {
+        self.before_context_digest
+    }
+
+    pub fn after_context_digest(&self) -> ArtifactDigest {
+        self.after_context_digest
+    }
+
+    pub fn added(&self) -> impl Iterator<Item = ArtifactDigest> + '_ {
+        self.added.iter().copied()
+    }
+
+    pub fn removed(&self) -> impl Iterator<Item = ArtifactDigest> + '_ {
+        self.removed.iter().copied()
+    }
+}
+
 pub fn derive_capabilities(
     context: &ClosureContext,
     activated: &ActivatedPackageSet,
