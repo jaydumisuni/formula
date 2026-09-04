@@ -1,0 +1,108 @@
+name: P8 canonical proof
+
+on:
+  push:
+    branches:
+      - implementation/p8-native-realization-validation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p8-proof:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: P8 gate — identity and toolchain
+        run: |
+          set -euxo pipefail
+          git rev-parse HEAD
+          rustc -vV
+          cargo -V
+      - name: P8 gate — locked offline metadata
+        run: cargo metadata --locked --offline --format-version 1 --no-deps
+      - name: P8 gate — realization identities
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-core --test p8_realization_identity --locked --offline
+          echo 'PASS P8_SPECIALIZATION_IDENTITY'
+          echo 'PASS P8_EXACT_LOWERING_CLASS'
+      - name: P8 gate — deterministic Rust generation
+        run: cargo test -p formula-realize --test p8_rust_generation --locked --offline
+      - name: P8 gate — independent realization checker
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-check --test p8_realization_authorization --locked --offline
+          cargo test -p formula-check --test realization_equivalence --locked --offline
+          echo 'PASS P8_SEMANTIC_BINDING'
+          echo 'PASS P8_SOURCE_TOOLCHAIN_BINARY_BOUND'
+          echo 'PASS P8_MUTATED_SOURCE_REJECTED'
+          echo 'PASS P8_MUTATED_BINARY_REJECTED'
+      - name: P8 gate — authorized realization store and dispatch
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-store --test p8_realization_store --locked --offline
+          echo 'PASS P8_DISPATCH_IDENTITY_ENFORCED'
+      - name: P8 gate — realization authority firewall
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-archtest --test p8_realization_authority --locked --offline
+          cargo test -p formula-archtest --all-targets --locked --offline
+          echo 'PASS P8_COMPILER_CANNOT_SELF_ADMIT'
+      - name: P8 gate — FL-C native CPU exhaustive proof
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-first-light --test p8_fl_c_native_realization --locked --offline -- --nocapture
+          echo 'PASS P8_ALL_256_INPUTS_EQUIVALENT'
+          echo 'PASS P8_CPU_LOCAL_OFFLINE'
+          echo 'PASS P8_P7_MATH_AUTHORITY_PRESERVED'
+      - name: P8 gate — formula-core tests
+        run: cargo test -p formula-core --all-targets --locked --offline
+      - name: P8 gate — formula-check tests
+        run: cargo test -p formula-check --all-targets --locked --offline
+      - name: P8 gate — formula-store tests
+        run: cargo test -p formula-store --all-targets --locked --offline
+      - name: P8 gate — formula-realize tests
+        run: cargo test -p formula-realize --all-targets --locked --offline
+      - name: P8 gate — formula-packages tests
+        run: cargo test -p formula-packages --all-targets --locked --offline
+      - name: P8 gate — formula-engine tests
+        run: cargo test -p formula-engine --all-targets --locked --offline
+      - name: P8 gate — formula-first-light tests
+        run: cargo test -p formula-first-light --all-targets --locked --offline -- --nocapture
+      - name: P8 gate — workspace tests
+        run: cargo test --workspace --all-targets --locked --offline
+      - name: P8 gate — workspace build
+        run: cargo build --workspace --all-targets --locked --offline
+      - name: P8 gate — rustfmt
+        run: cargo fmt --all -- --check
+      - name: P8 gate — clippy
+        run: cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+      - name: P8 gate — dependency trees
+        run: |
+          set -euxo pipefail
+          cargo tree --locked --offline -p formula-realize --edges normal
+          cargo tree --locked --offline -p formula-check --edges normal
+          cargo tree --locked --offline -p formula-store --edges normal
+          cargo tree --locked --offline -p formula-engine --edges normal
+          cargo tree --locked --offline -p formula-first-light --edges normal
+      - name: P8 gate — authority dependency firewall
+        run: |
+          set -euxo pipefail
+          cargo tree --locked --offline -p formula-realize --edges normal | tee /tmp/p8-realize-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-first-light' /tmp/p8-realize-tree.txt
+          cargo tree --locked --offline -p formula-engine --edges normal | tee /tmp/p8-engine-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-first-light' /tmp/p8-engine-tree.txt
+          cargo tree --locked --offline -p formula-first-light --edges normal | tee /tmp/p8-first-light-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-realize' /tmp/p8-first-light-tree.txt
+      - name: P8 gate — clean worktree
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
