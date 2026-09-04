@@ -13,7 +13,16 @@ fn d(byte: u8) -> ArtifactDigest {
 }
 
 fn manifest(sealed_target: ArtifactDigest) -> BlindnessManifest {
-    BlindnessManifest::new(FirstLightTarget::FlC, sealed_target, d(2), d(3), d(4), d(5), d(6), d(7))
+    BlindnessManifest::new(
+        FirstLightTarget::FlC,
+        sealed_target,
+        d(2),
+        d(3),
+        d(4),
+        d(5),
+        d(6),
+        d(7),
+    )
 }
 
 fn context() -> CandidateSpaceContext {
@@ -50,5 +59,8 @@ fn public_observations_can_leave_a_plausible_candidate_that_hidden_oracle_reject
     }
     let frozen_candidate = space.extract_min_cost().expect("publicly plausible candidate");
 
-    assert_eq!(fl_c_oracle().first_counterexample(&frozen_candidate), Some((0, false)));
+    assert_eq!(
+        fl_c_oracle().first_counterexample(&frozen_candidate),
+        Some((0, false))
+    );
 }
