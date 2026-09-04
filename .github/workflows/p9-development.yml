@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
 
+# Temporary development gate; removed before canonical P9 proof.
 jobs:
   development:
     runs-on: ubuntu-24.04
