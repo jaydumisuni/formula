@@ -1,6 +1,6 @@
 use formula_core::{digest::ArtifactDigest, realization::SpecializationIdentity};
 use formula_engine::observational::{BoolExpr, ByteExpr};
-use formula_realize::rust_native::{generate_u8_bool_rust_source, NativeGenerationError};
+use formula_realize::rust_native::{NativeGenerationError, generate_u8_bool_rust_source};
 
 fn d(label: &str) -> ArtifactDigest {
     ArtifactDigest::of_bytes(label.as_bytes())
@@ -36,7 +36,10 @@ fn native_rust_generation_is_deterministic_and_covers_bounded_ast() {
 
     assert_eq!(a.source(), b.source());
     assert_eq!(a.source_digest(), b.source_digest());
-    assert_eq!(a.source_digest(), ArtifactDigest::of_bytes(a.source().as_bytes()));
+    assert_eq!(
+        a.source_digest(),
+        ArtifactDigest::of_bytes(a.source().as_bytes())
+    );
     assert!(a.source().contains("wrapping_sub"));
     assert!(a.source().contains("&"));
     assert!(a.source().contains("== 0"));
