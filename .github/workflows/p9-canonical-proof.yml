@@ -1,0 +1,98 @@
+name: P9 canonical proof
+
+on:
+  push:
+    branches:
+      - implementation/p9-canonical-first-light-proof
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p9-proof:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: P9 gate — identity and toolchain
+        run: |
+          set -euxo pipefail
+          git rev-parse HEAD
+          rustc -vV
+          cargo -V
+      - name: P9 gate — locked offline metadata
+        run: cargo metadata --locked --offline --format-version 1 --no-deps
+      - name: P9 gate — canonical clean-state First-Light proof
+        env:
+          FORMULA_P9_SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euxo pipefail
+          cargo test -p formula-p9-canonical --test canonical_contract --locked --offline -- --nocapture
+      - name: P9 gate — independent final verifier
+        run: cargo test -p formula-check --test p9_first_light_verifier --locked --offline
+      - name: P9 gate — reuse compiler
+        run: cargo test -p formula-engine --test p9_reuse_compiler --locked --offline
+      - name: P9 gate — semantic activation store
+        run: cargo test -p formula-store --test p9_semantic_activation_store --locked --offline
+      - name: P9 gate — activation-derived capability closure
+        run: cargo test -p formula-packages --test p9_semantic_capability_closure --locked --offline
+      - name: P9 gate — admitted-binary second query reuse
+        run: cargo test -p formula-first-light --test p9_second_query_reuse --locked --offline
+      - name: P9 gate — manifest identities
+        run: cargo test -p formula-core --test p9_first_light_manifest --locked --offline
+      - name: P9 gate — predecessor architecture firewalls
+        run: cargo test -p formula-archtest --all-targets --locked --offline
+      - name: P9 gate — formula-core tests
+        run: cargo test -p formula-core --all-targets --locked --offline
+      - name: P9 gate — formula-check tests
+        run: cargo test -p formula-check --all-targets --locked --offline
+      - name: P9 gate — formula-store tests
+        run: cargo test -p formula-store --all-targets --locked --offline
+      - name: P9 gate — formula-realize tests
+        run: cargo test -p formula-realize --all-targets --locked --offline
+      - name: P9 gate — formula-packages tests
+        run: cargo test -p formula-packages --all-targets --locked --offline
+      - name: P9 gate — formula-engine tests
+        run: cargo test -p formula-engine --all-targets --locked --offline
+      - name: P9 gate — formula-first-light tests
+        run: cargo test -p formula-first-light --all-targets --locked --offline
+      - name: P9 gate — canonical harness tests
+        run: cargo test -p formula-p9-canonical --all-targets --locked --offline
+      - name: P9 gate — workspace tests
+        run: cargo test --workspace --all-targets --locked --offline
+      - name: P9 gate — workspace build
+        run: cargo build --workspace --all-targets --locked --offline
+      - name: P9 gate — rustfmt
+        run: cargo fmt --all -- --check
+      - name: P9 gate — clippy
+        run: cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+      - name: P9 gate — dependency trees
+        run: |
+          set -euxo pipefail
+          cargo tree --locked --offline -p formula-check --edges normal
+          cargo tree --locked --offline -p formula-store --edges normal
+          cargo tree --locked --offline -p formula-realize --edges normal
+          cargo tree --locked --offline -p formula-packages --edges normal
+          cargo tree --locked --offline -p formula-engine --edges normal
+          cargo tree --locked --offline -p formula-first-light --edges normal
+      - name: P9 gate — authority dependency firewall
+        run: |
+          set -euxo pipefail
+          cargo tree --locked --offline -p formula-check --edges normal | tee /tmp/p9-check-tree.txt
+          ! grep -Eq 'formula-engine|formula-store|formula-realize|formula-first-light' /tmp/p9-check-tree.txt
+          cargo tree --locked --offline -p formula-realize --edges normal | tee /tmp/p9-realize-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-first-light' /tmp/p9-realize-tree.txt
+          cargo tree --locked --offline -p formula-engine --edges normal | tee /tmp/p9-engine-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-first-light' /tmp/p9-engine-tree.txt
+          cargo tree --locked --offline -p formula-first-light --edges normal | tee /tmp/p9-first-light-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-realize|formula-packages' /tmp/p9-first-light-tree.txt
+      - name: P9 gate — clean worktree
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
