@@ -160,6 +160,7 @@ dependencies = [
  "formula-check",
  "formula-core",
  "formula-engine",
+ "formula-realize",
  "formula-store",
  "tempfile",
 ]
