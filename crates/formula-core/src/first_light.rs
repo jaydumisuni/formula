@@ -1,6 +1,4 @@
-use crate::{
-    artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest,
-};
+use crate::{artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest};
 use std::collections::{BTreeMap, BTreeSet};
 
 const FIRST_LIGHT_SCHEMA_V1: &str = "formula-first-light-proof-v1";
@@ -65,15 +63,11 @@ impl NegativeControlId {
             Self::FlBCorruptedTranslation => "NC-04_FL_B_CORRUPTED_TRANSLATION",
             Self::FlCZeroNearMiss => "NC-05_FL_C_ZERO_NEAR_MISS",
             Self::ForgedEvidence => "NC-06_FORGED_EVIDENCE",
-            Self::CandidateMutationAfterCertificate => {
-                "NC-07_CANDIDATE_MUTATION_AFTER_CERTIFICATE"
-            }
+            Self::CandidateMutationAfterCertificate => "NC-07_CANDIDATE_MUTATION_AFTER_CERTIFICATE",
             Self::SearchAuthorityWrite => "NC-08_SEARCH_AUTHORITY_WRITE",
             Self::MutatedRealizationBinary => "NC-09_MUTATED_REALIZATION_BINARY",
             Self::ActivationRemoved => "NC-10_ACTIVATION_REMOVED",
-            Self::StricterAuthorityWithoutEvidence => {
-                "NC-11_STRICTER_AUTHORITY_WITHOUT_EVIDENCE"
-            }
+            Self::StricterAuthorityWithoutEvidence => "NC-11_STRICTER_AUTHORITY_WITHOUT_EVIDENCE",
             Self::PromotionParentRace => "NC-12_PROMOTION_PARENT_RACE",
         }
     }
@@ -109,10 +103,7 @@ impl StructuralIdentity for NegativeControlEvidence {
             "evidence_digest".into(),
             CanonicalValue::Digest(self.evidence_digest),
         );
-        object.insert(
-            "id".into(),
-            CanonicalValue::String(self.id.as_str().into()),
-        );
+        object.insert("id".into(), CanonicalValue::String(self.id.as_str().into()));
         CanonicalValue::Object(object)
     }
 }
@@ -136,7 +127,9 @@ impl NegativeControlManifest {
         let mut seen = BTreeSet::new();
         for control in &controls {
             if !seen.insert(control.id()) {
-                return Err(FirstLightManifestError::DuplicateNegativeControl(control.id()));
+                return Err(FirstLightManifestError::DuplicateNegativeControl(
+                    control.id(),
+                ));
             }
         }
         for required in NegativeControlId::ALL {
