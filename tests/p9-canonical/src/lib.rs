@@ -52,8 +52,8 @@ use formula_engine::{
 use formula_first_light::{
     fl_a::{fl_a_oracle, fl_a_target_digest},
     fl_b::{
-        fl_b_direct_route_digest, fl_b_gf2_route_digest, fl_b_problem_digest,
-        fl_b_public_problem, fl_b_route_contract_digest,
+        fl_b_direct_route_digest, fl_b_gf2_route_digest, fl_b_problem_digest, fl_b_public_problem,
+        fl_b_route_contract_digest,
     },
     fl_c::{fl_c_grammar_digest, fl_c_oracle, fl_c_target_digest, fl_c_zero_near_miss},
     reuse::{SecondQueryResult, canonical_second_query_vector},
@@ -83,7 +83,9 @@ fn d(label: &str) -> ArtifactDigest {
 }
 
 fn evidence_digest(label: &str, detail: impl AsRef<str>) -> ArtifactDigest {
-    ArtifactDigest::of_bytes(format!("formula-p9-evidence-v1|{label}|{}", detail.as_ref()).as_bytes())
+    ArtifactDigest::of_bytes(
+        format!("formula-p9-evidence-v1|{label}|{}", detail.as_ref()).as_bytes(),
+    )
 }
 
 fn checked_byte(expression: &EngineByteExpr) -> CheckedByteExpr {
@@ -180,7 +182,10 @@ fn closure_delta_digest(delta: &CapabilityClosureDelta) -> ArtifactDigest {
 }
 
 fn package_set_digest(generation: ArtifactDigest, packages: &[ArtifactDigest]) -> ArtifactDigest {
-    let mut rendered = format!("formula-p9-activated-package-set-v1|{}", generation.as_str());
+    let mut rendered = format!(
+        "formula-p9-activated-package-set-v1|{}",
+        generation.as_str()
+    );
     for package in packages {
         rendered.push('|');
         rendered.push_str(&package.as_str());
@@ -495,8 +500,8 @@ fn envelope_negative_controls() -> Vec<NegativeControlEvidence> {
         fixture.authority.structural_digest(),
         fixture.observer.structural_digest(),
     );
-    let changed_error = validate_fixture(&fixture, &authentic, &changed_candidate, &fixture.body)
-        .unwrap_err();
+    let changed_error =
+        validate_fixture(&fixture, &authentic, &changed_candidate, &fixture.body).unwrap_err();
     assert_eq!(changed_error, CheckFailure::FrozenCandidateMismatch);
 
     let weak = envelope_for(
@@ -506,8 +511,8 @@ fn envelope_negative_controls() -> Vec<NegativeControlEvidence> {
         "PROBABILISTIC",
         &fixture.body,
     );
-    let weak_error = validate_fixture(&fixture, &weak, &fixture.candidate, &fixture.body)
-        .unwrap_err();
+    let weak_error =
+        validate_fixture(&fixture, &weak, &fixture.candidate, &fixture.body).unwrap_err();
     assert_eq!(weak_error, CheckFailure::AuthorityInsufficient);
 
     vec![
@@ -697,7 +702,9 @@ pub fn run_canonical_first_light_proof(source_commit: &str) -> CanonicalProofRep
         ObservationalExprSpace::new(fl_c_context.clone(), U8BoolGrammar::minimal(), 9);
     let final_candidate = (0..=u8::MAX)
         .find_map(|_| {
-            let candidate = fl_c_space.extract_min_cost().expect("bounded FL-C candidate");
+            let candidate = fl_c_space
+                .extract_min_cost()
+                .expect("bounded FL-C candidate");
             match fl_c_oracle().first_counterexample(&candidate) {
                 Some((input, expected)) => {
                     fl_c_space.refine_counterexample(input, expected);
@@ -759,8 +766,7 @@ pub fn run_canonical_first_light_proof(source_commit: &str) -> CanonicalProofRep
         &u0,
         &[],
     )
-    .unwrap()
-    else {
+    .unwrap() else {
         panic!("valid FL-C primitive must authorize")
     };
     let stale_authorization = promotion_authorization.clone();
@@ -966,13 +972,9 @@ pub fn run_canonical_first_light_proof(source_commit: &str) -> CanonicalProofRep
         vec![],
     );
     let request = ReuseRequest::new(&query, primitive);
-    let activation_removed_error = CompilerV1::compile_reuse(
-        &query,
-        &missing_snapshot,
-        compiler_inputs.clone(),
-        &request,
-    )
-    .unwrap_err();
+    let activation_removed_error =
+        CompilerV1::compile_reuse(&query, &missing_snapshot, compiler_inputs.clone(), &request)
+            .unwrap_err();
     assert_eq!(
         activation_removed_error,
         CompilerError::RequiredCapabilityUnavailable
@@ -1023,12 +1025,8 @@ pub fn run_canonical_first_light_proof(source_commit: &str) -> CanonicalProofRep
         .count() as u64;
     assert_eq!(native_count, semantic_count);
     assert_eq!(native_count, 9);
-    let second_result = SecondQueryResult::new(
-        &vector,
-        primitive,
-        resolved.manifest_digest(),
-        native_count,
-    );
+    let second_result =
+        SecondQueryResult::new(&vector, primitive, resolved.manifest_digest(), native_count);
 
     let negative_controls = NegativeControlManifest::complete(controls).unwrap();
     assert!(negative_controls.is_complete());
