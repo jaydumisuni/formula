@@ -1,0 +1,32 @@
+name: P8 development gate
+
+on:
+  push:
+    branches:
+      - implementation/p8-native-realization-validation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p8-development:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependencies
+        run: cargo fetch --locked
+      - name: Workspace tests
+        run: cargo test --workspace --all-targets --locked --offline
+      - name: Workspace build
+        run: cargo build --workspace --all-targets --locked --offline
+      - name: Rustfmt
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+      - name: Clean source tree
+        run: test -z "$(git status --porcelain)"
