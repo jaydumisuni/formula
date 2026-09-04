@@ -9,6 +9,7 @@ members = [
   "crates/formula-first-light",
   "crates/formula-cli",
   "tests/authority-boundary",
+  "tests/p9-canonical",
 ]
 resolver = "2"
 
