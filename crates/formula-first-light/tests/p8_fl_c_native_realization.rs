@@ -6,7 +6,9 @@ use formula_check::{
 };
 use formula_core::{
     artifacts::StructuralIdentity,
-    certification::{FrozenCandidate as CertifiedFrozenCandidate, PromotionManifest, RealizationCheckManifest},
+    certification::{
+        FrozenCandidate as CertifiedFrozenCandidate, PromotionManifest, RealizationCheckManifest,
+    },
     digest::ArtifactDigest,
     generation::UniverseGeneration,
     promotion::PromotionCandidate,
@@ -37,14 +39,12 @@ fn checked_byte(expression: &EngineByteExpr) -> CheckedByteExpr {
         EngineByteExpr::X => CheckedByteExpr::X,
         EngineByteExpr::Zero => CheckedByteExpr::Const(0),
         EngineByteExpr::One => CheckedByteExpr::Const(1),
-        EngineByteExpr::SubWrap(left, right) => CheckedByteExpr::SubWrap(
-            Box::new(checked_byte(left)),
-            Box::new(checked_byte(right)),
-        ),
-        EngineByteExpr::BitAnd(left, right) => CheckedByteExpr::BitAnd(
-            Box::new(checked_byte(left)),
-            Box::new(checked_byte(right)),
-        ),
+        EngineByteExpr::SubWrap(left, right) => {
+            CheckedByteExpr::SubWrap(Box::new(checked_byte(left)), Box::new(checked_byte(right)))
+        }
+        EngineByteExpr::BitAnd(left, right) => {
+            CheckedByteExpr::BitAnd(Box::new(checked_byte(left)), Box::new(checked_byte(right)))
+        }
     }
 }
 
@@ -52,10 +52,9 @@ fn checked_bool(expression: &EngineBoolExpr) -> CheckedBoolExpr {
     match expression {
         EngineBoolExpr::EqZero(value) => CheckedBoolExpr::EqZero(checked_byte(value)),
         EngineBoolExpr::NeqZero(value) => CheckedBoolExpr::NeqZero(checked_byte(value)),
-        EngineBoolExpr::And(left, right) => CheckedBoolExpr::And(
-            Box::new(checked_bool(left)),
-            Box::new(checked_bool(right)),
-        ),
+        EngineBoolExpr::And(left, right) => {
+            CheckedBoolExpr::And(Box::new(checked_bool(left)), Box::new(checked_bool(right)))
+        }
     }
 }
 
@@ -84,7 +83,10 @@ fn execute_native(binary: &Path, input: u8) -> bool {
         .arg(input.to_string())
         .output()
         .expect("compiled native realization must execute");
-    assert!(output.status.success(), "native realization failed for {input}");
+    assert!(
+        output.status.success(),
+        "native realization failed for {input}"
+    );
     assert!(
         output.stderr.is_empty(),
         "native realization emitted stderr for {input}"
@@ -176,13 +178,8 @@ fn fl_c_promoted_primitive_is_compiled_checked_admitted_and_dispatched_on_cpu() 
     let u1_bytes = u1_before.canonical_bytes();
     assert!(u1_before.admitted().contains(&primitive));
 
-    let specialization = SpecializationIdentity::new(
-        primitive,
-        u1_digest,
-        world,
-        authority_contract,
-        observer,
-    );
+    let specialization =
+        SpecializationIdentity::new(primitive, u1_digest, world, authority_contract, observer);
     assert_eq!(specialization.semantic_target(), primitive);
     assert_eq!(specialization.universe_generation(), u1_digest);
     assert_eq!(specialization.lowering_class(), "EXACT_EQUIVALENCE");
@@ -200,7 +197,10 @@ fn fl_c_promoted_primitive_is_compiled_checked_admitted_and_dispatched_on_cpu() 
         .arg(&binary_path)
         .status()
         .expect("pinned rustc must compile generated source");
-    assert!(compile_status.success(), "generated FL-C source must compile");
+    assert!(
+        compile_status.success(),
+        "generated FL-C source must compile"
+    );
     let binary_bytes = fs::read(&binary_path).unwrap();
     let binary_digest = ArtifactDigest::of_bytes(&binary_bytes);
 
@@ -219,13 +219,8 @@ fn fl_c_promoted_primitive_is_compiled_checked_admitted_and_dispatched_on_cpu() 
     assert_eq!(native_manifest.source_digest(), generated.source_digest());
     assert_eq!(native_manifest.binary_digest(), binary_digest);
 
-    let dispatch = RealizationDispatchContext::new(
-        primitive,
-        u1_digest,
-        world,
-        authority_contract,
-        observer,
-    );
+    let dispatch =
+        RealizationDispatchContext::new(primitive, u1_digest, world, authority_contract, observer);
     assert!(store.resolve_realization(&dispatch).unwrap().is_none());
 
     let outputs: Vec<bool> = (0u16..=255)
@@ -303,7 +298,12 @@ fn fl_c_promoted_primitive_is_compiled_checked_admitted_and_dispatched_on_cpu() 
         authority_contract,
         d("wrong-p8-observer"),
     );
-    assert!(store.resolve_realization(&wrong_dispatch).unwrap().is_none());
+    assert!(
+        store
+            .resolve_realization(&wrong_dispatch)
+            .unwrap()
+            .is_none()
+    );
 
     let replayed_u0 = store.replay_generation(u0_digest).unwrap();
     assert_eq!(replayed_u0.digest(), u0_digest);
