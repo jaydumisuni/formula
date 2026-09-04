@@ -32,7 +32,10 @@ fn mandatory_zero_near_miss_is_visible_then_rejected_by_sealed_oracle() {
     }
     let candidate = space.extract_min_cost().expect("near-miss candidate");
     assert_eq!(candidate.expression(), &near_miss);
-    assert_eq!(fl_c_oracle().first_counterexample(&candidate), Some((0, false)));
+    assert_eq!(
+        fl_c_oracle().first_counterexample(&candidate),
+        Some((0, false))
+    );
 }
 
 #[test]
