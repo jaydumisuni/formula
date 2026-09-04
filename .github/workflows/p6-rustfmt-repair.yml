@@ -33,12 +33,12 @@ jobs:
           fi
           while IFS= read -r path; do
             case "$path" in
-              crates/*.rs|crates/**/*.rs) ;;
-              *) echo "refusing non-Rust formatter change: $path" >&2; exit 1 ;;
+              crates/*.rs|crates/**/*.rs|tests/authority-boundary/tests/p6_blindness.rs) ;;
+              *) echo "refusing formatter change outside approved Rust scope: $path" >&2; exit 1 ;;
             esac
           done <<< "$changed"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add crates
+          git add crates tests/authority-boundary/tests/p6_blindness.rs
           git commit -m 'style(p6): apply canonical rustfmt'
           git push origin HEAD:implementation/p6-first-light-target-harness-blindness
