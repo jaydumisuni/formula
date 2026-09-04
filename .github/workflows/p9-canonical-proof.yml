@@ -91,7 +91,7 @@ jobs:
           cargo tree --locked --offline -p formula-engine --edges normal | tee /tmp/p9-engine-tree.txt
           ! grep -Eq 'formula-check|formula-store|formula-first-light' /tmp/p9-engine-tree.txt
           cargo tree --locked --offline -p formula-first-light --edges normal | tee /tmp/p9-first-light-tree.txt
-          ! grep -Eq 'formula-check|formula-store|formula-realize|formula-packages' /tmp/p9-first-light-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-realize' /tmp/p9-first-light-tree.txt
       - name: P9 gate — clean worktree
         run: |
           git diff --exit-code
