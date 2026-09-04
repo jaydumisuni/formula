@@ -1,4 +1,7 @@
-use std::{fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -22,7 +25,8 @@ fn visit_rs_files(path: &Path, out: &mut Vec<PathBuf>) {
 #[test]
 fn search_production_cannot_reach_promotion_authority_or_store() {
     let root = root();
-    let engine_manifest = fs::read_to_string(root.join("crates/formula-engine/Cargo.toml")).unwrap();
+    let engine_manifest =
+        fs::read_to_string(root.join("crates/formula-engine/Cargo.toml")).unwrap();
     for forbidden in ["formula-store", "formula-check", "formula-first-light"] {
         assert!(
             !engine_manifest.contains(forbidden),
@@ -53,7 +57,8 @@ fn search_production_cannot_reach_promotion_authority_or_store() {
 
 #[test]
 fn first_light_production_dependencies_remain_sealed_harness_only() {
-    let manifest = fs::read_to_string(root().join("crates/formula-first-light/Cargo.toml")).unwrap();
+    let manifest =
+        fs::read_to_string(root().join("crates/formula-first-light/Cargo.toml")).unwrap();
     let production = manifest
         .split("[dev-dependencies]")
         .next()
@@ -71,7 +76,8 @@ fn first_light_production_dependencies_remain_sealed_harness_only() {
 
 #[test]
 fn raw_generation_publication_is_not_a_public_api() {
-    let source = fs::read_to_string(root().join("crates/formula-store/src/authority_store.rs")).unwrap();
+    let source =
+        fs::read_to_string(root().join("crates/formula-store/src/authority_store.rs")).unwrap();
     assert!(
         !source.contains("pub fn publish_generation("),
         "raw generation publication is publicly callable"
@@ -81,7 +87,8 @@ fn raw_generation_publication_is_not_a_public_api() {
 
 #[test]
 fn promotion_store_accepts_only_checker_issued_authorization() {
-    let source = fs::read_to_string(root().join("crates/formula-store/src/promotion_store.rs")).unwrap();
+    let source =
+        fs::read_to_string(root().join("crates/formula-store/src/promotion_store.rs")).unwrap();
     assert!(source.contains("use formula_check::promotion::PromotionAuthorization;"));
     assert!(source.contains("pub fn promote("));
     assert!(source.contains("authorization: &PromotionAuthorization"));
@@ -96,7 +103,8 @@ fn promotion_authorization_has_no_public_constructor_or_mutable_fields() {
         .find("pub struct PromotionAuthorization")
         .expect("PromotionAuthorization definition exists");
     let rest = &source[start..];
-    let end = rest.find("\n}\n\nimpl PromotionAuthorization")
+    let end = rest
+        .find("\n}\n\nimpl PromotionAuthorization")
         .expect("PromotionAuthorization struct closes before impl");
     let definition = &rest[..end];
 

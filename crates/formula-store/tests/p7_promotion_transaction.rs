@@ -52,15 +52,8 @@ fn fixture() -> Fixture {
         vec![dependency],
         vec![superseded],
     );
-    let decision = authorize_promotion_v1(
-        &manifest,
-        &frozen,
-        &candidate,
-        &[evidence],
-        &parent,
-        &[],
-    )
-    .unwrap();
+    let decision =
+        authorize_promotion_v1(&manifest, &frozen, &candidate, &[evidence], &parent, &[]).unwrap();
     let PromotionDecision::Authorized(authorization) = decision else {
         panic!("valid promotion was quarantined")
     };
@@ -104,7 +97,10 @@ fn checked_authorization_advances_u0_to_u1_without_mutating_u0() {
     assert_eq!(admitted.candidate(), f.authorization.promotion_candidate());
     assert_eq!(admitted.policy(), f.authorization.policy_digest());
     assert_eq!(admitted.evidence(), f.authorization.authority_bindings());
-    assert_eq!(admitted.semantic_artifacts(), f.authorization.proposed_admissions());
+    assert_eq!(
+        admitted.semantic_artifacts(),
+        f.authorization.proposed_admissions()
+    );
 }
 
 #[test]

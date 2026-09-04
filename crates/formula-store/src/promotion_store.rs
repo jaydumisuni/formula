@@ -61,12 +61,7 @@ impl AuthorityStore {
         let mut authority_bindings = parent.authority_bindings().to_vec();
         authority_bindings.extend_from_slice(authorization.authority_bindings());
 
-        let next = UniverseGeneration::new(
-            next_number,
-            Some(active),
-            admitted,
-            authority_bindings,
-        );
+        let next = UniverseGeneration::new(next_number, Some(active), admitted, authority_bindings);
         let new_generation = self.publish_generation_inner(&next, failpoint)?;
         let admitted_record = PromotionRecord::new(
             authorization.promotion_candidate(),

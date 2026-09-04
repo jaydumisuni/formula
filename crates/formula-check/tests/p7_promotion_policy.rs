@@ -105,18 +105,16 @@ fn stale_or_mismatched_generation_fails_closed() {
         vec![f.superseded],
     );
     assert_eq!(
-        authorize_promotion_v1(
-            &f.manifest,
-            &f.frozen,
-            &stale,
-            &f.evidence,
-            &f.parent,
-            &[],
-        ),
+        authorize_promotion_v1(&f.manifest, &f.frozen, &stale, &f.evidence, &f.parent, &[],),
         Err(PromotionPolicyFailure::ProofGenerationMismatch)
     );
 
-    let other_parent = UniverseGeneration::new(0, None, vec![f.dependency, f.superseded], vec![d("binding")]);
+    let other_parent = UniverseGeneration::new(
+        0,
+        None,
+        vec![f.dependency, f.superseded],
+        vec![d("binding")],
+    );
     assert_eq!(
         authorize_promotion_v1(
             &f.manifest,
@@ -163,15 +161,10 @@ fn dependency_cone_and_candidate_dependencies_must_be_admitted() {
         vec![f.superseded],
     );
     assert_eq!(
-        authorize_promotion_v1(
-            &f.manifest,
-            &f.frozen,
-            &narrow,
-            &f.evidence,
-            &f.parent,
-            &[],
-        ),
-        Err(PromotionPolicyFailure::CandidateDependencyOutsideCone(f.dependency))
+        authorize_promotion_v1(&f.manifest, &f.frozen, &narrow, &f.evidence, &f.parent, &[],),
+        Err(PromotionPolicyFailure::CandidateDependencyOutsideCone(
+            f.dependency
+        ))
     );
 }
 
@@ -230,7 +223,9 @@ fn evidence_binding_changed_candidate_and_invalid_supersession_fail() {
             &f.parent,
             &[],
         ),
-        Err(PromotionPolicyFailure::SupersededArtifactNotAdmitted(missing))
+        Err(PromotionPolicyFailure::SupersededArtifactNotAdmitted(
+            missing
+        ))
     );
 }
 

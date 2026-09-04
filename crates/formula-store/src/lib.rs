@@ -43,7 +43,9 @@ mod atomicity_tests {
         );
     }
 
-    fn valid_authorization(parent: &UniverseGeneration) -> formula_check::promotion::PromotionAuthorization {
+    fn valid_authorization(
+        parent: &UniverseGeneration,
+    ) -> formula_check::promotion::PromotionAuthorization {
         let primitive = d(b"promotion-failpoint-primitive");
         let evidence = d(b"promotion-failpoint-evidence");
         let parent_digest = parent.digest();
@@ -72,15 +74,9 @@ mod atomicity_tests {
             vec![],
             vec![],
         );
-        let decision = authorize_promotion_v1(
-            &manifest,
-            &frozen,
-            &candidate,
-            &[evidence],
-            parent,
-            &[],
-        )
-        .unwrap();
+        let decision =
+            authorize_promotion_v1(&manifest, &frozen, &candidate, &[evidence], parent, &[])
+                .unwrap();
         let PromotionDecision::Authorized(authorization) = decision else {
             panic!("valid promotion failpoint fixture was quarantined")
         };

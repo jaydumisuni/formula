@@ -80,15 +80,8 @@ fn fl_c_semantic_primitive_is_frozen_certified_and_promoted_to_u1() {
         vec![],
     );
 
-    let decision = authorize_promotion_v1(
-        &manifest,
-        &frozen,
-        &promotion,
-        &[evidence],
-        &u0,
-        &[],
-    )
-    .unwrap();
+    let decision =
+        authorize_promotion_v1(&manifest, &frozen, &promotion, &[evidence], &u0, &[]).unwrap();
     let PromotionDecision::Authorized(authorization) = decision else {
         panic!("valid FL-C semantic primitive was quarantined")
     };
@@ -115,8 +108,14 @@ fn fl_c_semantic_primitive_is_frozen_certified_and_promoted_to_u1() {
     assert_eq!(outcome.parent_generation(), u0_digest);
     assert!(u1.admitted().contains(&primitive));
     assert!(u1.authority_bindings().contains(&evidence));
-    assert_ne!(certified.structural_digest(), outcome.admitted_record().structural_digest());
-    assert_ne!(outcome.admitted_record().structural_digest(), activated.structural_digest());
+    assert_ne!(
+        certified.structural_digest(),
+        outcome.admitted_record().structural_digest()
+    );
+    assert_ne!(
+        outcome.admitted_record().structural_digest(),
+        activated.structural_digest()
+    );
     assert_ne!(certified.structural_digest(), activated.structural_digest());
 
     let replayed_u0 = store.replay_generation(u0_digest).unwrap();

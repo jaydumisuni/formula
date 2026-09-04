@@ -45,15 +45,8 @@ fn authorization(
         vec![],
         vec![],
     );
-    let decision = authorize_promotion_v1(
-        &manifest,
-        &frozen,
-        &candidate,
-        &[evidence],
-        parent,
-        &[],
-    )
-    .unwrap();
+    let decision =
+        authorize_promotion_v1(&manifest, &frozen, &candidate, &[evidence], parent, &[]).unwrap();
     let PromotionDecision::Authorized(authorization) = decision else {
         panic!("replay-test promotion was quarantined")
     };
@@ -90,7 +83,10 @@ fn stale_parent_authorization_cannot_publish() {
     let u1_digest = store.promote(&first).unwrap().new_generation();
     assert!(store.promote(&stale).is_err());
     assert_eq!(store.active_generation().unwrap(), Some(u1_digest));
-    assert_eq!(store.replay_generation(u0_digest).unwrap().digest(), u0_digest);
+    assert_eq!(
+        store.replay_generation(u0_digest).unwrap().digest(),
+        u0_digest
+    );
 }
 
 #[test]

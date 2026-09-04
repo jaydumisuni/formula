@@ -43,20 +43,10 @@ fn admitted_authority_bound_witness_derives_added_capability_in_u1() {
         vec![package_digest, witness.structural_digest()],
         vec![witness.evidence()],
     );
-    let active0 = validate_activation(
-        &u0,
-        std::slice::from_ref(&package),
-        &[],
-        &[package_digest],
-    )
-    .unwrap();
-    let active1 = validate_activation(
-        &u1,
-        std::slice::from_ref(&package),
-        &[],
-        &[package_digest],
-    )
-    .unwrap();
+    let active0 =
+        validate_activation(&u0, std::slice::from_ref(&package), &[], &[package_digest]).unwrap();
+    let active1 =
+        validate_activation(&u1, std::slice::from_ref(&package), &[], &[package_digest]).unwrap();
     let admitted = AdmittedStructureWitness::new(&u1, witness).unwrap();
     let context0 = ClosureContext::new(
         u0.digest(),
@@ -73,13 +63,8 @@ fn admitted_authority_bound_witness_derives_added_capability_in_u1() {
         d("policy"),
     );
 
-    let before = derive_capabilities(
-        &context0,
-        &active0,
-        &[],
-        std::slice::from_ref(&package),
-    )
-    .unwrap();
+    let before =
+        derive_capabilities(&context0, &active0, &[], std::slice::from_ref(&package)).unwrap();
     let after = derive_capabilities(
         &context1,
         &active1,
@@ -104,12 +89,8 @@ fn unadmitted_or_unbound_witness_cannot_manufacture_closure_delta() {
     let package_digest = package.structural_digest();
     let witness = StructureWitness::new(world, goal, d("evidence:field"));
 
-    let missing_admission = UniverseGeneration::new(
-        1,
-        None,
-        vec![package_digest],
-        vec![witness.evidence()],
-    );
+    let missing_admission =
+        UniverseGeneration::new(1, None, vec![package_digest], vec![witness.evidence()]);
     assert_eq!(
         AdmittedStructureWitness::new(&missing_admission, witness.clone()).unwrap_err(),
         WitnessAdmissionError::WitnessNotAdmitted
@@ -140,13 +121,8 @@ fn unadmitted_or_unbound_witness_cannot_manufacture_closure_delta() {
         d("rules"),
         d("policy"),
     );
-    let unchanged = derive_capabilities(
-        &context,
-        &active,
-        &[],
-        std::slice::from_ref(&package),
-    )
-    .unwrap();
+    let unchanged =
+        derive_capabilities(&context, &active, &[], std::slice::from_ref(&package)).unwrap();
     let delta = CapabilityClosureDelta::between(&unchanged, &unchanged);
     assert!(!unchanged.contains(capability));
     assert!(delta.added().next().is_none());

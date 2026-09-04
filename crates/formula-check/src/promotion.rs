@@ -134,7 +134,9 @@ pub fn authorize_promotion_v1(
     if promotion.promotion_manifest() != manifest.structural_digest() {
         return Err(PromotionPolicyFailure::PromotionManifestMismatch);
     }
-    if promotion.parent_generation() != parent_digest || manifest.parent_generation() != parent_digest {
+    if promotion.parent_generation() != parent_digest
+        || manifest.parent_generation() != parent_digest
+    {
         return Err(PromotionPolicyFailure::ParentGenerationMismatch);
     }
     if frozen.universe_generation() != parent_digest {
@@ -150,8 +152,14 @@ pub fn authorize_promotion_v1(
         }
     }
     for dependency in frozen.dependencies() {
-        if promotion.dependency_cone().binary_search(dependency).is_err() {
-            return Err(PromotionPolicyFailure::CandidateDependencyOutsideCone(*dependency));
+        if promotion
+            .dependency_cone()
+            .binary_search(dependency)
+            .is_err()
+        {
+            return Err(PromotionPolicyFailure::CandidateDependencyOutsideCone(
+                *dependency,
+            ));
         }
     }
 
@@ -162,7 +170,9 @@ pub fn authorize_promotion_v1(
 
     for superseded in promotion.supersedes() {
         if !parent.admitted().contains(superseded) {
-            return Err(PromotionPolicyFailure::SupersededArtifactNotAdmitted(*superseded));
+            return Err(PromotionPolicyFailure::SupersededArtifactNotAdmitted(
+                *superseded,
+            ));
         }
     }
 

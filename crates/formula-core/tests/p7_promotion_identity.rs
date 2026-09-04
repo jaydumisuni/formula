@@ -73,7 +73,10 @@ fn promotion_candidate_binds_parent_proof_and_manifest_identity() {
 
     assert_ne!(base.structural_digest(), changed_parent.structural_digest());
     assert_ne!(base.structural_digest(), changed_proof.structural_digest());
-    assert_ne!(base.structural_digest(), changed_manifest.structural_digest());
+    assert_ne!(
+        base.structural_digest(),
+        changed_manifest.structural_digest()
+    );
 }
 
 #[test]

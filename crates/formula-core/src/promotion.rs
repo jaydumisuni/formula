@@ -1,8 +1,4 @@
-use crate::{
-    artifacts::StructuralIdentity,
-    canonical::CanonicalValue,
-    digest::ArtifactDigest,
-};
+use crate::{artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest};
 use std::collections::BTreeMap;
 
 const PROMOTION_SCHEMA_V1: &str = "formula-promotion-v1";
@@ -183,15 +179,9 @@ impl PromotionRecord {
 impl StructuralIdentity for PromotionRecord {
     fn canonical_value(&self) -> CanonicalValue {
         CanonicalValue::Object(BTreeMap::from([
-            (
-                "candidate".into(),
-                CanonicalValue::Digest(self.candidate),
-            ),
+            ("candidate".into(), CanonicalValue::Digest(self.candidate)),
             ("evidence".into(), digest_array(&self.evidence)),
-            (
-                "generation".into(),
-                CanonicalValue::Digest(self.generation),
-            ),
+            ("generation".into(), CanonicalValue::Digest(self.generation)),
             (
                 "kind".into(),
                 CanonicalValue::String("PromotionRecord".into()),
