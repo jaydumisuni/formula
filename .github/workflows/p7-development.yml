@@ -1,0 +1,34 @@
+name: P7 development gate
+
+on:
+  push:
+    branches:
+      - implementation/p7-promotion-generation-transition
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p7-development:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.98.0
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: P7 core tests
+        run: cargo test -p formula-core --all-targets --locked
+      - name: P7 checker tests
+        run: cargo test -p formula-check --all-targets --locked
+      - name: P7 store tests
+        run: cargo test -p formula-store --all-targets --locked
+      - name: P7 packages tests
+        run: cargo test -p formula-packages --all-targets --locked
+      - name: P7 First-Light tests
+        run: cargo test -p formula-first-light --all-targets --locked
+      - name: P7 architecture tests
+        run: cargo test -p formula-archtest --locked
