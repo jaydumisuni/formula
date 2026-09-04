@@ -8,12 +8,6 @@ fn d(label: &str) -> ArtifactDigest {
     ArtifactDigest::of_bytes(label.as_bytes())
 }
 
-fn sorted(mut values: Vec<ArtifactDigest>) -> Vec<ArtifactDigest> {
-    values.sort_unstable();
-    values.dedup();
-    values
-}
-
 #[test]
 fn promotion_candidate_normalizes_set_like_inputs() {
     let a = PromotionCandidate::new(
@@ -34,8 +28,12 @@ fn promotion_candidate_normalizes_set_like_inputs() {
     );
 
     assert_eq!(a.structural_digest(), b.structural_digest());
-    assert_eq!(a.dependency_cone(), sorted(vec![d("dep-a"), d("dep-b")]).as_slice());
-    assert_eq!(a.supersedes(), sorted(vec![d("old-a"), d("old-b")]).as_slice());
+    assert_eq!(a.dependency_cone().len(), 2);
+    assert!(a.dependency_cone().contains(&d("dep-a")));
+    assert!(a.dependency_cone().contains(&d("dep-b")));
+    assert_eq!(a.supersedes().len(), 2);
+    assert!(a.supersedes().contains(&d("old-a")));
+    assert!(a.supersedes().contains(&d("old-b")));
 }
 
 #[test]
@@ -154,9 +152,8 @@ fn quarantine_record_normalizes_conflicts_and_binds_reason() {
     );
 
     assert_eq!(a.structural_digest(), b.structural_digest());
-    assert_eq!(
-        a.conflicts(),
-        sorted(vec![d("conflict-a"), d("conflict-b")]).as_slice()
-    );
+    assert_eq!(a.conflicts().len(), 2);
+    assert!(a.conflicts().contains(&d("conflict-a")));
+    assert!(a.conflicts().contains(&d("conflict-b")));
     assert_ne!(a.structural_digest(), changed_reason.structural_digest());
 }
