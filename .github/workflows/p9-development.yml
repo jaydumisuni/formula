@@ -1,0 +1,35 @@
+name: P9 development
+
+on:
+  push:
+    branches:
+      - implementation/p9-canonical-first-light-proof
+
+permissions:
+  contents: read
+
+jobs:
+  development:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt,clippy
+          rustup override set 1.98.0
+          rustc -vV
+          cargo -V
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+      - name: Workspace tests
+        run: cargo test --workspace --all-targets --locked --offline
+      - name: Workspace build
+        run: cargo build --workspace --all-targets --locked --offline
+      - name: rustfmt
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+      - name: Authority dependency firewall
+        run: cargo test -p authority-boundary --locked --offline
+      - name: Clean worktree
+        run: git diff --exit-code && git status --porcelain=v1 | test ! -s /dev/stdin
