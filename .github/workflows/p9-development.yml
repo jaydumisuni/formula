@@ -31,6 +31,6 @@ jobs:
       - name: clippy
         run: cargo clippy --workspace --all-targets --locked --offline -- -D warnings
       - name: Authority dependency firewall
-        run: cargo test -p authority-boundary --locked --offline
+        run: cargo test -p formula-archtest --locked --offline
       - name: Clean worktree
         run: git diff --exit-code && git status --porcelain=v1 | test ! -s /dev/stdin
