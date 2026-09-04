@@ -129,7 +129,10 @@ fn exact_replay_produces_only_the_frozen_ordered_pass_markers() {
         ]
     );
     assert_eq!(verification.markers().len(), 15);
-    assert_eq!(verification.markers().last(), Some(&"PASS FIRST_LIGHT_COMPLETE"));
+    assert_eq!(
+        verification.markers().last(),
+        Some(&"PASS FIRST_LIGHT_COMPLETE")
+    );
 }
 
 #[test]
