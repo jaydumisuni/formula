@@ -36,8 +36,7 @@ use formula_first_light::{
     reuse::{SecondQueryResult, canonical_second_query_vector},
 };
 use formula_packages::{
-    activation::validate_activation,
-    closure::derive_capabilities_with_semantic_activations,
+    activation::validate_activation, closure::derive_capabilities_with_semantic_activations,
 };
 use formula_realize::rust_native::generate_u8_bool_rust_source;
 use formula_store::authority_store::AuthorityStore;
@@ -328,13 +327,8 @@ fn second_count_query_uses_already_admitted_p8_binary_without_rediscovery_or_rec
     );
     let request = ReuseRequest::new(&query, primitive);
     assert_eq!(
-        CompilerV1::compile_reuse(
-            &query,
-            &missing_snapshot,
-            compiler_inputs.clone(),
-            &request,
-        )
-        .unwrap_err(),
+        CompilerV1::compile_reuse(&query, &missing_snapshot, compiler_inputs.clone(), &request,)
+            .unwrap_err(),
         CompilerError::RequiredCapabilityUnavailable
     );
 
@@ -386,12 +380,8 @@ fn second_count_query_uses_already_admitted_p8_binary_without_rediscovery_or_rec
         .count() as u64;
     assert_eq!(native_count, semantic_count);
 
-    let result = SecondQueryResult::new(
-        &vector,
-        primitive,
-        resolved.manifest_digest(),
-        native_count,
-    );
+    let result =
+        SecondQueryResult::new(&vector, primitive, resolved.manifest_digest(), native_count);
     assert_eq!(result.input_digest(), vector.digest());
     assert_eq!(result.primitive(), primitive);
     assert_eq!(result.realization(), resolved.manifest_digest());
