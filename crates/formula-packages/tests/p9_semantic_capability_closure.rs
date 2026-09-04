@@ -25,12 +25,7 @@ fn contexts(
     ClosureContext,
 ) {
     let u0 = UniverseGeneration::new(0, None, vec![], vec![]);
-    let u1 = UniverseGeneration::new(
-        1,
-        Some(u0.digest()),
-        vec![primitive],
-        vec![evidence],
-    );
+    let u1 = UniverseGeneration::new(1, Some(u0.digest()), vec![primitive], vec![evidence]);
     let world = d("p9-closure-world");
     let rules = d("p9-closure-rules");
     let policy = d("p9-closure-policy");
@@ -55,15 +50,8 @@ fn activated_u1_semantic_primitive_expands_capability_closure() {
         vec![primitive],
     );
 
-    let before = derive_capabilities_with_semantic_activations(
-        &c0,
-        &packages0,
-        &[],
-        &[],
-        &u0,
-        &[],
-    )
-    .unwrap();
+    let before =
+        derive_capabilities_with_semantic_activations(&c0, &packages0, &[], &[], &u0, &[]).unwrap();
     let after = derive_capabilities_with_semantic_activations(
         &c1,
         &packages1,
@@ -96,15 +84,9 @@ fn admitted_but_not_activated_primitive_does_not_become_reusable() {
         vec![primitive],
     );
 
-    let error = derive_capabilities_with_semantic_activations(
-        &c1,
-        &packages1,
-        &[],
-        &[],
-        &u1,
-        &[admitted],
-    )
-    .unwrap_err();
+    let error =
+        derive_capabilities_with_semantic_activations(&c1, &packages1, &[], &[], &u1, &[admitted])
+            .unwrap_err();
     assert_eq!(error, ClosureError::SemanticActivationStateMismatch);
 }
 
@@ -168,15 +150,8 @@ fn wrong_generation_unadmitted_primitive_or_unbound_evidence_fails_closed() {
         vec![primitive],
     );
     assert_eq!(
-        derive_capabilities_with_semantic_activations(
-            &c1,
-            &packages1,
-            &[],
-            &[],
-            &u1,
-            &[unbound],
-        )
-        .unwrap_err(),
+        derive_capabilities_with_semantic_activations(&c1, &packages1, &[], &[], &u1, &[unbound],)
+            .unwrap_err(),
         ClosureError::SemanticActivationEvidenceNotAuthorityBound
     );
 }
