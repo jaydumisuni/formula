@@ -12,6 +12,9 @@ use crate::{
     region::{CompilerAuthoritySnapshot, RegionError, RelevantRegion},
     replay::ReplayManifest,
     representation::{InformationLoss, RepresentationEdge, RepresentationNode},
+    reuse::{
+        CompiledReuseCampaign, ResolvedCapability, ReuseExecutionPlan, ReuseMetrics, ReuseRequest,
+    },
     theory_profile::{OperationalEstimate, ProfileFact, TheoryProfile},
     work_cell::{CheckpointPolicy, StopCondition, WorkCellPlan},
 };
@@ -181,6 +184,8 @@ pub enum CompilerError {
     PackageContextMismatch,
     ObserverMismatch,
     AuthorityMismatch,
+    ReuseRequestMismatch,
+    RequiredCapabilityUnavailable,
     ImplicitLossyMorphism,
     AmbiguousParent,
     InvalidRepresentation,
@@ -411,6 +416,118 @@ impl CompilerV1 {
             obligations: vec![obligation],
             work_cells: vec![work_cell],
             replay_manifest,
+        })
+    }
+
+    pub fn compile_reuse(
+        query: &QueryIR,
+        snapshot: &CompilerAuthoritySnapshot,
+        inputs: CompilerInputs,
+        request: &ReuseRequest,
+    ) -> Result<CompiledReuseCampaign, CompilerError> {
+        if request.query_digest() != query.digest()
+            || request.universe_generation() != query.universe_generation()
+            || request.world() != query.world()
+            || request.authority_contract() != query.authority_contract()
+            || request.observer() != query.observer()
+            || request.result_class() != query.requested_result_class()
+        {
+            return Err(CompilerError::ReuseRequestMismatch);
+        }
+        if query.observer() != inputs.expected_observer {
+            return Err(CompilerError::ObserverMismatch);
+        }
+        if query.authority_contract() != inputs.expected_authority {
+            return Err(CompilerError::AuthorityMismatch);
+        }
+
+        let region = RelevantRegion::from_snapshot(query, snapshot).map_err(map_region_error)?;
+        if !region
+            .admitted_capabilities()
+            .contains(&request.required_semantic_capability())
+        {
+            return Err(CompilerError::RequiredCapabilityUnavailable);
+        }
+
+        let theory_profile = TheoryProfile::compile(
+            &region,
+            &inputs.exact_properties,
+            &inputs.operational_estimates,
+        );
+        let resolved = ResolvedCapability::new(request);
+        let execution = ReuseExecutionPlan::new(query, &resolved);
+        let metrics = ReuseMetrics::canonical_single_reuse();
+
+        let obligation = ObligationIR::new(
+            query.universe_generation(),
+            query.world(),
+            vec![resolved.primitive()],
+            query.requested_result_class().as_str(),
+            query.observer(),
+            query.authority_contract(),
+            vec![resolved.primitive()],
+            vec![],
+            query.resource_contract(),
+            vec![TerminalState::Satisfied, TerminalState::BlockedByAuthority],
+        );
+
+        let nodes = vec![
+            CampaignNode::new(
+                query.digest(),
+                CampaignNodeKind::Goal,
+                query.universe_generation(),
+                query.world(),
+                Some(CampaignAggregation::Or),
+            ),
+            CampaignNode::new(
+                resolved.primitive(),
+                CampaignNodeKind::ArtifactRef,
+                query.universe_generation(),
+                query.world(),
+                None,
+            ),
+            CampaignNode::new(
+                obligation.digest(),
+                CampaignNodeKind::Obligation,
+                query.universe_generation(),
+                query.world(),
+                None,
+            ),
+            CampaignNode::new(
+                execution.digest(),
+                CampaignNodeKind::ExecutionPlanRef,
+                query.universe_generation(),
+                query.world(),
+                None,
+            ),
+        ];
+        let edges = vec![
+            CampaignEdge::new(
+                query.digest(),
+                resolved.primitive(),
+                CampaignEdgeKind::Requires,
+            ),
+            CampaignEdge::new(
+                resolved.primitive(),
+                obligation.digest(),
+                CampaignEdgeKind::Unlocks,
+            ),
+            CampaignEdge::new(
+                obligation.digest(),
+                execution.digest(),
+                CampaignEdgeKind::Unlocks,
+            ),
+        ];
+        let campaign = CampaignIR::new(query.universe_generation(), query.world(), nodes, edges);
+        campaign
+            .validate()
+            .map_err(|_| CompilerError::InvalidCampaign)?;
+
+        Ok(CompiledReuseCampaign {
+            campaign,
+            resolved_capability: resolved,
+            execution_plans: vec![execution],
+            metrics,
         })
     }
 }
