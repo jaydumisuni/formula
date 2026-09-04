@@ -8,47 +8,47 @@ Recover repository evidence before reasoning. Do not reconstruct implementation 
 
 1. [`docs/design/README.md`](docs/design/README.md) — frozen D1–D5 design precedence.
 2. [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md) — frozen roadmap P0 onward.
-3. [`docs/checkpoints/2026-09-04-p6-first-light-target-harness-blindness.md`](docs/checkpoints/2026-09-04-p6-first-light-target-harness-blindness.md) — current P6 source-proof checkpoint.
-4. [`docs/checkpoints/2026-09-02-p5-candidate-space-bounded-discovery.md`](docs/checkpoints/2026-09-02-p5-candidate-space-bounded-discovery.md) — exact frozen P5 predecessor checkpoint.
-5. [`docs/superpowers/plans/2026-09-04-p6-first-light-target-harness-blindness.md`](docs/superpowers/plans/2026-09-04-p6-first-light-target-harness-blindness.md) — executed P6 implementation plan.
+3. [`docs/checkpoints/2026-09-04-p7-promotion-generation-transition.md`](docs/checkpoints/2026-09-04-p7-promotion-generation-transition.md) — current P7 source-proof checkpoint.
+4. [`docs/checkpoints/2026-09-04-p6-first-light-target-harness-blindness.md`](docs/checkpoints/2026-09-04-p6-first-light-target-harness-blindness.md) — exact frozen P6 predecessor checkpoint.
+5. [`docs/superpowers/plans/2026-09-04-p7-promotion-generation-transition.md`](docs/superpowers/plans/2026-09-04-p7-promotion-generation-transition.md) — executed P7 implementation plan.
 6. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for a concrete contradiction or missing obligation.
 
 ## Exact current implementation state
 
-**P6 — First-Light Target Harness + Blindness: SOURCE PROVED and scope/review-clean; documentation-bearing head awaiting exact-head proof.**
+**P7 — D5 Promotion + Generation Transition: SOURCE PROVED and scope/review-clean; documentation-bearing head awaiting exact-head proof.**
 
 Canonical branch:
 
 ```text
-implementation/p6-first-light-target-harness-blindness
+implementation/p7-promotion-generation-transition
 ```
 
-Exact frozen P5 predecessor:
+Exact frozen P6 predecessor:
 
 ```text
-d2bd250c4b4419316292845a44849747d9e01113
-workflow: P5 canonical proof
-workflow run: 33812388173
-conclusion: success
-```
-
-Canonical P6 source-under-test proof boundary:
-
-```text
-3d50226f51066d3b3fd2562080d67105c004ea92
+035953854f33fe47dc884850dec4fdee7a3571e7
 workflow: P6 canonical proof
-workflow run: 33854085182
-job: 100963233751
+workflow run: 33854369705
 conclusion: success
 ```
 
-Exact P5 -> P6 source compare:
+Canonical P7 source-under-test proof boundary:
 
 ```text
-base:    d2bd250c4b4419316292845a44849747d9e01113
-head:    3d50226f51066d3b3fd2562080d67105c004ea92
+ca61ed42ab47b3a79a3d258f015b2f6ac9979ec2
+workflow: P7 canonical proof
+workflow run: 33861803872
+job: 100987699053
+conclusion: success
+```
+
+Exact P6 -> P7 source compare:
+
+```text
+base:    035953854f33fe47dc884850dec4fdee7a3571e7
+head:    ca61ed42ab47b3a79a3d258f015b2f6ac9979ec2
 status:  ahead
-ahead:   31 commits
+ahead:   44 commits
 behind:  0 commits
 ```
 
@@ -61,130 +61,210 @@ Cargo proof commands: --locked / --offline where applicable
 canonical workflow permissions: contents: read
 ```
 
-## What P6 now proves
+## What P7 now proves
 
-P6 supplies the sealed First-Light target harness required before promotion begins:
+P7 implements the bounded D5 authority transition required before native realization:
 
 ```text
-BlindnessManifest exact semantic binding
-FrozenSubmission exact target/candidate binding
-FL-A sealed oracle + target digest
-FL-B public XOR fixture + exact direct/GF(2) route identities
-FL-C sealed U8 target oracle + public grammar digest
-visible false FL-C near-miss
-runtime blindness checks
-discovery/sealed dependency firewall
-hidden-answer literal firewall
+PromotionCandidate exact structural identity
+CERTIFIED / ADMITTED / ACTIVATED / QUARANTINED distinct states
+PromotionRecord / QuarantineRecord structural identity
+PromotionPolicyV1 checker policy
+opaque checker-issued PromotionAuthorization
+fail-closed quarantine path
+raw public generation-publication bypass closed
+AuthorityStore::promote requires PromotionAuthorization
+atomic U_g -> U_(g+1) using the proved P1 transaction
+parent-generation race rejection
+publication-failure rollback
+historical U0 replay preservation
+CapabilityClosureDelta derived from admitted authority only
+blind FL-C semantic primitive admission into U1
+search -> checker/store/promotion authority firewall
 ```
 
 ## Authority boundary
 
-P6 consumes P5 candidate-only search outputs; it does not manufacture mathematical authority.
+P7 makes the certification/promotion separation executable.
 
-Production discovery code remains unable to import or depend on the sealed First-Light harness:
+The public authority transition is:
 
 ```text
-formula-engine   -/-> formula-first-light
-formula-packages -/-> formula-first-light
+frozen candidate
+ -> independent checker validation
+ -> opaque PromotionAuthorization
+ -> AuthorityStore::promote
+ -> new immutable UniverseGeneration
 ```
 
-Architecture tests also reject sealed fixture-path references, target-schema references, and embedded hidden First-Light answers inside discovery source.
+The low-level generation-publication primitive is crate-private inside `formula-store`.
 
-The sealed oracle may judge a frozen candidate. It cannot make search code authoritative and cannot leak target implementation details backward into P5.
+Production discovery remains outside authority publication:
+
+```text
+formula-engine -/-> formula-check
+formula-engine -/-> formula-store
+formula-engine -/-> formula-first-light
+```
+
+The inherited `formula-engine -> formula-store` normal dependency was removed in P7 specifically to close that authority path.
+
+`PromotionAuthorization` has private authority-bearing fields and no public constructor. The store consumes authorization; it does not independently decide mathematical correctness.
+
+## Promotion policy law
+
+Checker authorization binds and validates:
+
+```text
+frozen candidate identity
+promotion manifest identity
+active/expected parent generation
+candidate generation
+proof generation/freshness boundary
+dependency cone
+checked evidence bindings
+supersession lineage
+proposed admissions
+```
+
+Mismatch/conflict fails closed to rejection/quarantine. Search cannot upgrade itself into authority.
+
+## Generation-transition law
+
+`AuthorityStore::promote` requires exact parent-generation agreement, replays the parent, constructs only the authorized admission/binding delta, and uses the existing P1 atomic transaction.
+
+Successful P7 integration proves:
+
+```text
+U0 digest unchanged
+U0 canonical bytes unchanged
+U0 remains replayable after U1
+U1 parent = U0
+U1 contains authorized FL-C primitive
+U1 contains authorized evidence binding
+failed/partial publication cannot expose U1
+stale parent cannot win a race
+```
+
+## Capability-closure law
+
+`CapabilityClosureDelta::between(before, after)` is deterministic derived state.
+
+Capability availability still comes only from exact generation/world-scoped admitted inputs and authority-bound witnesses. Closure cannot manufacture authority.
+
+## FL-C bounded promotion law
+
+The P7 FL-C path is:
+
+```text
+public bounded U8/Boolean CandidateSpace
+ -> extract/freeze candidate
+ -> sealed oracle exact counterexample or equivalence
+ -> refine bounded space
+ -> final frozen candidate
+ -> checker authorization
+ -> atomic promotion
+ -> U1 admission
+```
+
+`formula-first-light` uses checker/store only as **dev-dependencies** for this integration proof. Its production dependencies remain core + engine, preserving the P6 sealed-harness boundary.
 
 ## Canonical proof correction
 
-The semantic P6 implementation and development gates were already green when the canonical workflow failed closed at rustfmt.
+The semantic implementation, architecture tests, workspace tests, and build were green before canonical proof failed closed only at rustfmt.
 
-Pinned Rust 1.98.0 `cargo fmt --all` identified only legitimate Rust formatting changes in `formula-first-light` tests/source plus `tests/authority-boundary/tests/p6_blindness.rs`.
+A read-only Rust 1.98.0 diagnostic recovered exactly 11 formatter-touched Rust paths. A one-shot helper enforced that exact allowlist, reran P7 crate/authority tests and full workspace Clippy with `-D warnings`, committed only canonical formatter output, and removed itself.
 
-A one-shot scope-guarded formatter helper applied only that canonical Rust formatting and was removed. The temporary P6 development workflow was then retired as required by the P6 plan.
+Canonical run `33861803872` then passed the unchanged full P7 proof on exact clean source SHA `ca61ed42ab47b3a79a3d258f015b2f6ac9979ec2`.
 
-Canonical run `33854085182` passed the unchanged full P6 proof on exact source SHA `3d50226f51066d3b3fd2562080d67105c004ea92`.
-
-## P6 proof markers
+## P7 proof markers
 
 ```text
-PASS P6_BLIND_MANIFEST_BINDING
-PASS P6_FLA_SEALED_ORACLE
-PASS P6_FLB_PUBLIC_ROUTE_FIXTURE
-PASS P6_FLC_FROZEN_COUNTEREXAMPLE_ORACLE
-PASS P6_FALSE_NEARMISS_VISIBLE
-PASS P6_DISCOVERY_SEALED_DEPENDENCY_FIREWALL
-PASS P6_HIDDEN_ANSWER_LITERAL_FIREWALL
-PASS P6_RUNTIME_BLINDNESS
+PASS P7_FROZEN_BEFORE_CERTIFICATION
+PASS P7_LIFECYCLE_STATES_DISTINCT
+PASS P7_CHECKER_AUTHORIZATION_REQUIRED
+PASS P7_RAW_PUBLICATION_BYPASS_CLOSED
+PASS P7_ATOMIC_U0_TO_U1
+PASS P7_U0_HISTORY_REPLAY_PRESERVED
+PASS P7_PARENT_RACE_REJECTED
+PASS P7_QUARANTINE_FAILS_CLOSED
+PASS P7_CAPABILITY_CLOSURE_DERIVED
+PASS P7_FLC_PRIMITIVE_ADMITTED
+PASS P7_SEARCH_AUTHORITY_FIREWALL
 ```
 
-## P0–P5 remain authority
+## P0–P6 remain authority
 
-P6 extends rather than replaces predecessor proofs:
+P7 extends rather than replaces:
 
 ```text
-P0 reproducible repository/build + architecture firewall
-P1 deterministic identity + immutable generation authority store
+P0 reproducible build + architecture firewall
+P1 deterministic identity + immutable atomic authority store
 P2 independent checker/certificate authority
-P3 theory packages + generation/world-scoped capability closure
-P4 deterministic query compiler + campaign/obligation/work-cell planning
-P5 bounded candidate-only CandidateSpace + discovery
+P3 theory packages + capability closure
+P4 query/compiler/campaign planning
+P5 bounded CandidateSpace + discovery
+P6 sealed First-Light harness + blindness gates
 ```
 
-## Not proved by P6
+## Not proved by P7
 
-Do not claim from P6:
+Do not claim from P7:
 
 ```text
-P7 certification/promotion/admission completion
-atomic U0 -> U1 First-Light growth
-P8 native CPU realization + independent realization proof
-P9 complete First-Light campaign/reuse proof
-external SAT/SMT/CAS authority
-model/LLM mathematical authority
+native CPU realization generation
+native realization equivalence/admission
+realization dispatch integrity
+second-query reuse under U1
+proof that synthesis is skipped on reuse
+complete P9 First-Light proof manifest
+FIRST_LIGHT_COMPLETE
+P8 completion
+P9 completion
 Ptah/distributed execution
 ```
 
 ## Next implementation boundary
 
-The frozen roadmap phase after P6 is P7.
+The frozen roadmap phase after P7 is **P8 — D4 native realization and validation**.
 
-Do **not** start P7 until the documentation-bearing P6 branch head passes the unchanged P6 canonical workflow.
+Do **not** start P8 until the documentation-bearing P7 branch head passes the unchanged P7 canonical workflow.
 
-P7 must independently certify the frozen First-Light candidates and perform atomic generation-producing promotion without granting search or sealed-target harness code authority-store publication power.
+P8 must consume the P7-admitted FL-C semantic construction, create the bounded native CPU realization, independently validate all 256 U8 inputs, bind source/binary/toolchain identity, and preserve the mathematical-authority vs realization-authority separation. P9 reuse logic is not P8 scope.
 
 ## Constitutional laws to preserve
 
 1. Search may propose mathematics. Only Certification + Promotion can create mathematical authority.
 2. Execution may consume authority. Execution cannot manufacture authority.
 3. Mathematical correctness and realization correctness are separate proof obligations.
-4. Candidate/search/compiler state is outside admitted `U_g` authority unless explicitly promoted.
-5. Resource exhaustion never weakens the requested Authority Contract and never becomes mathematical refutation.
-6. Promotion is generation-producing and atomic; accepted history is immutable.
+4. Candidate/search/compiler state remains outside admitted generation authority until explicitly promoted.
+5. Resource exhaustion never becomes mathematical refutation or weakens an Authority Contract.
+6. Promotion is generation-producing, atomic, and history preserving.
 7. A false realization cannot invalidate already admitted mathematics.
-8. Capability closure is derived state from exact admitted inputs, not an authority source.
-9. Weak Shared Facts cannot silently satisfy stronger obligations.
-10. Federation/certificate routing cannot weaken authority for cost or availability.
-11. Compiler/campaign/work-cell/search state cannot publish or mutate authority.
-12. Replay/provenance/candidate identity must bind every local semantic input capable of changing the result while excluding unrelated state.
-13. Heuristic ranking cannot delete exact candidates or create authority.
-14. Sealed First-Light targets cannot leak backward into P5 search implementation.
+8. Capability closure is derived state, never an authority source.
+9. Heuristics cannot delete exact candidates or create authority.
+10. Sealed First-Light targets cannot leak backward into discovery.
+11. Raw generation publication cannot bypass checker-issued promotion authorization.
+12. Realization admission in P8 must remain independently checked and separately bound to the admitted semantic target.
 
 ## Recovery procedure
 
 1. Read this file.
-2. Read the P6 checkpoint and executed P6 plan.
-3. Inspect `implementation/p6-first-light-target-harness-blindness` before assuming the source-proof SHA is still the branch head.
-4. Verify the post-checkpoint P6 canonical proof on the **exact documentation-bearing branch head** before treating P6 as finally frozen.
-5. Preserve frozen P5 head `d2bd250c4b4419316292845a44849747d9e01113` as the predecessor review boundary.
-6. Do not start P7 unless P6's documentation-bearing exact head has passed canonical proof.
+2. Read the P7 checkpoint and P7 implementation plan.
+3. Inspect `implementation/p7-promotion-generation-transition` before assuming the source-proof SHA is still branch head.
+4. Verify the post-documentation P7 canonical proof on the **exact documentation-bearing branch head** before treating P7 as finally frozen.
+5. Preserve frozen P6 docs head `035953854f33fe47dc884850dec4fdee7a3571e7` as predecessor review boundary.
+6. Do not start P8 unless P7 documentation-bearing exact head has passed canonical proof.
 7. Do not reopen broad research unless implementation evidence exposes a concrete contradiction or missing requirement.
 
 ## Freeze state
 
-P6 source is proved and scope/review-clean on:
+P7 source is proved and scope/review-clean on:
 
 ```text
-3d50226f51066d3b3fd2562080d67105c004ea92
+ca61ed42ab47b3a79a3d258f015b2f6ac9979ec2
 ```
 
-The P6 checkpoint and this `CURRENT.md` update now form the documentation-bearing branch candidate. **P6 is not finally frozen until the unchanged P6 canonical workflow succeeds on that exact documentation-bearing head.**
+The P7 checkpoint and this `CURRENT.md` update now form the documentation-bearing branch candidate. **P7 is not finally frozen until the unchanged P7 canonical workflow succeeds on that exact documentation-bearing head.**
 
-This branch has **not** been merged to `main`. P7 has **not** started.
+This branch has **not** been merged to `main`. P8 has **not** started.
