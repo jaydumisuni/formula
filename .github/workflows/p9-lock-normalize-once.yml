@@ -1,0 +1,30 @@
+name: P9 lock normalize once
+
+on:
+  push:
+    branches:
+      - implementation/p9-canonical-first-light-proof
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Regenerate exact lockfile
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal
+          rustup override set 1.98.0
+          cargo generate-lockfile
+      - name: Commit lockfile only
+        run: |
+          git config user.name 'THE TECH GUY'
+          git config user.email '65334711+jaydumisuni@users.noreply.github.com'
+          git add Cargo.lock
+          git diff --cached --exit-code && exit 0 || true
+          git commit -m 'chore(p9): normalize lockfile for first-light proof dependency'
+          git push origin HEAD:implementation/p9-canonical-first-light-proof
