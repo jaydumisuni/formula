@@ -8,7 +8,7 @@ Recover repository evidence before reasoning. Do not reconstruct implementation 
 
 1. [`docs/design/README.md`](docs/design/README.md) — frozen D1–D5 design precedence.
 2. [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md) — frozen roadmap P0 onward.
-3. [`docs/checkpoints/2026-09-04-p8-native-realization-validation.md`](docs/checkpoints/2026-09-04-p8-native-realization-validation.md) — current P8 source-proof checkpoint.
+3. [`docs/checkpoints/2026-09-04-p8-native-realization-validation.md`](docs/checkpoints/2026-09-04-p8-native-realization-validation.md) — finally frozen P8 checkpoint.
 4. [`docs/checkpoints/2026-09-04-p7-promotion-generation-transition.md`](docs/checkpoints/2026-09-04-p7-promotion-generation-transition.md) — exact P7 predecessor checkpoint.
 5. [`docs/superpowers/specs/2026-09-04-p8-native-realization-validation-design.md`](docs/superpowers/specs/2026-09-04-p8-native-realization-validation-design.md) — frozen P8 design.
 6. [`docs/superpowers/plans/2026-09-04-p8-native-realization-validation.md`](docs/superpowers/plans/2026-09-04-p8-native-realization-validation.md) — executed P8 implementation plan.
@@ -16,7 +16,7 @@ Recover repository evidence before reasoning. Do not reconstruct implementation 
 
 ## Exact current implementation state
 
-**P8 — D4 Native Realization + Validation: SOURCE PROVED and scope/review-clean; documentation-bearing head awaiting exact-head proof.**
+**P8 — D4 Native Realization + Validation: FINALLY FROZEN.**
 
 Canonical branch:
 
@@ -44,6 +44,18 @@ job: 101107293202
 conclusion: success
 ```
 
+Exact finally frozen P8 documentation-bearing proof head:
+
+```text
+fa369b6241c0c069176e5939acf4d5ec74eb8085
+workflow: P8 canonical proof
+workflow run: 33899079722
+job: 101108627933
+conclusion: success
+```
+
+The successful final workflow checked out exact SHA `fa369b6241c0c069176e5939acf4d5ec74eb8085`, ran on Ubuntu 24.04 with Rust 1.98.0, re-earned every P8 marker, passed the real FL-C native CPU proof, all predecessor/workspace tests, build, rustfmt, Clippy with warnings denied, dependency firewalls, and clean-worktree checks.
+
 Exact P7 -> P8 source compare:
 
 ```text
@@ -53,6 +65,17 @@ status:  ahead
 ahead:   37 commits
 behind:  0 commits
 files:   20
+```
+
+Exact source-proof -> frozen-docs-head compare:
+
+```text
+base:    3ca395e13de7dbbc611347f37b8cbaf3875d4236
+head:    fa369b6241c0c069176e5939acf4d5ec74eb8085
+status:  ahead
+ahead:   1 commit
+behind:  0 commits
+files:   2 documentation files only
 ```
 
 Pinned canonical proof toolchain:
@@ -65,7 +88,7 @@ Cargo proof commands: --locked / --offline where applicable
 canonical workflow permissions: contents: read
 ```
 
-## What P8 now proves
+## What P8 proves
 
 P8 converts the P7-admitted FL-C semantic primitive into one bounded native CPU realization while keeping mathematical authority and realization authority separate:
 
@@ -188,7 +211,7 @@ Dispatch is exact over semantic target, generation, world, authority contract, a
 
 The canonical P8 proof re-runs the P7 FL-C discovery/promotion path, specializes the U1-admitted semantic expression, generates Rust, compiles it with pinned `rustc 1.98.0 -O`, executes the native binary for every input `0..=255`, independently checks those outputs, admits only the checker-authorized binary, and dispatches it through the exact context.
 
-The targeted canonical native test passed and was repeated by the First-Light/workspace sweeps.
+The targeted native proof passed on both the source proof head and the final documentation-bearing head. The final exact-head run repeated the path through First-Light and workspace sweeps.
 
 Realization admission does not create a new mathematical generation:
 
@@ -201,7 +224,7 @@ A failed realization therefore cannot invalidate or rewrite already-admitted mat
 
 ## P8 proof markers
 
-Canonical source run `33898667278` emitted all required markers after their corresponding gates passed:
+Both canonical source run `33898667278` and final exact-head run `33899079722` earned the required P8 markers after their corresponding gates passed:
 
 ```text
 PASS P8_SEMANTIC_BINDING
@@ -250,11 +273,17 @@ P10 completion
 
 ## Next implementation boundary
 
-The frozen roadmap phase after a finally frozen P8 is **P9 — reuse / complete First-Light proof**.
+The next frozen-roadmap phase is **P9 — reuse / complete First-Light proof**.
 
-Do **not** start P9 until the documentation-bearing P8 branch head passes the unchanged P8 canonical workflow.
+P8 is now fully frozen, so P9 may begin from exact frozen P8 proof head:
 
-P9 must consume the P8-authorized realization and prove the next-query reuse behavior without silently re-running synthesis when reuse is valid. `FIRST_LIGHT_COMPLETE` is not earned by P8.
+```text
+fa369b6241c0c069176e5939acf4d5ec74eb8085
+```
+
+P9 must be implemented as a new phase/branch. It must consume the P8-authorized realization and prove next-query reuse behavior without silently re-running synthesis when reuse is valid. `FIRST_LIGHT_COMPLETE` is not earned by P8.
+
+**P9 has not started.**
 
 ## Constitutional laws to preserve
 
@@ -277,24 +306,26 @@ P9 must consume the P8-authorized realization and prove the next-query reuse beh
 
 1. Read this file.
 2. Read the P8 checkpoint, P8 design, and P8 implementation plan.
-3. Inspect `implementation/p8-native-realization-validation` before assuming the source-proof SHA is still branch head.
-4. Verify P7 frozen predecessor `e82f7b0535694285baeeb4baae37edc27b6864b8` and its successful canonical run if predecessor authority is questioned.
-5. Verify the unchanged P8 canonical workflow on the **exact documentation-bearing branch head** before treating P8 as finally frozen.
-6. Do not start P9 until that exact-head P8 proof succeeds.
+3. Treat `fa369b6241c0c069176e5939acf4d5ec74eb8085` as the exact finally frozen P8 proof head.
+4. Verify final canonical run `33899079722`, job `101108627933`, if P8 freeze authority is questioned.
+5. Preserve frozen P7 predecessor `e82f7b0535694285baeeb4baae37edc27b6864b8` as the predecessor review boundary.
+6. Start P9 only as a separate phase from the frozen P8 proof head; do not rewrite P8 history.
 7. Do not reopen broad research unless repository evidence exposes a concrete contradiction or missing requirement.
 
 ## Freeze state
 
-P8 source is proved and scope/review-clean on:
+P8 is **FINALLY FROZEN** on exact documentation-bearing proof head:
 
 ```text
-3ca395e13de7dbbc611347f37b8cbaf3875d4236
+fa369b6241c0c069176e5939acf4d5ec74eb8085
 workflow: P8 canonical proof
-run: 33898667278
-job: 101107293202
+run: 33899079722
+job: 101108627933
 conclusion: success
 ```
 
-The P8 checkpoint and this `CURRENT.md` update form the documentation-bearing branch candidate. **P8 is not finally frozen until the unchanged P8 canonical workflow succeeds on that exact documentation-bearing head.**
+The source-under-test proof remains independently recorded at `3ca395e13de7dbbc611347f37b8cbaf3875d4236`, run `33898667278`, job `101107293202`, success.
 
-This branch has **not** been merged to `main`. P9 has **not** started.
+Any later commit that changes only recovery documentation to record this already-earned result is **post-freeze metadata**. It does not redefine the P8 frozen proof head and does not create a recursive requirement to prove the run ID that records itself.
+
+The P8 branch has **not** been merged to `main`. P9 has **not** started.

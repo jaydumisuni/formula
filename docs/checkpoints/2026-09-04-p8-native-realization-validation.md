@@ -1,14 +1,18 @@
 # P8 Checkpoint — Native Realization + Validation
 
 **Recorded:** 2026-09-04  
-**Status:** PROVED SOURCE — D4 native CPU realization/validation; documentation-bearing head still requires exact-head canonical proof  
+**Status:** FINALLY FROZEN — D4 native CPU realization/validation  
 **Branch:** `implementation/p8-native-realization-validation`  
 **P7 exact frozen predecessor:** `e82f7b0535694285baeeb4baae37edc27b6864b8`  
 **P7 final canonical proof run:** `33862079731`  
 **P7 final canonical proof job:** `100988579155`  
-**Source-under-test commit:** `3ca395e13de7dbbc611347f37b8cbaf3875d4236`  
-**Canonical source proof run:** `33898667278`  
-**Canonical source proof job:** `101107293202`  
+**P8 source-under-test commit:** `3ca395e13de7dbbc611347f37b8cbaf3875d4236`  
+**P8 canonical source proof run:** `33898667278`  
+**P8 canonical source proof job:** `101107293202`  
+**P8 exact finally frozen documentation-bearing head:** `fa369b6241c0c069176e5939acf4d5ec74eb8085`  
+**P8 final exact-head canonical proof run:** `33899079722`  
+**P8 final exact-head canonical proof job:** `101108627933`  
+**Final proof result:** `success`  
 **Roadmap authority:** `docs/roadmap/2026-08-28-implementation-roadmap.md`, phase P8  
 **Design authority:** `docs/superpowers/specs/2026-09-04-p8-native-realization-validation-design.md`  
 **Implementation plan:** `docs/superpowers/plans/2026-09-04-p8-native-realization-validation.md`
@@ -37,7 +41,7 @@ execution
 
 The compiler/generator is an untrusted producer. It cannot certify itself, cannot admit itself, and cannot mutate mathematical authority.
 
-P8 source surfaces include:
+P8 frozen surfaces include:
 
 - canonical `SpecializationIdentity`;
 - canonical `NativeToolchainIdentity`;
@@ -59,7 +63,7 @@ P8 does **not** implement second-query reuse, synthesis skipping, the P9 complet
 
 ---
 
-## 2. Exact predecessor and review boundary
+## 2. Exact predecessor and reviewed source boundary
 
 P8 was cut from the exact finally frozen P7 documentation-bearing head:
 
@@ -71,13 +75,13 @@ job:      100988579155
 result:   success
 ```
 
-The proved P8 source boundary is:
+The proved P8 source-under-test boundary is:
 
 ```text
 3ca395e13de7dbbc611347f37b8cbaf3875d4236
 ```
 
-Exact P7 -> P8 compare evidence:
+Exact P7 -> P8 source compare evidence:
 
 ```text
 base:    e82f7b0535694285baeeb4baae37edc27b6864b8
@@ -165,7 +169,53 @@ clean worktree
 
 ---
 
-## 4. Identity and specialization law
+## 4. Final documentation-bearing exact-head proof
+
+The source-proof checkpoint and `CURRENT.md` were committed as a single docs-only candidate:
+
+```text
+fa369b6241c0c069176e5939acf4d5ec74eb8085
+```
+
+Exact source-proof -> docs-head compare:
+
+```text
+base:    3ca395e13de7dbbc611347f37b8cbaf3875d4236
+head:    fa369b6241c0c069176e5939acf4d5ec74eb8085
+status:  ahead
+ahead:   1 commit
+behind:  0 commits
+files:   2
+```
+
+Those two files were only:
+
+```text
+CURRENT.md
+docs/checkpoints/2026-09-04-p8-native-realization-validation.md
+```
+
+The **unchanged** read-only P8 canonical workflow then ran on that exact documentation-bearing head:
+
+```text
+workflow: P8 canonical proof
+run:      33899079722
+job:      101108627933
+head:     fa369b6241c0c069176e5939acf4d5ec74eb8085
+result:   success
+runner:   ubuntu-24.04
+rustc:    1.98.0 (88d9e12ae 2026-08-18)
+host:     x86_64-unknown-linux-gnu
+cargo:    1.98.0
+```
+
+Job logs prove GitHub checked out exact SHA `fa369b6241c0c069176e5939acf4d5ec74eb8085`. Every canonical gate passed again, including the real FL-C native CPU test, complete predecessor/workspace regression sweeps, build, rustfmt, Clippy with `-D warnings`, dependency trees, authority dependency firewall, and clean worktree.
+
+This successful exact-head run satisfies the final P8 freeze condition.
+
+---
+
+## 5. Identity and specialization law
 
 `SpecializationIdentity` binds the exact admitted semantic target to the exact universe generation, world, authority contract, and observer under the frozen `EXACT_EQUIVALENCE` lowering class.
 
@@ -190,7 +240,7 @@ Changing those bindings changes the realization identity and cannot silently ali
 
 ---
 
-## 5. Generator is production, not authority
+## 6. Generator is production, not authority
 
 `formula-realize` deterministically lowers only the bounded engine U8/Boolean AST into standalone Rust source.
 
@@ -213,7 +263,7 @@ The compiler can produce bytes; compiler success is not authority.
 
 ---
 
-## 6. Independent checker authorization law
+## 7. Independent checker authorization law
 
 The checker owns the only constructor path for `RealizationAuthorization`. Its authority-bearing fields are private and there is no public constructor.
 
@@ -234,7 +284,7 @@ The existing exhaustive checker remains the semantic decision point. The generat
 
 ---
 
-## 7. Realization store and dispatch law
+## 8. Realization store and dispatch law
 
 The durable P8 realization registry is a private child of the existing `AuthorityStore`; it does not create a second authority database or publication root.
 
@@ -264,7 +314,7 @@ A context mismatch resolves to no realization. A missing or tampered binary fail
 
 ---
 
-## 8. Real FL-C native CPU proof
+## 9. Real FL-C native CPU proof
 
 The P8 First-Light integration test reuses the P7 authority path rather than bypassing it:
 
@@ -288,13 +338,13 @@ Before checker authorization/admission, exact dispatch returns no artifact, prov
 
 The compiled program was executed as a real local CPU process for all 256 U8 inputs. Only canonical `0\n`/`1\n` outputs were accepted, stderr had to remain empty, and the independent checker compared all 256 realized outputs against an independently translated checker semantic AST.
 
-The targeted canonical FL-C native test passed in the source proof. The whole First-Light and workspace sweeps repeated that path successfully.
+The targeted canonical FL-C native test passed on the source proof and passed again on the exact frozen documentation-bearing head. The complete First-Light and workspace sweeps repeated that path successfully.
 
 `formula-realize` is linked into `formula-first-light` only as a **dev-dependency** for this proof. `formula-first-light` production dependencies remain `formula-core` + `formula-engine`.
 
 ---
 
-## 9. Negative controls
+## 10. Negative controls
 
 P8 fails closed for the required bounded adversarial cases:
 
@@ -318,7 +368,7 @@ No negative control invalidates the already-admitted P7 mathematics.
 
 ---
 
-## 10. Mathematical authority remains unchanged
+## 11. Mathematical authority remains unchanged
 
 P8 does not create `U2` and does not rewrite `U1` to store realization state.
 
@@ -335,9 +385,9 @@ Therefore a false or corrupted realization is a realization-authority failure on
 
 ---
 
-## 11. P8 canonical proof markers
+## 12. P8 canonical proof markers
 
-Canonical source run `33898667278` emitted all required markers only after the corresponding gates succeeded:
+Both canonical source run `33898667278` and final exact-head run `33899079722` emitted the required markers only after the corresponding gates succeeded:
 
 ```text
 PASS P8_SEMANTIC_BINDING
@@ -355,7 +405,7 @@ PASS P8_P7_MATH_AUTHORITY_PRESERVED
 
 ---
 
-## 12. P0–P7 remain authority
+## 13. P0–P7 remain authority
 
 P8 extends rather than replaces predecessor proofs:
 
@@ -370,11 +420,11 @@ P6 sealed First-Light target harness + blindness gates
 P7 checker-authorized atomic promotion into immutable U1
 ```
 
-The final source workflow reruns predecessor crate, architecture, generation, promotion, First-Light, workspace, formatting, lint, and dependency-firewall gates.
+The final exact-head workflow reran predecessor crate, architecture, generation, promotion, First-Light, workspace, formatting, lint, and dependency-firewall gates.
 
 ---
 
-## 13. Not proved by P8
+## 14. Not proved by P8
 
 Do not claim from P8:
 
@@ -397,17 +447,33 @@ P8 proves one bounded native CPU realization path and its authority separation. 
 
 ---
 
-## 14. Next implementation boundary
+## 15. Next implementation boundary
 
-The roadmap phase after a finally frozen P8 is **P9 — reuse / complete First-Light proof**.
+The next roadmap phase is **P9 — reuse / complete First-Light proof**.
 
-Do **not** start P9 until this checkpoint plus `CURRENT.md` form the documentation-bearing P8 branch candidate and the **unchanged** P8 canonical workflow succeeds on that exact documentation-bearing head.
+P8 is fully frozen, so P9 may begin from exact frozen P8 proof head:
+
+```text
+fa369b6241c0c069176e5939acf4d5ec74eb8085
+```
+
+P9 must be a new phase/branch and must preserve the frozen P8 proof boundary. P9 has not started.
 
 ---
 
-## 15. Freeze state
+## 16. Freeze state
 
-P8 source is proved and scope/review-clean on:
+P8 is **FINALLY FROZEN** on exact documentation-bearing head:
+
+```text
+fa369b6241c0c069176e5939acf4d5ec74eb8085
+workflow: P8 canonical proof
+run:      33899079722
+job:      101108627933
+result:   success
+```
+
+The source-under-test proof remains independently recorded at:
 
 ```text
 3ca395e13de7dbbc611347f37b8cbaf3875d4236
@@ -417,6 +483,6 @@ job:      101107293202
 result:   success
 ```
 
-This checkpoint plus the accompanying `CURRENT.md` update form the documentation-bearing branch candidate. **P8 is not finally frozen until the unchanged P8 canonical workflow succeeds on that exact documentation-bearing head.**
+Any later commit that changes only recovery documentation to record this already-earned result is **post-freeze metadata**. It does not redefine the P8 frozen proof head and does not create a recursive requirement to prove the run ID that records itself.
 
 The P8 branch has not been merged to `main`. P9 has not started.
