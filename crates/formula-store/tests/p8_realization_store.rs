@@ -153,8 +153,14 @@ fn checker_authorization_is_required_for_admission_and_exact_dispatch() {
     );
     assert_eq!(admitted.binary_digest(), authorization.binary_digest());
 
-    let resolved = store.resolve_realization(&context(primitive, u1)).unwrap().unwrap();
-    assert_eq!(resolved.manifest_digest(), authorization.realization_manifest());
+    let resolved = store
+        .resolve_realization(&context(primitive, u1))
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        resolved.manifest_digest(),
+        authorization.realization_manifest()
+    );
     assert_eq!(resolved.binary_bytes(), binary);
 
     let wrong_context = context(primitive, d("different-generation"));
@@ -170,7 +176,9 @@ fn stale_generation_or_changed_binary_cannot_be_admitted() {
     let authorization = realization_authorization(primitive, u1, binary);
 
     let changed = b"changed-native-binary";
-    let binary_error = store.admit_realization(&authorization, changed).unwrap_err();
+    let binary_error = store
+        .admit_realization(&authorization, changed)
+        .unwrap_err();
     assert!(matches!(
         binary_error,
         AuthorityStoreError::RealizationBinaryDigestMismatch { .. }
@@ -205,6 +213,8 @@ fn missing_or_tampered_admitted_binary_fails_closed_at_dispatch() {
         .join(&hex[2..]);
     fs::write(&blob_path, b"tampered-native-binary").unwrap();
 
-    let error = store.resolve_realization(&context(primitive, u1)).unwrap_err();
+    let error = store
+        .resolve_realization(&context(primitive, u1))
+        .unwrap_err();
     assert!(matches!(error, AuthorityStoreError::Blob(_)));
 }

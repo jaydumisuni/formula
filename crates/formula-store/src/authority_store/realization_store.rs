@@ -1,9 +1,6 @@
 use super::{AuthorityStore, AuthorityStoreError};
 use formula_check::realization::RealizationAuthorization;
-use formula_core::{
-    digest::ArtifactDigest,
-    realization::RealizationDispatchContext,
-};
+use formula_core::{digest::ArtifactDigest, realization::RealizationDispatchContext};
 use rusqlite::{OptionalExtension, params};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -121,7 +118,10 @@ impl AuthorityStore {
             ],
         )?;
 
-        Ok(admitted_from_authorization(authorization, binary_bytes.to_vec()))
+        Ok(admitted_from_authorization(
+            authorization,
+            binary_bytes.to_vec(),
+        ))
     }
 
     pub fn resolve_realization(
