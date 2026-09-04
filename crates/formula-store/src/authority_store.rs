@@ -1,3 +1,7 @@
+mod realization_store;
+
+pub use realization_store::AdmittedRealization;
+
 use crate::blob_store::{BlobStore, BlobStoreError};
 use formula_core::{
     digest::{ArtifactDigest, DigestError},
@@ -50,6 +54,14 @@ pub enum AuthorityStoreError {
         blob: ArtifactDigest,
     },
     ManifestBlobBytesMismatch(ArtifactDigest),
+    RealizationGenerationMismatch {
+        expected: ArtifactDigest,
+        actual: ArtifactDigest,
+    },
+    RealizationBinaryDigestMismatch {
+        expected: ArtifactDigest,
+        actual: ArtifactDigest,
+    },
     InjectedPublishFailure(&'static str),
 }
 
@@ -102,6 +114,18 @@ impl fmt::Display for AuthorityStoreError {
                 f,
                 "generation manifest blob bytes do not match canonical replay for {}",
                 digest.as_str()
+            ),
+            Self::RealizationGenerationMismatch { expected, actual } => write!(
+                f,
+                "realization generation mismatch: expected {}, got {}",
+                expected.as_str(),
+                actual.as_str()
+            ),
+            Self::RealizationBinaryDigestMismatch { expected, actual } => write!(
+                f,
+                "realization binary digest mismatch: expected {}, got {}",
+                expected.as_str(),
+                actual.as_str()
             ),
             Self::InjectedPublishFailure(point) => {
                 write!(f, "injected generation-publication failure at {point}")
