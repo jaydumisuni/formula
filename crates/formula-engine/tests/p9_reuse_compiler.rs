@@ -70,14 +70,8 @@ fn reuse_fails_closed_when_required_capability_is_unavailable() {
     let primitive = d(40);
     let q = query();
     let request = ReuseRequest::new(&q, primitive);
-    let snapshot = CompilerAuthoritySnapshot::new(
-        d(1),
-        d(2),
-        packages(),
-        vec![d(3)],
-        vec![],
-        vec![],
-    );
+    let snapshot =
+        CompilerAuthoritySnapshot::new(d(1), d(2), packages(), vec![d(3)], vec![], vec![]);
 
     assert_eq!(
         CompilerV1::compile_reuse(&q, &snapshot, inputs(), &request).unwrap_err(),
