@@ -3,6 +3,7 @@ use formula_core::{
     artifacts::StructuralIdentity,
     digest::ArtifactDigest,
     generation::UniverseGeneration,
+    promotion::{PromotionRecord, PromotionState},
     theory::{ClosureContext, StructureWitness, TheoryPackageManifest},
 };
 use std::collections::{BTreeMap, BTreeSet};
@@ -54,6 +55,10 @@ pub enum ClosureError {
     GenerationMismatch,
     ActivatedPackageMismatch,
     MissingPackageManifest,
+    SemanticActivationGenerationMismatch,
+    SemanticActivationStateMismatch,
+    SemanticActivationPrimitiveNotAdmitted,
+    SemanticActivationEvidenceNotAuthorityBound,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -174,4 +179,41 @@ pub fn derive_capabilities(
         context_digest: context.structural_digest(),
         capabilities,
     })
+}
+
+pub fn derive_capabilities_with_semantic_activations(
+    context: &ClosureContext,
+    activated: &ActivatedPackageSet,
+    witnesses: &[AdmittedStructureWitness],
+    packages: &[TheoryPackageManifest],
+    generation: &UniverseGeneration,
+    activations: &[PromotionRecord],
+) -> Result<CapabilityClosure, ClosureError> {
+    let mut closure = derive_capabilities(context, activated, witnesses, packages)?;
+    let generation_digest = generation.digest();
+    if generation_digest != context.generation() {
+        return Err(ClosureError::SemanticActivationGenerationMismatch);
+    }
+
+    for activation in activations {
+        if activation.state() != PromotionState::Activated {
+            return Err(ClosureError::SemanticActivationStateMismatch);
+        }
+        if activation.generation() != generation_digest {
+            return Err(ClosureError::SemanticActivationGenerationMismatch);
+        }
+        for evidence in activation.evidence() {
+            if !generation.authority_bindings().contains(evidence) {
+                return Err(ClosureError::SemanticActivationEvidenceNotAuthorityBound);
+            }
+        }
+        for primitive in activation.semantic_artifacts() {
+            if !generation.admitted().contains(primitive) {
+                return Err(ClosureError::SemanticActivationPrimitiveNotAdmitted);
+            }
+            closure.capabilities.insert(*primitive);
+        }
+    }
+
+    Ok(closure)
 }
