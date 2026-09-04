@@ -4,7 +4,7 @@ use formula_engine::{
     observational::{FrozenExprCandidate, ObservationalExprSpace, U8BoolGrammar},
 };
 use formula_first_light::{
-    fl_c::{fl_c_oracle, FlCOracle},
+    fl_c::{FlCOracle, fl_c_oracle},
     manifest::{BlindnessManifest, FirstLightTarget},
 };
 
@@ -57,7 +57,9 @@ fn public_observations_can_leave_a_plausible_candidate_that_hidden_oracle_reject
     for input in 1_u8..=u8::MAX {
         space.restrict_exact_sample(input, expected_nonzero_domain(input));
     }
-    let frozen_candidate = space.extract_min_cost().expect("publicly plausible candidate");
+    let frozen_candidate = space
+        .extract_min_cost()
+        .expect("publicly plausible candidate");
 
     assert_eq!(
         fl_c_oracle().first_counterexample(&frozen_candidate),

@@ -106,10 +106,8 @@ fn discovery_production_sources_do_not_embed_hidden_first_light_answers() {
 #[test]
 fn sealed_target_semantics_are_owned_by_first_light_crate() {
     let root = root();
-    let fl_a =
-        fs::read_to_string(root.join("crates/formula-first-light/src/fl_a.rs")).unwrap();
-    let fl_c =
-        fs::read_to_string(root.join("crates/formula-first-light/src/fl_c.rs")).unwrap();
+    let fl_a = fs::read_to_string(root.join("crates/formula-first-light/src/fl_a.rs")).unwrap();
+    let fl_c = fs::read_to_string(root.join("crates/formula-first-light/src/fl_c.rs")).unwrap();
     assert!(fl_a.contains(FL_A_TARGET_SCHEMA));
     assert!(fl_c.contains(FL_C_TARGET_SCHEMA));
 }

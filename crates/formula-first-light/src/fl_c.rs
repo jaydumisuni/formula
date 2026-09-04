@@ -30,10 +30,7 @@ fn sealed_expected(input: u8) -> bool {
 }
 
 impl FlCOracle {
-    pub fn first_counterexample(
-        &self,
-        candidate: &FrozenExprCandidate,
-    ) -> Option<(u8, bool)> {
+    pub fn first_counterexample(&self, candidate: &FrozenExprCandidate) -> Option<(u8, bool)> {
         for input in u8::MIN..=u8::MAX {
             let expected = sealed_expected(input);
             if candidate.eval(input) != expected {

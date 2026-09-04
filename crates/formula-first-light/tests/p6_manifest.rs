@@ -119,10 +119,8 @@ fn frozen_submission_binds_target_and_frozen_candidate() {
     let submission = FrozenSubmission::new(FirstLightTarget::FlC, candidate.clone());
     let same = FrozenSubmission::new(FirstLightTarget::FlC, candidate.clone());
     let other_target = FrozenSubmission::new(FirstLightTarget::FlA, candidate.clone());
-    let other_candidate = FrozenSubmission::new(
-        FirstLightTarget::FlC,
-        FrozenCandidate::new(d(20), d(22), 9),
-    );
+    let other_candidate =
+        FrozenSubmission::new(FirstLightTarget::FlC, FrozenCandidate::new(d(20), d(22), 9));
 
     assert_eq!(submission.digest(), same.digest());
     assert_ne!(submission.digest(), other_target.digest());

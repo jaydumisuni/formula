@@ -1,4 +1,4 @@
-use formula_first_light::fl_a::{fl_a_oracle, fl_a_target_digest, FlAOracleError};
+use formula_first_light::fl_a::{FlAOracleError, fl_a_oracle, fl_a_target_digest};
 
 fn near_miss_value(n: i128) -> i128 {
     let target = fl_a_oracle().sample(n).unwrap();
