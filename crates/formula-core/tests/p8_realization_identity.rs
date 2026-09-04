@@ -28,7 +28,10 @@ fn specialization_identity_binds_exact_p8_contract() {
     let changed_semantic = specialization(d("other-semantic"));
 
     assert_eq!(base.structural_digest(), same.structural_digest());
-    assert_ne!(base.structural_digest(), changed_semantic.structural_digest());
+    assert_ne!(
+        base.structural_digest(),
+        changed_semantic.structural_digest()
+    );
     assert_eq!(base.query_direction(), "u8_to_bool_forward");
     assert_eq!(base.input_domain(), "u8:0..=255");
     assert_eq!(base.output_domain(), "bool");
@@ -45,7 +48,10 @@ fn toolchain_identity_binds_release_and_host_target() {
         NativeToolchainIdentity::new("1.98.0".into(), "aarch64-unknown-linux-gnu".into());
 
     assert_eq!(base.structural_digest(), same.structural_digest());
-    assert_ne!(base.structural_digest(), changed_release.structural_digest());
+    assert_ne!(
+        base.structural_digest(),
+        changed_release.structural_digest()
+    );
     assert_ne!(base.structural_digest(), changed_target.structural_digest());
     assert_eq!(base.compiler(), "rustc");
     assert_eq!(base.rust_release(), "1.98.0");
@@ -122,7 +128,10 @@ fn native_manifest_binds_source_binary_toolchain_and_specialization() {
     assert_eq!(base.structural_digest(), same.structural_digest());
     assert_ne!(base.structural_digest(), changed_source.structural_digest());
     assert_ne!(base.structural_digest(), changed_binary.structural_digest());
-    assert_ne!(base.structural_digest(), changed_toolchain.structural_digest());
+    assert_ne!(
+        base.structural_digest(),
+        changed_toolchain.structural_digest()
+    );
     assert_ne!(
         base.structural_digest(),
         changed_specialization.structural_digest()
@@ -150,5 +159,8 @@ fn dispatch_context_binds_authority_scope() {
         d("observer"),
     );
 
-    assert_ne!(base.structural_digest(), changed_generation.structural_digest());
+    assert_ne!(
+        base.structural_digest(),
+        changed_generation.structural_digest()
+    );
 }
