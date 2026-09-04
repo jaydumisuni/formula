@@ -6,6 +6,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
+formula-check = { path = "../formula-check" }
 formula-core = { path = "../formula-core" }
 rusqlite.workspace = true
 
