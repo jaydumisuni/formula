@@ -157,8 +157,11 @@ dependencies = [
 name = "formula-first-light"
 version = "0.0.1"
 dependencies = [
+ "formula-check",
  "formula-core",
  "formula-engine",
+ "formula-store",
+ "tempfile",
 ]
 
 [[package]]
