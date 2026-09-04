@@ -7,6 +7,4 @@ publish = false
 
 [dependencies]
 formula-core = { path = "../formula-core" }
-
-[dev-dependencies]
 formula-engine = { path = "../formula-engine" }
