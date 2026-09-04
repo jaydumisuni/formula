@@ -18,6 +18,20 @@ pub struct AdmittedRealization {
     binary_bytes: Vec<u8>,
 }
 
+#[derive(Debug)]
+struct RealizationRow {
+    manifest_digest: String,
+    semantic_target: String,
+    universe_generation: String,
+    world: String,
+    authority_contract: String,
+    observer: String,
+    specialization_digest: String,
+    source_digest: String,
+    toolchain_digest: String,
+    binary_digest: String,
+}
+
 impl AdmittedRealization {
     pub fn manifest_digest(&self) -> ArtifactDigest {
         self.manifest_digest
@@ -130,18 +144,7 @@ impl AuthorityStore {
     ) -> Result<Option<AdmittedRealization>, AuthorityStoreError> {
         ensure_realization_table(self)?;
 
-        let row: Option<(
-            String,
-            String,
-            String,
-            String,
-            String,
-            String,
-            String,
-            String,
-            String,
-            String,
-        )> = self
+        let row: Option<RealizationRow> = self
             .connection
             .query_row(
                 "SELECT manifest_digest, semantic_target, universe_generation, world,
@@ -161,51 +164,39 @@ impl AuthorityStore {
                     context.observer().as_str(),
                 ],
                 |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
-                        row.get(4)?,
-                        row.get(5)?,
-                        row.get(6)?,
-                        row.get(7)?,
-                        row.get(8)?,
-                        row.get(9)?,
-                    ))
+                    Ok(RealizationRow {
+                        manifest_digest: row.get(0)?,
+                        semantic_target: row.get(1)?,
+                        universe_generation: row.get(2)?,
+                        world: row.get(3)?,
+                        authority_contract: row.get(4)?,
+                        observer: row.get(5)?,
+                        specialization_digest: row.get(6)?,
+                        source_digest: row.get(7)?,
+                        toolchain_digest: row.get(8)?,
+                        binary_digest: row.get(9)?,
+                    })
                 },
             )
             .optional()?;
 
-        let Some((
-            manifest_digest,
-            semantic_target,
-            universe_generation,
-            world,
-            authority_contract,
-            observer,
-            specialization_digest,
-            source_digest,
-            toolchain_digest,
-            binary_digest,
-        )) = row
-        else {
+        let Some(row) = row else {
             return Ok(None);
         };
 
-        let binary_digest = ArtifactDigest::parse(&binary_digest)?;
+        let binary_digest = ArtifactDigest::parse(&row.binary_digest)?;
         let binary_bytes = self.blobs.get(binary_digest)?;
 
         Ok(Some(AdmittedRealization {
-            manifest_digest: ArtifactDigest::parse(&manifest_digest)?,
-            semantic_target: ArtifactDigest::parse(&semantic_target)?,
-            universe_generation: ArtifactDigest::parse(&universe_generation)?,
-            world: ArtifactDigest::parse(&world)?,
-            authority_contract: ArtifactDigest::parse(&authority_contract)?,
-            observer: ArtifactDigest::parse(&observer)?,
-            specialization_digest: ArtifactDigest::parse(&specialization_digest)?,
-            source_digest: ArtifactDigest::parse(&source_digest)?,
-            toolchain_digest: ArtifactDigest::parse(&toolchain_digest)?,
+            manifest_digest: ArtifactDigest::parse(&row.manifest_digest)?,
+            semantic_target: ArtifactDigest::parse(&row.semantic_target)?,
+            universe_generation: ArtifactDigest::parse(&row.universe_generation)?,
+            world: ArtifactDigest::parse(&row.world)?,
+            authority_contract: ArtifactDigest::parse(&row.authority_contract)?,
+            observer: ArtifactDigest::parse(&row.observer)?,
+            specialization_digest: ArtifactDigest::parse(&row.specialization_digest)?,
+            source_digest: ArtifactDigest::parse(&row.source_digest)?,
+            toolchain_digest: ArtifactDigest::parse(&row.toolchain_digest)?,
             binary_digest,
             binary_bytes,
         }))
