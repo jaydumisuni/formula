@@ -214,13 +214,6 @@ impl AuthorityStore {
         Ok(digest)
     }
 
-    pub(crate) fn publish_generation(
-        &mut self,
-        generation: &UniverseGeneration,
-    ) -> Result<ArtifactDigest, AuthorityStoreError> {
-        self.publish_generation_inner(generation, PublishFailpoint::None)
-    }
-
     pub(crate) fn publish_generation_inner(
         &mut self,
         generation: &UniverseGeneration,
