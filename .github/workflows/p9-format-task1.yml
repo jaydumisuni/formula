@@ -1,0 +1,33 @@
+name: P9 Task 1 rustfmt
+
+on:
+  push:
+    branches:
+      - implementation/p9-canonical-first-light-proof
+    paths:
+      - .github/workflows/p9-format-task1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rustfmt
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt
+          rustup override set 1.98.0
+      - name: Apply exact rustfmt
+        run: cargo fmt --all
+      - name: Commit only Task 1 formatted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          changed="$(git diff --name-only)"
+          printf '%s\n' "$changed"
+          test "$changed" = $'crates/formula-store/src/authority_store.rs\ncrates/formula-store/tests/p9_semantic_activation_store.rs'
+          git add crates/formula-store/src/authority_store.rs crates/formula-store/tests/p9_semantic_activation_store.rs
+          git commit -m "style(p9): format semantic activation store"
+          git push
