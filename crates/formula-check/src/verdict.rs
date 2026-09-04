@@ -24,6 +24,8 @@ pub enum CheckFailure {
     PromotionAdmissionMismatch,
     RealizationBindingMismatch,
     RealizationArtifactDigestMismatch,
+    RealizationSourceDigestMismatch,
+    RealizationNativeBindingMismatch,
     RealizationOutputCoverageMismatch,
     RealizationCounterexample(u8),
 }
