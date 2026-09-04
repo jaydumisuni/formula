@@ -17,14 +17,86 @@ fn blindness_manifest_identity_binds_every_semantic_input() {
     assert_eq!(baseline.digest(), same.digest());
 
     let variants = [
-        BlindnessManifest::new(FirstLightTarget::FlB, d(1), d(2), d(3), d(4), d(5), d(6), d(7)),
-        BlindnessManifest::new(FirstLightTarget::FlA, d(8), d(2), d(3), d(4), d(5), d(6), d(7)),
-        BlindnessManifest::new(FirstLightTarget::FlA, d(1), d(8), d(3), d(4), d(5), d(6), d(7)),
-        BlindnessManifest::new(FirstLightTarget::FlA, d(1), d(2), d(8), d(4), d(5), d(6), d(7)),
-        BlindnessManifest::new(FirstLightTarget::FlA, d(1), d(2), d(3), d(8), d(5), d(6), d(7)),
-        BlindnessManifest::new(FirstLightTarget::FlA, d(1), d(2), d(3), d(4), d(8), d(6), d(7)),
-        BlindnessManifest::new(FirstLightTarget::FlA, d(1), d(2), d(3), d(4), d(5), d(8), d(7)),
-        BlindnessManifest::new(FirstLightTarget::FlA, d(1), d(2), d(3), d(4), d(5), d(6), d(8)),
+        BlindnessManifest::new(
+            FirstLightTarget::FlB,
+            d(1),
+            d(2),
+            d(3),
+            d(4),
+            d(5),
+            d(6),
+            d(7),
+        ),
+        BlindnessManifest::new(
+            FirstLightTarget::FlA,
+            d(8),
+            d(2),
+            d(3),
+            d(4),
+            d(5),
+            d(6),
+            d(7),
+        ),
+        BlindnessManifest::new(
+            FirstLightTarget::FlA,
+            d(1),
+            d(8),
+            d(3),
+            d(4),
+            d(5),
+            d(6),
+            d(7),
+        ),
+        BlindnessManifest::new(
+            FirstLightTarget::FlA,
+            d(1),
+            d(2),
+            d(8),
+            d(4),
+            d(5),
+            d(6),
+            d(7),
+        ),
+        BlindnessManifest::new(
+            FirstLightTarget::FlA,
+            d(1),
+            d(2),
+            d(3),
+            d(8),
+            d(5),
+            d(6),
+            d(7),
+        ),
+        BlindnessManifest::new(
+            FirstLightTarget::FlA,
+            d(1),
+            d(2),
+            d(3),
+            d(4),
+            d(8),
+            d(6),
+            d(7),
+        ),
+        BlindnessManifest::new(
+            FirstLightTarget::FlA,
+            d(1),
+            d(2),
+            d(3),
+            d(4),
+            d(5),
+            d(8),
+            d(7),
+        ),
+        BlindnessManifest::new(
+            FirstLightTarget::FlA,
+            d(1),
+            d(2),
+            d(3),
+            d(4),
+            d(5),
+            d(6),
+            d(8),
+        ),
     ];
 
     for variant in variants {
@@ -47,8 +119,10 @@ fn frozen_submission_binds_target_and_frozen_candidate() {
     let submission = FrozenSubmission::new(FirstLightTarget::FlC, candidate.clone());
     let same = FrozenSubmission::new(FirstLightTarget::FlC, candidate.clone());
     let other_target = FrozenSubmission::new(FirstLightTarget::FlA, candidate.clone());
-    let other_candidate =
-        FrozenSubmission::new(FirstLightTarget::FlC, FrozenCandidate::new(d(20), d(22), 9));
+    let other_candidate = FrozenSubmission::new(
+        FirstLightTarget::FlC,
+        FrozenCandidate::new(d(20), d(22), 9),
+    );
 
     assert_eq!(submission.digest(), same.digest());
     assert_ne!(submission.digest(), other_target.digest());
