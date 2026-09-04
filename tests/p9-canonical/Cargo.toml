@@ -1,0 +1,16 @@
+[package]
+name = "formula-p9-canonical"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+formula-check = { path = "../../crates/formula-check" }
+formula-core = { path = "../../crates/formula-core" }
+formula-engine = { path = "../../crates/formula-engine" }
+formula-first-light = { path = "../../crates/formula-first-light" }
+formula-packages = { path = "../../crates/formula-packages" }
+formula-realize = { path = "../../crates/formula-realize" }
+formula-store = { path = "../../crates/formula-store" }
+tempfile.workspace = true
