@@ -1,0 +1,32 @@
+name: P8 one-shot First-Light dev dependency patch
+
+on:
+  push:
+    branches:
+      - implementation/p8-native-realization-validation
+
+permissions:
+  contents: write
+
+jobs:
+  patch-first-light-dev-dependency:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add exact dev dependency and lock entry
+        run: |
+          python3 -c 'from pathlib import Path; p=Path("crates/formula-first-light/Cargo.toml"); s=p.read_text(); old="formula-check = { path = \"../formula-check\" }\nformula-store = { path = \"../formula-store\" }"; new="formula-check = { path = \"../formula-check\" }\nformula-realize = { path = \"../formula-realize\" }\nformula-store = { path = \"../formula-store\" }"; assert s.count(old) == 1; p.write_text(s.replace(old, new, 1))'
+          python3 -c 'from pathlib import Path; p=Path("Cargo.lock"); s=p.read_text(); old="name = \"formula-first-light\"\nversion = \"0.0.1\"\ndependencies = [\n \"formula-check\",\n \"formula-core\",\n \"formula-engine\",\n \"formula-store\",\n \"tempfile\",\n]"; new="name = \"formula-first-light\"\nversion = \"0.0.1\"\ndependencies = [\n \"formula-check\",\n \"formula-core\",\n \"formula-engine\",\n \"formula-realize\",\n \"formula-store\",\n \"tempfile\",\n]"; assert s.count(old) == 1; p.write_text(s.replace(old, new, 1))'
+          git diff --check
+          git diff --name-only | sort > /tmp/p8-changed
+          printf '%s\n' Cargo.lock crates/formula-first-light/Cargo.toml | sort > /tmp/p8-expected
+          diff -u /tmp/p8-expected /tmp/p8-changed
+      - name: Commit exact dependency patch
+        run: |
+          git config user.name 'THE TECH GUY Automation'
+          git config user.email '65334711+jaydumisuni@users.noreply.github.com'
+          git add Cargo.lock crates/formula-first-light/Cargo.toml
+          git commit -m 'test(p8): link realization generator into First-Light proof'
+          git push origin HEAD:implementation/p8-native-realization-validation
