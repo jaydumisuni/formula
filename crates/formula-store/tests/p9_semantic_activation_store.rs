@@ -45,15 +45,8 @@ fn promote_one(
         vec![],
         vec![],
     );
-    let decision = authorize_promotion_v1(
-        &manifest,
-        &frozen,
-        &promotion,
-        &[evidence],
-        u0,
-        &[],
-    )
-    .unwrap();
+    let decision =
+        authorize_promotion_v1(&manifest, &frozen, &promotion, &[evidence], u0, &[]).unwrap();
     let PromotionDecision::Authorized(authorization) = decision else {
         panic!("valid test promotion must authorize")
     };

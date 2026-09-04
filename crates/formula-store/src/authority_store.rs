@@ -152,7 +152,10 @@ impl fmt::Display for AuthorityStoreError {
                 "semantic activation evidence is not authority-bound: {}",
                 digest.as_str()
             ),
-            Self::SemanticActivationDigestMismatch { stored, reconstructed } => write!(
+            Self::SemanticActivationDigestMismatch {
+                stored,
+                reconstructed,
+            } => write!(
                 f,
                 "semantic activation digest mismatch: stored {}, reconstructed {}",
                 stored.as_str(),
