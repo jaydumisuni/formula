@@ -8,48 +8,47 @@ Recover repository evidence before reasoning. Do not reconstruct implementation 
 
 1. [`docs/design/README.md`](docs/design/README.md) — frozen D1–D5 design precedence.
 2. [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md) — frozen roadmap P0 onward.
-3. [`docs/checkpoints/2026-09-02-p5-candidate-space-bounded-discovery.md`](docs/checkpoints/2026-09-02-p5-candidate-space-bounded-discovery.md) — current P5 source-proof checkpoint.
-4. [`docs/checkpoints/2026-09-02-p4-query-compiler-campaign-core.md`](docs/checkpoints/2026-09-02-p4-query-compiler-campaign-core.md) — exact frozen P4 predecessor checkpoint.
-5. [`docs/superpowers/specs/2026-09-02-p5-candidate-space-bounded-discovery-design.md`](docs/superpowers/specs/2026-09-02-p5-candidate-space-bounded-discovery-design.md) — approved P5 design and freeze boundary.
-6. [`docs/superpowers/plans/2026-09-02-p5-candidate-space-bounded-discovery.md`](docs/superpowers/plans/2026-09-02-p5-candidate-space-bounded-discovery.md) — executed P5 implementation plan.
-7. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for a concrete contradiction or missing obligation.
+3. [`docs/checkpoints/2026-09-04-p6-first-light-target-harness-blindness.md`](docs/checkpoints/2026-09-04-p6-first-light-target-harness-blindness.md) — current P6 source-proof checkpoint.
+4. [`docs/checkpoints/2026-09-02-p5-candidate-space-bounded-discovery.md`](docs/checkpoints/2026-09-02-p5-candidate-space-bounded-discovery.md) — exact frozen P5 predecessor checkpoint.
+5. [`docs/superpowers/plans/2026-09-04-p6-first-light-target-harness-blindness.md`](docs/superpowers/plans/2026-09-04-p6-first-light-target-harness-blindness.md) — executed P6 implementation plan.
+6. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for a concrete contradiction or missing obligation.
 
 ## Exact current implementation state
 
-**P5 — CandidateSpace + Bounded Discovery: SOURCE PROVED and scope/review-clean; documentation-bearing head awaiting exact-head proof.**
+**P6 — First-Light Target Harness + Blindness: SOURCE PROVED and scope/review-clean; documentation-bearing head awaiting exact-head proof.**
 
 Canonical branch:
 
 ```text
-implementation/p5-candidate-space-bounded-discovery
+implementation/p6-first-light-target-harness-blindness
 ```
 
-Exact frozen P4 predecessor:
+Exact frozen P5 predecessor:
 
 ```text
-d6f92a3a5872d9634d74a5fef688e28adfcec2cf
-workflow: P4 canonical proof
-workflow run: 33684561410
-conclusion: success
-```
-
-Canonical P5 source-under-test proof boundary:
-
-```text
-3ae3fd1432bae90e3af01d94ab967aa9d7cd7165
+d2bd250c4b4419316292845a44849747d9e01113
 workflow: P5 canonical proof
-workflow run: 33754844401
-job: 100646677420
+workflow run: 33812388173
 conclusion: success
 ```
 
-Exact P4 -> P5 source compare:
+Canonical P6 source-under-test proof boundary:
 
 ```text
-base:    d6f92a3a5872d9634d74a5fef688e28adfcec2cf
-head:    3ae3fd1432bae90e3af01d94ab967aa9d7cd7165
+3d50226f51066d3b3fd2562080d67105c004ea92
+workflow: P6 canonical proof
+workflow run: 33854085182
+job: 100963233751
+conclusion: success
+```
+
+Exact P5 -> P6 source compare:
+
+```text
+base:    d2bd250c4b4419316292845a44849747d9e01113
+head:    3d50226f51066d3b3fd2562080d67105c004ea92
 status:  ahead
-ahead:   34 commits
+ahead:   31 commits
 behind:  0 commits
 ```
 
@@ -59,174 +58,66 @@ Pinned proof toolchain:
 Rust 1.98.0
 runner: ubuntu-24.04
 Cargo proof commands: --locked / --offline where applicable
-workflow permissions: contents: read
+canonical workflow permissions: contents: read
 ```
 
-## What P5 now proves
+## What P6 now proves
 
-P5 supplies the bounded exact discovery substrate required before sealed First-Light orchestration can begin:
+P6 supplies the sealed First-Light target harness required before promotion begins:
 
 ```text
-CandidateSpaceContext deterministic local semantic identity
-CandidatePolarity / CompletenessClass explicit and non-upgradable
-FrozenCandidateSpace deterministic structural identity
-FrozenCandidate deterministic identity + structural cost
-SearchAuthority::CandidateOnly
-AffinePolynomialSpace exact rational family refinement
-ReductionRouteSpace exact result/capability filtering
-scoped route failure pruning
-ObservationalExprSpace exact bounded behavior buckets
-counterexample regeneration/rebucketing from grammar bound
-bounded CEGIS with candidate freeze before validation
-deterministic minimal-cost extraction
-fair round-robin fallback
-heuristic ranking remains non-authoritative
-unaffected local CandidateSpace identity
-checker/sealed-target/search-authority firewall
+BlindnessManifest exact semantic binding
+FrozenSubmission exact target/candidate binding
+FL-A sealed oracle + target digest
+FL-B public XOR fixture + exact direct/GF(2) route identities
+FL-C sealed U8 target oracle + public grammar digest
+visible false FL-C near-miss
+runtime blindness checks
+discovery/sealed dependency firewall
+hidden-answer literal firewall
 ```
-
-Search/resource exhaustion remains distinct from mathematical refutation.
-
-A discovered candidate remains candidate-only until a later independent certification/promotion path acts on it.
 
 ## Authority boundary
 
-P5 consumes P4 planning contracts; it does not manufacture authority.
+P6 consumes P5 candidate-only search outputs; it does not manufacture mathematical authority.
 
-The production dependency direction remains:
-
-```text
-formula-engine
-├── formula-core
-├── formula-store
-└── formula-packages
-
-formula-engine -/-> formula-check implementation
-formula-engine -/-> formula-first-light implementation
-```
-
-P5 cannot certify, admit, activate, publish, promote, or mutate mathematical authority.
-
-The P5 authority-boundary test rejects checker implementation coupling, sealed target imports, and authority publication/promotion paths from search code.
-
-Candidate/search state remains outside admitted `U_g` unless later certified/promoted through the existing authority path.
-
-## CandidateSpace identity law
-
-Candidate-space identity binds local semantic inputs only:
+Production discovery code remains unable to import or depend on the sealed First-Light harness:
 
 ```text
-Universe generation
-World
-query digest
-obligation digest
-grammar-or-route-set digest
-policy digest
-exact backend state
+formula-engine   -/-> formula-first-light
+formula-packages -/-> formula-first-light
 ```
 
-Identical local semantic inputs and exact state reproduce identical frozen-space and candidate identity.
+Architecture tests also reject sealed fixture-path references, target-schema references, and embedded hidden First-Light answers inside discovery source.
 
-A relevant local change perturbs identity.
-
-Unrelated campaign state does not perturb an otherwise unchanged local CandidateSpace.
-
-## Exact affine-polynomial law
-
-`AffinePolynomialSpace` stores an exact linear system over normalized bounded rational arithmetic rather than enumerating coefficient tuples.
-
-Adding an exact sample refines the entire compatible affine family. Tests prove dimension/class refinement, deterministic minimal-degree unique extraction, and deterministic freeze independent of sample insertion order.
-
-## Reduction-route law
-
-Route admissibility is exact and precedes cost ranking.
-
-Requested result class and capabilities must be preserved before a route can be considered. A cheaper inadmissible route remains inadmissible.
-
-Failure subtraction is scoped by declared applicability; failure of one route cannot remove an unrelated route outside that scope.
-
-## Observational bounded-space law
-
-The P5 U8/Boolean grammar and evaluator are public and exact; sealed First-Light target definitions are not imported.
-
-Behavior buckets retain deterministic lowest-cost representatives under the current exact sample set.
-
-On a new counterexample/sample, P5 regenerates/rebuckets from the grammar bound. It does not refine only retained representatives, because previously equivalent expressions may split under the new sample.
-
-## Bounded CEGIS law
-
-The P5 loop is:
-
-```text
-exact samples
- -> build/refine CandidateSpace
- -> extract deterministic candidate
- -> freeze candidate
- -> invoke caller-supplied oracle
- -> Equivalent or exact Counterexample
- -> refine whole bounded space
- -> repeat within explicit bound
-```
-
-Candidate freeze occurs before oracle validation.
-
-The oracle is caller supplied; P5 does not import sealed First-Light fixtures.
-
-Iteration/resource exhaustion returns search/resource unknown, never mathematical refutation.
-
-## Search-policy law
-
-Within an exact space, extraction is deterministic by structural cost and stable identity.
-
-Fair round-robin fallback prevents a heuristic preference from permanently starving another admissible candidate/route.
-
-Heuristics may reorder work only. They cannot:
-
-```text
-remove sound candidates
-strengthen CandidateSpace polarity
-create a Judgement
-create PASS
-admit/publish/promote authority
-```
+The sealed oracle may judge a frozen candidate. It cannot make search code authoritative and cannot leak target implementation details backward into P5.
 
 ## Canonical proof correction
 
-The source implementation's semantic tests, build, and rustfmt gates were already green when pinned Clippy exposed three traversal/API-shape issues.
+The semantic P6 implementation and development gates were already green when the canonical workflow failed closed at rustfmt.
 
-The exact correction was isolated and proved before application:
+Pinned Rust 1.98.0 `cargo fmt --all` identified only legitimate Rust formatting changes in `formula-first-light` tests/source plus `tests/authority-boundary/tests/p6_blindness.rs`.
 
-```text
-affine Gaussian elimination: index loops -> slice/iterator traversal
-FairRoundRobin::next        -> real Iterator implementation
-```
+A one-shot scope-guarded formatter helper applied only that canonical Rust formatting and was removed. The temporary P6 development workflow was then retired as required by the P6 plan.
 
-The correction preserved behavior and changed no authority contract, candidate set, completeness claim, dependency direction, or sealed-target boundary.
+Canonical run `33854085182` passed the unchanged full P6 proof on exact source SHA `3d50226f51066d3b3fd2562080d67105c004ea92`.
 
-An isolated diagnostic proof passed engine tests and full workspace Clippy under Rust 1.98.0 before the correction was applied to P5.
-
-A self-removing helper then applied only the verified correction, reran engine tests + full Clippy, removed itself, and pushed the corrected source.
-
-Canonical run `33754844401` subsequently passed the full unchanged P5 proof on exact SHA `3ae3fd1432bae90e3af01d94ab967aa9d7cd7165`.
-
-## P5 proof markers
+## P6 proof markers
 
 ```text
-P5-01 CandidateSpace identity deterministic                         PASS
-P5-02 affine exact space refines whole family                      PASS
-P5-03 route failure pruning scoped                                 PASS
-P5-04 observational buckets exact under current samples            PASS
-P5-05 counterexample regeneration preserves bounded candidate set  PASS
-P5-06 bounded CEGIS freezes before validation                      PASS
-P5-07 heuristics remain non-authoritative                          PASS
-P5-08 unaffected local identity preserved                          PASS
-P5-09 checker/sealed-target/search authority firewall              PASS
-P5-10 P0-P4 gates preserved                                        PASS
+PASS P6_BLIND_MANIFEST_BINDING
+PASS P6_FLA_SEALED_ORACLE
+PASS P6_FLB_PUBLIC_ROUTE_FIXTURE
+PASS P6_FLC_FROZEN_COUNTEREXAMPLE_ORACLE
+PASS P6_FALSE_NEARMISS_VISIBLE
+PASS P6_DISCOVERY_SEALED_DEPENDENCY_FIREWALL
+PASS P6_HIDDEN_ANSWER_LITERAL_FIREWALL
+PASS P6_RUNTIME_BLINDNESS
 ```
 
-## P0–P4 remain authority
+## P0–P5 remain authority
 
-P5 extends rather than replaces predecessor proofs:
+P6 extends rather than replaces predecessor proofs:
 
 ```text
 P0 reproducible repository/build + architecture firewall
@@ -234,35 +125,30 @@ P1 deterministic identity + immutable generation authority store
 P2 independent checker/certificate authority
 P3 theory packages + generation/world-scoped capability closure
 P4 deterministic query compiler + campaign/obligation/work-cell planning
+P5 bounded candidate-only CandidateSpace + discovery
 ```
 
-The P5 canonical workflow reruns predecessor crate/workspace tests, build, formatting, lint, dependency, architecture, and clean-tree gates.
+## Not proved by P6
 
-## Not proved by P5
-
-Do not claim from P5:
+Do not claim from P6:
 
 ```text
-sealed FL-A/B/C target knowledge
-independent certification of discovered candidates
-promotion/admission of discovered mathematics
-U0 -> U1 First-Light growth
-native CPU realization generation
-full sealed First-Light execution
-external SAT/SMT/CAS execution
+P7 certification/promotion/admission completion
+atomic U0 -> U1 First-Light growth
+P8 native CPU realization + independent realization proof
+P9 complete First-Light campaign/reuse proof
+external SAT/SMT/CAS authority
 model/LLM mathematical authority
 Ptah/distributed execution
-unbounded/universal search completeness
-P6 completion
 ```
 
 ## Next implementation boundary
 
-The frozen roadmap phase after P5 is P6.
+The frozen roadmap phase after P6 is P7.
 
-Do **not** start P6 until the documentation-bearing P5 branch head passes the unchanged P5 canonical workflow.
+Do **not** start P7 until the documentation-bearing P6 branch head passes the unchanged P6 canonical workflow.
 
-P6 must consume P5's candidate-only outputs without weakening the independent certification/promotion authority boundary or leaking sealed targets backward into P5.
+P7 must independently certify the frozen First-Light candidates and perform atomic generation-producing promotion without granting search or sealed-target harness code authority-store publication power.
 
 ## Constitutional laws to preserve
 
@@ -284,21 +170,21 @@ P6 must consume P5's candidate-only outputs without weakening the independent ce
 ## Recovery procedure
 
 1. Read this file.
-2. Read the P5 checkpoint and approved P5 design/plan.
-3. Inspect `implementation/p5-candidate-space-bounded-discovery` before assuming the source-proof SHA is still the branch head.
-4. Verify the post-checkpoint P5 canonical proof on the **exact documentation-bearing branch head** before treating P5 as finally frozen.
-5. Preserve frozen P4 head `d6f92a3a5872d9634d74a5fef688e28adfcec2cf` as the predecessor review boundary.
-6. Do not start P6 unless P5's documentation-bearing exact head has passed canonical proof.
+2. Read the P6 checkpoint and executed P6 plan.
+3. Inspect `implementation/p6-first-light-target-harness-blindness` before assuming the source-proof SHA is still the branch head.
+4. Verify the post-checkpoint P6 canonical proof on the **exact documentation-bearing branch head** before treating P6 as finally frozen.
+5. Preserve frozen P5 head `d2bd250c4b4419316292845a44849747d9e01113` as the predecessor review boundary.
+6. Do not start P7 unless P6's documentation-bearing exact head has passed canonical proof.
 7. Do not reopen broad research unless implementation evidence exposes a concrete contradiction or missing requirement.
 
 ## Freeze state
 
-P5 source is proved and scope/review-clean on:
+P6 source is proved and scope/review-clean on:
 
 ```text
-3ae3fd1432bae90e3af01d94ab967aa9d7cd7165
+3d50226f51066d3b3fd2562080d67105c004ea92
 ```
 
-The P5 checkpoint and this `CURRENT.md` update now form the documentation-bearing branch candidate. **P5 is not finally frozen until the unchanged P5 canonical workflow succeeds on that exact documentation-bearing head.**
+The P6 checkpoint and this `CURRENT.md` update now form the documentation-bearing branch candidate. **P6 is not finally frozen until the unchanged P6 canonical workflow succeeds on that exact documentation-bearing head.**
 
-This branch has **not** been merged to `main`. P6 has **not** started.
+This branch has **not** been merged to `main`. P7 has **not** started.
