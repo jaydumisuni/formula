@@ -1,0 +1,42 @@
+name: P9 normalize once
+
+on:
+  push:
+    branches:
+      - implementation/p9-canonical-first-light-proof
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Normalize reuse sources
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('crates/formula-engine/src/compiler.rs')
+          text = path.read_text()
+          old = '''        let theory_profile = TheoryProfile::compile(\n            &region,\n            &inputs.exact_properties,\n            &inputs.operational_estimates,\n        );\n        let resolved = ResolvedCapability::new(request);'''
+          new = '''        let resolved = ResolvedCapability::new(request);'''
+          if old in text:
+              text = text.replace(old, new, 1)
+              path.write_text(text)
+          PY
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt
+          rustup override set 1.98.0
+          cargo fmt --all
+      - name: Commit normalization if needed
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name 'THE TECH GUY'
+          git config user.email '65334711+jaydumisuni@users.noreply.github.com'
+          git add crates/formula-engine/src/compiler.rs crates/formula-engine/src/reuse.rs crates/formula-engine/tests/p9_reuse_compiler.rs
+          git commit -m 'style(p9): normalize reuse compiler sources'
+          git push origin HEAD:implementation/p9-canonical-first-light-proof
