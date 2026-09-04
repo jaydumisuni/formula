@@ -12,6 +12,7 @@ pub mod region;
 pub mod replay;
 pub mod representation;
 pub mod result_bundle;
+pub mod reuse;
 pub mod route_space;
 pub mod search_policy;
 pub mod theory_profile;
