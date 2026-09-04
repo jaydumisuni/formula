@@ -1,0 +1,41 @@
+name: P7 engine-store firewall diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/p7-engine-store-firewall
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal
+          rustup override set 1.98.0
+      - name: Prove engine does not use store source API
+        run: |
+          set -euxo pipefail
+          ! grep -R -E 'formula_store|formula-store' crates/formula-engine/src
+      - name: Test removal of unused engine-store dependency
+        run: |
+          set -euxo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('crates/formula-engine/Cargo.toml')
+          text = path.read_text()
+          edge = 'formula-store = { path = "../formula-store" }\n'
+          if text.count(edge) != 1:
+              raise SystemExit(f'expected one engine-store edge, found {text.count(edge)}')
+          path.write_text(text.replace(edge, '', 1))
+          PY
+          cargo generate-lockfile
+          cargo fetch --locked
+          cargo test -p formula-engine --all-targets --locked --offline
+          cargo test -p formula-archtest --test dependency_firewall --locked --offline
+          cargo tree --locked --offline -p formula-engine --edges normal | tee /tmp/engine-tree.txt
+          ! grep -Eq 'formula-store|formula-check' /tmp/engine-tree.txt
