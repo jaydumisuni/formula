@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   normalize:
-    if: github.event.head_commit.message == 'chore(p9): add one-shot lock normalizer'
+    if: "github.event.head_commit.message == 'chore(p9): fix one-shot lock normalizer'"
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
