@@ -12,6 +12,7 @@ pub enum CampaignNodeKind {
     ArtifactRef,
     FactRef,
     WorkCellPlanRef,
+    ExecutionPlanRef,
     ResultRef,
 }
 
@@ -25,6 +26,7 @@ impl CampaignNodeKind {
             Self::ArtifactRef => "ARTIFACT_REF",
             Self::FactRef => "FACT_REF",
             Self::WorkCellPlanRef => "WORK_CELL_PLAN_REF",
+            Self::ExecutionPlanRef => "EXECUTION_PLAN_REF",
             Self::ResultRef => "RESULT_REF",
         }
     }
