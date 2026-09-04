@@ -1,7 +1,5 @@
 use formula_check::{
-    realization::{
-        RealizationPolicyFailure, authorize_native_u8_realization_v1,
-    },
+    realization::{RealizationPolicyFailure, authorize_native_u8_realization_v1},
     u8::{BoolExpr, ByteExpr},
     verdict::CheckFailure,
 };
@@ -164,7 +162,10 @@ fn changed_source_or_binary_bytes_fail_closed() {
     .unwrap_err();
 
     assert_eq!(source_error, CheckFailure::RealizationSourceDigestMismatch);
-    assert_eq!(binary_error, CheckFailure::RealizationArtifactDigestMismatch);
+    assert_eq!(
+        binary_error,
+        CheckFailure::RealizationArtifactDigestMismatch
+    );
 }
 
 #[test]
