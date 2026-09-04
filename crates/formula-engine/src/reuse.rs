@@ -31,25 +31,58 @@ impl ReuseRequest {
         }
     }
 
-    pub fn query_digest(&self) -> ArtifactDigest { self.query_digest }
-    pub fn required_semantic_capability(&self) -> ArtifactDigest { self.required_semantic_capability }
-    pub fn universe_generation(&self) -> ArtifactDigest { self.universe_generation }
-    pub fn world(&self) -> ArtifactDigest { self.world }
-    pub fn authority_contract(&self) -> ArtifactDigest { self.authority_contract }
-    pub fn observer(&self) -> ArtifactDigest { self.observer }
-    pub fn result_class(&self) -> RequestedResultClass { self.result_class }
+    pub fn query_digest(&self) -> ArtifactDigest {
+        self.query_digest
+    }
+    pub fn required_semantic_capability(&self) -> ArtifactDigest {
+        self.required_semantic_capability
+    }
+    pub fn universe_generation(&self) -> ArtifactDigest {
+        self.universe_generation
+    }
+    pub fn world(&self) -> ArtifactDigest {
+        self.world
+    }
+    pub fn authority_contract(&self) -> ArtifactDigest {
+        self.authority_contract
+    }
+    pub fn observer(&self) -> ArtifactDigest {
+        self.observer
+    }
+    pub fn result_class(&self) -> RequestedResultClass {
+        self.result_class
+    }
 
     pub fn digest(&self) -> ArtifactDigest {
         CanonicalValue::Object(BTreeMap::from([
-            ("authority_contract".into(), CanonicalValue::Digest(self.authority_contract)),
+            (
+                "authority_contract".into(),
+                CanonicalValue::Digest(self.authority_contract),
+            ),
             ("observer".into(), CanonicalValue::Digest(self.observer)),
-            ("query_digest".into(), CanonicalValue::Digest(self.query_digest)),
-            ("required_semantic_capability".into(), CanonicalValue::Digest(self.required_semantic_capability)),
-            ("result_class".into(), CanonicalValue::String(self.result_class.as_str().into())),
-            ("schema".into(), CanonicalValue::String(REUSE_REQUEST_SCHEMA_V1.into())),
-            ("universe_generation".into(), CanonicalValue::Digest(self.universe_generation)),
+            (
+                "query_digest".into(),
+                CanonicalValue::Digest(self.query_digest),
+            ),
+            (
+                "required_semantic_capability".into(),
+                CanonicalValue::Digest(self.required_semantic_capability),
+            ),
+            (
+                "result_class".into(),
+                CanonicalValue::String(self.result_class.as_str().into()),
+            ),
+            (
+                "schema".into(),
+                CanonicalValue::String(REUSE_REQUEST_SCHEMA_V1.into()),
+            ),
+            (
+                "universe_generation".into(),
+                CanonicalValue::Digest(self.universe_generation),
+            ),
             ("world".into(), CanonicalValue::Digest(self.world)),
-        ])).digest()
+        ]))
+        .digest()
     }
 }
 
@@ -75,17 +108,32 @@ impl ResolvedCapability {
         }
     }
 
-    pub fn primitive(&self) -> ArtifactDigest { self.primitive }
+    pub fn primitive(&self) -> ArtifactDigest {
+        self.primitive
+    }
     pub fn digest(&self) -> ArtifactDigest {
         CanonicalValue::Object(BTreeMap::from([
-            ("authority_contract".into(), CanonicalValue::Digest(self.authority_contract)),
+            (
+                "authority_contract".into(),
+                CanonicalValue::Digest(self.authority_contract),
+            ),
             ("observer".into(), CanonicalValue::Digest(self.observer)),
             ("primitive".into(), CanonicalValue::Digest(self.primitive)),
-            ("reuse_request".into(), CanonicalValue::Digest(self.reuse_request)),
-            ("schema".into(), CanonicalValue::String(RESOLVED_CAPABILITY_SCHEMA_V1.into())),
-            ("universe_generation".into(), CanonicalValue::Digest(self.universe_generation)),
+            (
+                "reuse_request".into(),
+                CanonicalValue::Digest(self.reuse_request),
+            ),
+            (
+                "schema".into(),
+                CanonicalValue::String(RESOLVED_CAPABILITY_SCHEMA_V1.into()),
+            ),
+            (
+                "universe_generation".into(),
+                CanonicalValue::Digest(self.universe_generation),
+            ),
             ("world".into(), CanonicalValue::Digest(self.world)),
-        ])).digest()
+        ]))
+        .digest()
     }
 }
 
@@ -115,20 +163,40 @@ impl ReuseExecutionPlan {
         }
     }
 
-    pub fn primitive(&self) -> ArtifactDigest { self.primitive }
-    pub fn result_class(&self) -> RequestedResultClass { self.result_class }
+    pub fn primitive(&self) -> ArtifactDigest {
+        self.primitive
+    }
+    pub fn result_class(&self) -> RequestedResultClass {
+        self.result_class
+    }
     pub fn digest(&self) -> ArtifactDigest {
         CanonicalValue::Object(BTreeMap::from([
-            ("authority_contract".into(), CanonicalValue::Digest(self.authority_contract)),
+            (
+                "authority_contract".into(),
+                CanonicalValue::Digest(self.authority_contract),
+            ),
             ("observer".into(), CanonicalValue::Digest(self.observer)),
             ("primitive".into(), CanonicalValue::Digest(self.primitive)),
             ("query".into(), CanonicalValue::Digest(self.query)),
-            ("resolved_capability".into(), CanonicalValue::Digest(self.resolved_capability)),
-            ("result_class".into(), CanonicalValue::String(self.result_class.as_str().into())),
-            ("schema".into(), CanonicalValue::String(REUSE_EXECUTION_SCHEMA_V1.into())),
-            ("universe_generation".into(), CanonicalValue::Digest(self.universe_generation)),
+            (
+                "resolved_capability".into(),
+                CanonicalValue::Digest(self.resolved_capability),
+            ),
+            (
+                "result_class".into(),
+                CanonicalValue::String(self.result_class.as_str().into()),
+            ),
+            (
+                "schema".into(),
+                CanonicalValue::String(REUSE_EXECUTION_SCHEMA_V1.into()),
+            ),
+            (
+                "universe_generation".into(),
+                CanonicalValue::Digest(self.universe_generation),
+            ),
             ("world".into(), CanonicalValue::Digest(self.world)),
-        ])).digest()
+        ]))
+        .digest()
     }
 }
 
@@ -150,18 +218,42 @@ impl ReuseMetrics {
         }
     }
 
-    pub fn primitive_discovery_candidate_spaces(&self) -> u64 { self.primitive_discovery_candidate_spaces }
-    pub fn primitive_discovery_work_cells(&self) -> u64 { self.primitive_discovery_work_cells }
-    pub fn resolved_capability_count(&self) -> u64 { self.resolved_capability_count }
-    pub fn execution_work_items(&self) -> u64 { self.execution_work_items }
+    pub fn primitive_discovery_candidate_spaces(&self) -> u64 {
+        self.primitive_discovery_candidate_spaces
+    }
+    pub fn primitive_discovery_work_cells(&self) -> u64 {
+        self.primitive_discovery_work_cells
+    }
+    pub fn resolved_capability_count(&self) -> u64 {
+        self.resolved_capability_count
+    }
+    pub fn execution_work_items(&self) -> u64 {
+        self.execution_work_items
+    }
     pub fn digest(&self) -> ArtifactDigest {
         CanonicalValue::Object(BTreeMap::from([
-            ("execution_work_items".into(), CanonicalValue::String(self.execution_work_items.to_string())),
-            ("primitive_discovery_candidate_spaces".into(), CanonicalValue::String(self.primitive_discovery_candidate_spaces.to_string())),
-            ("primitive_discovery_work_cells".into(), CanonicalValue::String(self.primitive_discovery_work_cells.to_string())),
-            ("resolved_capability_count".into(), CanonicalValue::String(self.resolved_capability_count.to_string())),
-            ("schema".into(), CanonicalValue::String(REUSE_METRICS_SCHEMA_V1.into())),
-        ])).digest()
+            (
+                "execution_work_items".into(),
+                CanonicalValue::String(self.execution_work_items.to_string()),
+            ),
+            (
+                "primitive_discovery_candidate_spaces".into(),
+                CanonicalValue::String(self.primitive_discovery_candidate_spaces.to_string()),
+            ),
+            (
+                "primitive_discovery_work_cells".into(),
+                CanonicalValue::String(self.primitive_discovery_work_cells.to_string()),
+            ),
+            (
+                "resolved_capability_count".into(),
+                CanonicalValue::String(self.resolved_capability_count.to_string()),
+            ),
+            (
+                "schema".into(),
+                CanonicalValue::String(REUSE_METRICS_SCHEMA_V1.into()),
+            ),
+        ]))
+        .digest()
     }
 }
 
@@ -174,9 +266,19 @@ pub struct CompiledReuseCampaign {
 }
 
 impl CompiledReuseCampaign {
-    pub fn campaign(&self) -> &crate::campaign::CampaignIR { &self.campaign }
-    pub fn resolved_capability(&self) -> &ResolvedCapability { &self.resolved_capability }
-    pub fn execution_plans(&self) -> &[ReuseExecutionPlan] { &self.execution_plans }
-    pub fn metrics(&self) -> &ReuseMetrics { &self.metrics }
-    pub fn work_cells(&self) -> &[crate::work_cell::WorkCellPlan] { &[] }
+    pub fn campaign(&self) -> &crate::campaign::CampaignIR {
+        &self.campaign
+    }
+    pub fn resolved_capability(&self) -> &ResolvedCapability {
+        &self.resolved_capability
+    }
+    pub fn execution_plans(&self) -> &[ReuseExecutionPlan] {
+        &self.execution_plans
+    }
+    pub fn metrics(&self) -> &ReuseMetrics {
+        &self.metrics
+    }
+    pub fn work_cells(&self) -> &[crate::work_cell::WorkCellPlan] {
+        &[]
+    }
 }
