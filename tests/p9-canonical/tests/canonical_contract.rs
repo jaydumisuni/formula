@@ -2,8 +2,8 @@ use formula_p9_canonical::run_canonical_first_light_proof;
 
 #[test]
 fn canonical_p9_runner_closes_first_light_from_one_clean_state() {
-    let source = std::env::var("FORMULA_P9_SOURCE_COMMIT")
-        .unwrap_or_else(|_| "development-source".into());
+    let source =
+        std::env::var("FORMULA_P9_SOURCE_COMMIT").unwrap_or_else(|_| "development-source".into());
     let report = run_canonical_first_light_proof(&source);
 
     assert_eq!(report.source_commit(), source);
