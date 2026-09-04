@@ -1,0 +1,34 @@
+name: P8 one-shot lock refresh
+
+on:
+  push:
+    branches:
+      - implementation/p8-native-realization-validation
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lock:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal
+          rustup override set 1.98.0
+      - name: Regenerate lockfile and enforce exact scope
+        run: |
+          cargo generate-lockfile
+          status="$(git status --porcelain)"
+          printf '%s\n' "$status"
+          test "$status" = ' M Cargo.lock'
+      - name: Commit exact lockfile refresh
+        run: |
+          git config user.name 'THE TECH GUY Automation'
+          git config user.email '65334711+jaydumisuni@users.noreply.github.com'
+          git add Cargo.lock
+          git commit -m 'chore(p8): refresh lockfile for realization dependency'
+          git push origin HEAD:implementation/p8-native-realization-validation
