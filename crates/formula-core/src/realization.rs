@@ -1,8 +1,4 @@
-use crate::{
-    artifacts::StructuralIdentity,
-    canonical::CanonicalValue,
-    digest::ArtifactDigest,
-};
+use crate::{artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest};
 use std::collections::BTreeMap;
 
 const REALIZATION_SCHEMA_V1: &str = "formula-p8-realization-v1";
