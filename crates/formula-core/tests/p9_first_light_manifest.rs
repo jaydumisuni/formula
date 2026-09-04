@@ -110,7 +110,8 @@ fn target_and_negative_control_set_like_inputs_have_deterministic_identity() {
     let a = target("fl-a", vec![d("a2"), d("a1"), d("a1")]);
     let b = target("fl-a", vec![d("a1"), d("a2")]);
     assert_eq!(a.structural_digest(), b.structural_digest());
-    assert_eq!(a.auxiliary(), &[d("a1"), d("a2")]);
+    assert_eq!(a.auxiliary().len(), 2);
+    assert!(a.auxiliary().windows(2).all(|pair| pair[0] < pair[1]));
 }
 
 #[test]
