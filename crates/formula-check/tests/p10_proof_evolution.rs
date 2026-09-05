@@ -1,4 +1,4 @@
-use formula_check::self_expansion::{
+use formula_check::proof_evolution::{
     ProofEvolutionFailure, authorize_repair_v1, authorize_transport_v1, classify_freshness,
     repair_evidence_v1, transport_evidence_v1,
 };
