@@ -24,6 +24,26 @@ pub struct AdmittedRealization {
 }
 
 #[derive(Debug)]
+pub enum RealizationUpgradeError {
+    Store(AuthorityStoreError),
+    ClassMismatch,
+    GenerationMismatch {
+        expected: ArtifactDigest,
+        actual: ArtifactDigest,
+    },
+    SemanticNotAdmitted(ArtifactDigest),
+    EvidenceNotAuthorityBound(ArtifactDigest),
+    VariantNotFound(ArtifactDigest),
+    VariantContextMismatch,
+}
+
+impl From<AuthorityStoreError> for RealizationUpgradeError {
+    fn from(value: AuthorityStoreError) -> Self {
+        Self::Store(value)
+    }
+}
+
+#[derive(Debug)]
 struct RealizationRow {
     manifest_digest: String,
     semantic_target: String,
@@ -147,13 +167,15 @@ impl AuthorityStore {
         &self,
         context: &RealizationDispatchContext,
     ) -> Result<Option<AdmittedRealization>, AuthorityStoreError> {
-        self.preferred_realization(context)
+        ensure_realization_table(self)?;
+        let row = query_context_row(self, context)?;
+        row.map(|row| materialize_row(self, row)).transpose()
     }
 
     pub fn preferred_realization(
         &self,
         context: &RealizationDispatchContext,
-    ) -> Result<Option<AdmittedRealization>, AuthorityStoreError> {
+    ) -> Result<Option<AdmittedRealization>, RealizationUpgradeError> {
         ensure_realization_table(self)?;
 
         let selected: Option<String> = self
@@ -174,19 +196,22 @@ impl AuthorityStore {
                 ],
                 |row| row.get(0),
             )
-            .optional()?;
+            .optional()
+            .map_err(AuthorityStoreError::from)?;
 
         if let Some(selected) = selected {
-            let manifest = ArtifactDigest::parse(&selected)?;
+            let manifest = ArtifactDigest::parse(&selected).map_err(AuthorityStoreError::from)?;
             let realization = self
                 .realization_by_manifest(manifest)?
-                .ok_or(AuthorityStoreError::RealizationVariantNotFound(manifest))?;
+                .ok_or(RealizationUpgradeError::VariantNotFound(manifest))?;
             validate_context(&realization, context)?;
             return Ok(Some(realization));
         }
 
         let row = query_context_row(self, context)?;
-        row.map(|row| materialize_row(self, row)).transpose()
+        row.map(|row| materialize_row(self, row))
+            .transpose()
+            .map_err(RealizationUpgradeError::from)
     }
 
     pub fn realization_by_manifest(
@@ -202,59 +227,61 @@ impl AuthorityStore {
         &mut self,
         context: &RealizationDispatchContext,
         manifest: ArtifactDigest,
-    ) -> Result<ArtifactDigest, AuthorityStoreError> {
+    ) -> Result<ArtifactDigest, RealizationUpgradeError> {
         ensure_realization_table(self)?;
         let realization = self
             .realization_by_manifest(manifest)?
-            .ok_or(AuthorityStoreError::RealizationVariantNotFound(manifest))?;
+            .ok_or(RealizationUpgradeError::VariantNotFound(manifest))?;
         validate_context(&realization, context)?;
 
-        self.connection.execute(
-            "INSERT INTO realization_selections (
-                 semantic_target, universe_generation, world, authority_contract,
-                 observer, manifest_digest
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-             ON CONFLICT(semantic_target, universe_generation, world, authority_contract, observer)
-             DO UPDATE SET manifest_digest = excluded.manifest_digest",
-            params![
-                context.semantic_target().as_str(),
-                context.universe_generation().as_str(),
-                context.world().as_str(),
-                context.authority_contract().as_str(),
-                context.observer().as_str(),
-                manifest.as_str(),
-            ],
-        )?;
+        self.connection
+            .execute(
+                "INSERT INTO realization_selections (
+                     semantic_target, universe_generation, world, authority_contract,
+                     observer, manifest_digest
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                 ON CONFLICT(semantic_target, universe_generation, world, authority_contract, observer)
+                 DO UPDATE SET manifest_digest = excluded.manifest_digest",
+                params![
+                    context.semantic_target().as_str(),
+                    context.universe_generation().as_str(),
+                    context.world().as_str(),
+                    context.authority_contract().as_str(),
+                    context.observer().as_str(),
+                    manifest.as_str(),
+                ],
+            )
+            .map_err(AuthorityStoreError::from)?;
         Ok(manifest)
     }
 
     pub fn record_realization_upgrade(
         &mut self,
         upgrade: &RealizationUpgrade,
-    ) -> Result<RealizationUpgrade, AuthorityStoreError> {
+    ) -> Result<RealizationUpgrade, RealizationUpgradeError> {
         ensure_realization_table(self)?;
         if upgrade.semantic_change_class() != SemanticChangeClass::RealizationOnly {
-            return Err(AuthorityStoreError::RealizationUpgradeClassMismatch);
+            return Err(RealizationUpgradeError::ClassMismatch);
         }
 
         let active = self
             .active_generation()?
             .ok_or(AuthorityStoreError::NoActiveGeneration)?;
         if active != upgrade.universe_generation() {
-            return Err(AuthorityStoreError::RealizationUpgradeGenerationMismatch {
+            return Err(RealizationUpgradeError::GenerationMismatch {
                 expected: active,
                 actual: upgrade.universe_generation(),
             });
         }
         let generation = self.replay_generation(active)?;
         if !generation.admitted().contains(&upgrade.semantic_artifact()) {
-            return Err(AuthorityStoreError::RealizationUpgradeSemanticNotAdmitted(
+            return Err(RealizationUpgradeError::SemanticNotAdmitted(
                 upgrade.semantic_artifact(),
             ));
         }
         for evidence in upgrade.validation_evidence() {
             if !generation.authority_bindings().contains(evidence) {
-                return Err(AuthorityStoreError::RealizationUpgradeEvidenceNotAuthorityBound(
+                return Err(RealizationUpgradeError::EvidenceNotAuthorityBound(
                     *evidence,
                 ));
             }
@@ -262,12 +289,12 @@ impl AuthorityStore {
 
         let old = self
             .realization_by_manifest(upgrade.old_realization())?
-            .ok_or(AuthorityStoreError::RealizationVariantNotFound(
+            .ok_or(RealizationUpgradeError::VariantNotFound(
                 upgrade.old_realization(),
             ))?;
         let new = self
             .realization_by_manifest(upgrade.new_realization())?
-            .ok_or(AuthorityStoreError::RealizationVariantNotFound(
+            .ok_or(RealizationUpgradeError::VariantNotFound(
                 upgrade.new_realization(),
             ))?;
 
@@ -279,30 +306,34 @@ impl AuthorityStore {
             || old.authority_contract() != new.authority_contract()
             || old.observer() != new.observer()
         {
-            return Err(AuthorityStoreError::RealizationVariantContextMismatch);
+            return Err(RealizationUpgradeError::VariantContextMismatch);
         }
 
         let upgrade_digest = upgrade.structural_digest();
-        self.connection.execute(
-            "INSERT INTO realization_upgrades (
-                 upgrade_digest, semantic_target, universe_generation,
-                 old_realization, new_realization, selection_policy
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![
-                upgrade_digest.as_str(),
-                upgrade.semantic_artifact().as_str(),
-                active.as_str(),
-                upgrade.old_realization().as_str(),
-                upgrade.new_realization().as_str(),
-                upgrade.selection_policy().as_str(),
-            ],
-        )?;
+        self.connection
+            .execute(
+                "INSERT INTO realization_upgrades (
+                     upgrade_digest, semantic_target, universe_generation,
+                     old_realization, new_realization, selection_policy
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    upgrade_digest.as_str(),
+                    upgrade.semantic_artifact().as_str(),
+                    active.as_str(),
+                    upgrade.old_realization().as_str(),
+                    upgrade.new_realization().as_str(),
+                    upgrade.selection_policy().as_str(),
+                ],
+            )
+            .map_err(AuthorityStoreError::from)?;
         for evidence in upgrade.validation_evidence() {
-            self.connection.execute(
-                "INSERT INTO realization_upgrade_evidence (upgrade_digest, evidence_digest)
-                 VALUES (?1, ?2)",
-                params![upgrade_digest.as_str(), evidence.as_str()],
-            )?;
+            self.connection
+                .execute(
+                    "INSERT INTO realization_upgrade_evidence (upgrade_digest, evidence_digest)
+                     VALUES (?1, ?2)",
+                    params![upgrade_digest.as_str(), evidence.as_str()],
+                )
+                .map_err(AuthorityStoreError::from)?;
         }
 
         let supersession = SupersessionRecord::new(
@@ -497,14 +528,14 @@ fn materialize_row(
 fn validate_context(
     realization: &AdmittedRealization,
     context: &RealizationDispatchContext,
-) -> Result<(), AuthorityStoreError> {
+) -> Result<(), RealizationUpgradeError> {
     if realization.semantic_target() != context.semantic_target()
         || realization.universe_generation() != context.universe_generation()
         || realization.world() != context.world()
         || realization.authority_contract() != context.authority_contract()
         || realization.observer() != context.observer()
     {
-        return Err(AuthorityStoreError::RealizationVariantContextMismatch);
+        return Err(RealizationUpgradeError::VariantContextMismatch);
     }
     Ok(())
 }
