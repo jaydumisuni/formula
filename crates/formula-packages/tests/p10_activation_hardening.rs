@@ -112,14 +112,9 @@ fn shadow_metaprimitive_is_recorded_but_never_enters_active_grammar() {
         vec![d("p10:shadow:scope")],
     );
 
-    let grammar = derive_grammar_generation(
-        &generation,
-        None,
-        &[record],
-        &[],
-        &[d("p10:theory-rule")],
-    )
-    .unwrap();
+    let grammar =
+        derive_grammar_generation(&generation, None, &[record], &[], &[d("p10:theory-rule")])
+            .unwrap();
 
     assert!(grammar.activated_metaprimitives().is_empty());
     assert_eq!(grammar.shadow_metaprimitives(), &[metaprimitive]);
@@ -130,12 +125,8 @@ fn wrong_generation_activation_is_rejected_before_use() {
     let subject = d("p10:wrong-generation-nogood");
     let evidence = d("p10:wrong-generation:evidence");
     let generation = UniverseGeneration::new(0, None, vec![subject], vec![evidence]);
-    let wrong_generation = UniverseGeneration::new(
-        1,
-        Some(generation.digest()),
-        vec![subject],
-        vec![evidence],
-    );
+    let wrong_generation =
+        UniverseGeneration::new(1, Some(generation.digest()), vec![subject], vec![evidence]);
     let record = ExpansionActivationRecord::new(
         subject,
         PromotionClass::CounterexampleNogood,
