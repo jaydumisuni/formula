@@ -15,6 +15,7 @@ pub mod result_bundle;
 pub mod reuse;
 pub mod route_space;
 pub mod search_policy;
+pub mod self_expansion;
 pub mod theory_profile;
 pub mod work_cell;
 
