@@ -1,8 +1,6 @@
 use crate::candidate_space::CandidateSpaceContext;
 use formula_core::{
-    artifacts::StructuralIdentity,
-    digest::ArtifactDigest,
-    self_expansion::GrammarGeneration,
+    artifacts::StructuralIdentity, digest::ArtifactDigest, self_expansion::GrammarGeneration,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]

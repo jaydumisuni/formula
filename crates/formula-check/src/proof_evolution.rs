@@ -3,8 +3,7 @@ use formula_core::{
     canonical::CanonicalValue,
     digest::ArtifactDigest,
     self_expansion::{
-        EvidenceFreshness, ProofRepairPlan, ProofTransportPlan, SemanticChange,
-        SemanticChangeClass,
+        EvidenceFreshness, ProofRepairPlan, ProofTransportPlan, SemanticChange, SemanticChangeClass,
     },
 };
 use std::collections::BTreeMap;
@@ -189,10 +188,7 @@ impl RepairedEvidenceRecord {
 impl StructuralIdentity for RepairedEvidenceRecord {
     fn canonical_value(&self) -> CanonicalValue {
         CanonicalValue::Object(BTreeMap::from([
-            (
-                "affected_slice".into(),
-                digest_array(&self.affected_slice),
-            ),
+            ("affected_slice".into(), digest_array(&self.affected_slice)),
             (
                 "authorization_digest".into(),
                 CanonicalValue::Digest(self.authorization_digest),
@@ -232,7 +228,10 @@ pub fn classify_freshness(
             .affected_authority_cone()
             .binary_search(dependency)
             .is_ok()
-            || change.changed_dependencies().binary_search(dependency).is_ok()
+            || change
+                .changed_dependencies()
+                .binary_search(dependency)
+                .is_ok()
     });
 
     if !intersects {
@@ -245,9 +244,8 @@ pub fn classify_freshness(
         return EvidenceFreshness::UnchangedFresh;
     }
 
-    let certified = certified_relation.is_some_and(|relation| {
-        change.evidence().binary_search(&relation).is_ok()
-    });
+    let certified = certified_relation
+        .is_some_and(|relation| change.evidence().binary_search(&relation).is_ok());
 
     match change.class() {
         SemanticChangeClass::RealizationOnly => EvidenceFreshness::RecheckRequired,
@@ -259,8 +257,9 @@ pub fn classify_freshness(
                 EvidenceFreshness::RecheckRequired
             }
         }
-        SemanticChangeClass::TheoremStrengthening
-        | SemanticChangeClass::AssumptionWeakening => EvidenceFreshness::Repairable,
+        SemanticChangeClass::TheoremStrengthening | SemanticChangeClass::AssumptionWeakening => {
+            EvidenceFreshness::Repairable
+        }
         SemanticChangeClass::SignatureChange => {
             if certified {
                 EvidenceFreshness::Transportable
@@ -415,10 +414,7 @@ fn build_authorization(
 ) -> ProofEvolutionAuthorization {
     let mut object = BTreeMap::from([
         ("kind".into(), CanonicalValue::String(kind.as_str().into())),
-        (
-            "plan_digest".into(),
-            CanonicalValue::Digest(plan_digest),
-        ),
+        ("plan_digest".into(), CanonicalValue::Digest(plan_digest)),
         (
             "semantic_change".into(),
             CanonicalValue::Digest(semantic_change),

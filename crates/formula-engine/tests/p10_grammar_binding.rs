@@ -1,7 +1,5 @@
 use formula_core::{
-    artifacts::StructuralIdentity,
-    digest::ArtifactDigest,
-    self_expansion::GrammarGeneration,
+    artifacts::StructuralIdentity, digest::ArtifactDigest, self_expansion::GrammarGeneration,
 };
 use formula_engine::{
     candidate_space::CandidateSpaceContext,
@@ -69,7 +67,10 @@ fn candidate_built_under_lambda_g_cannot_be_silently_reused_under_lambda_g1() {
     );
 
     let old = bind_candidate_context_to_grammar(base_context(generation), &lambda_g).unwrap();
-    assert_eq!(validate_candidate_context_grammar(old.context(), &lambda_g), Ok(()));
+    assert_eq!(
+        validate_candidate_context_grammar(old.context(), &lambda_g),
+        Ok(())
+    );
     assert_eq!(
         validate_candidate_context_grammar(old.context(), &lambda_g1),
         Err(GrammarBindingError::GrammarDigestMismatch)
@@ -82,15 +83,8 @@ fn candidate_built_under_lambda_g_cannot_be_silently_reused_under_lambda_g1() {
 #[test]
 fn grammar_binding_rejects_generation_mismatch() {
     let context_generation = d("p10:u:g");
-    let lambda = GrammarGeneration::new(
-        d("p10:u:g1"),
-        None,
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-    );
+    let lambda =
+        GrammarGeneration::new(d("p10:u:g1"), None, vec![], vec![], vec![], vec![], vec![]);
 
     assert_eq!(
         bind_candidate_context_to_grammar(base_context(context_generation), &lambda),

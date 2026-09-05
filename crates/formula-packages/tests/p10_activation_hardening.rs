@@ -54,9 +54,7 @@ fn nogood_scope_mismatch_does_not_prune_unrelated_context() {
     );
     let activation = ScopedNogoodActivation::new(&generation, &record).unwrap();
 
-    assert!(
-        applicable_nogoods(&[other_scope], std::slice::from_ref(&activation)).is_empty()
-    );
+    assert!(applicable_nogoods(&[other_scope], std::slice::from_ref(&activation)).is_empty());
     assert_eq!(
         applicable_nogoods(&[scope, other_scope], &[activation]),
         vec![subject]

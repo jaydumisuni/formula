@@ -35,6 +35,9 @@ fn realization_upgrade_identity_is_selection_only_and_variant_sensitive() {
 
     assert_eq!(upgrade.semantic_artifact(), semantic);
     assert_eq!(upgrade.universe_generation(), generation);
-    assert_eq!(upgrade.semantic_change_class(), SemanticChangeClass::RealizationOnly);
+    assert_eq!(
+        upgrade.semantic_change_class(),
+        SemanticChangeClass::RealizationOnly
+    );
     assert_ne!(upgrade.structural_digest(), reverse.structural_digest());
 }

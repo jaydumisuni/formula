@@ -4,7 +4,9 @@ use formula_core::{
     artifacts::StructuralIdentity,
     digest::ArtifactDigest,
     realization::RealizationDispatchContext,
-    self_expansion::{RealizationUpgrade, SemanticChangeClass, SupersessionKind, SupersessionRecord},
+    self_expansion::{
+        RealizationUpgrade, SemanticChangeClass, SupersessionKind, SupersessionRecord,
+    },
 };
 use rusqlite::{OptionalExtension, params};
 

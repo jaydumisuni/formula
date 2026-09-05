@@ -6,8 +6,7 @@ use formula_core::{
     artifacts::StructuralIdentity,
     digest::ArtifactDigest,
     self_expansion::{
-        EvidenceFreshness, ProofRepairPlan, ProofTransportPlan, SemanticChange,
-        SemanticChangeClass,
+        EvidenceFreshness, ProofRepairPlan, ProofTransportPlan, SemanticChange, SemanticChangeClass,
     },
 };
 
@@ -76,14 +75,8 @@ fn exact_transport_is_checker_authorized_and_receives_new_identity() {
         checker,
     );
 
-    let authorization = authorize_transport_v1(
-        &change,
-        &plan,
-        checker,
-        source_evidence,
-        &[dependency],
-    )
-    .unwrap();
+    let authorization =
+        authorize_transport_v1(&change, &plan, checker, source_evidence, &[dependency]).unwrap();
     let record = transport_evidence_v1(&authorization, &plan).unwrap();
 
     assert_eq!(record.destination_target(), destination_target);
