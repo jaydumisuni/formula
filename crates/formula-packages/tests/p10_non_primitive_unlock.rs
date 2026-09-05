@@ -97,7 +97,10 @@ fn promoted_structure_witness_unlocks_existing_rational_field_capability() {
     let expansion_authorization =
         authorize_expansion_v1(&base_authorization, &classified, &u0, None)
             .expect("structure witness may unlock capability closure but not grammar");
-    assert_eq!(expansion_authorization.class(), PromotionClass::StructureWitness);
+    assert_eq!(
+        expansion_authorization.class(),
+        PromotionClass::StructureWitness
+    );
     assert_eq!(expansion_authorization.activation_effects(), &[field_cap]);
     assert!(expansion_authorization.grammar_effects().is_empty());
 
@@ -125,6 +128,9 @@ fn promoted_structure_witness_unlocks_existing_rational_field_capability() {
     assert!(delta.removed().next().is_none());
 
     let rational_after = rational_package(foundation);
-    assert_eq!(rational_before.structural_digest(), rational_after.structural_digest());
+    assert_eq!(
+        rational_before.structural_digest(),
+        rational_after.structural_digest()
+    );
     assert_eq!(rational_after.structural_digest(), rational_digest);
 }
