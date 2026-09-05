@@ -8,241 +8,225 @@ Recover repository evidence before reasoning. Do not reconstruct implementation 
 
 1. [`docs/design/README.md`](docs/design/README.md) — frozen D1–D5 design precedence.
 2. [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md) — frozen roadmap P0 onward.
-3. [`docs/checkpoints/2026-09-04-p8-native-realization-validation.md`](docs/checkpoints/2026-09-04-p8-native-realization-validation.md) — finally frozen P8 checkpoint.
-4. [`docs/checkpoints/2026-09-04-p7-promotion-generation-transition.md`](docs/checkpoints/2026-09-04-p7-promotion-generation-transition.md) — exact P7 predecessor checkpoint.
-5. [`docs/superpowers/specs/2026-09-04-p8-native-realization-validation-design.md`](docs/superpowers/specs/2026-09-04-p8-native-realization-validation-design.md) — frozen P8 design.
-6. [`docs/superpowers/plans/2026-09-04-p8-native-realization-validation.md`](docs/superpowers/plans/2026-09-04-p8-native-realization-validation.md) — executed P8 implementation plan.
+3. [`docs/checkpoints/2026-09-04-p9-canonical-first-light-proof.md`](docs/checkpoints/2026-09-04-p9-canonical-first-light-proof.md) — P9 canonical source-proof checkpoint; final docs-head proof pending.
+4. [`docs/checkpoints/2026-09-04-p8-native-realization-validation.md`](docs/checkpoints/2026-09-04-p8-native-realization-validation.md) — exact frozen P8 predecessor checkpoint.
+5. [`docs/superpowers/specs/2026-09-04-p9-canonical-first-light-proof-design.md`](docs/superpowers/specs/2026-09-04-p9-canonical-first-light-proof-design.md) — frozen P9 design.
+6. [`docs/superpowers/plans/2026-09-04-p9-canonical-first-light-proof.md`](docs/superpowers/plans/2026-09-04-p9-canonical-first-light-proof.md) — executed P9 implementation/freeze plan.
 7. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for a concrete contradiction or missing obligation.
 
 ## Exact current implementation state
 
-**P8 — D4 Native Realization + Validation: FINALLY FROZEN.**
+**P9 — Canonical First-Light Proof: SOURCE PROVED; DOCUMENTATION-HEAD PROOF PENDING.**
 
 Canonical branch:
 
 ```text
-implementation/p8-native-realization-validation
+implementation/p9-canonical-first-light-proof
 ```
 
-Exact finally frozen P7 predecessor:
-
-```text
-e82f7b0535694285baeeb4baae37edc27b6864b8
-workflow: P7 canonical proof
-workflow run: 33862079731
-job: 100988579155
-conclusion: success
-```
-
-Canonical P8 source-under-test proof boundary:
-
-```text
-3ca395e13de7dbbc611347f37b8cbaf3875d4236
-workflow: P8 canonical proof
-workflow run: 33898667278
-job: 101107293202
-conclusion: success
-```
-
-Exact finally frozen P8 documentation-bearing proof head:
+Exact finally frozen P8 predecessor:
 
 ```text
 fa369b6241c0c069176e5939acf4d5ec74eb8085
 workflow: P8 canonical proof
-workflow run: 33899079722
+run: 33899079722
 job: 101108627933
 conclusion: success
 ```
 
-The successful final workflow checked out exact SHA `fa369b6241c0c069176e5939acf4d5ec74eb8085`, ran on Ubuntu 24.04 with Rust 1.98.0, re-earned every P8 marker, passed the real FL-C native CPU proof, all predecessor/workspace tests, build, rustfmt, Clippy with warnings denied, dependency firewalls, and clean-worktree checks.
-
-Exact P7 -> P8 source compare:
+Canonical P9 source-under-test proof boundary:
 
 ```text
-base:    e82f7b0535694285baeeb4baae37edc27b6864b8
-head:    3ca395e13de7dbbc611347f37b8cbaf3875d4236
+7b26c560b0edc5d7726e33f201e0a7be28ebcbcd
+workflow: P9 canonical proof
+run: 33929718636
+job: 101205682563
+conclusion: success
+```
+
+The source run checked out exact SHA `7b26c560b0edc5d7726e33f201e0a7be28ebcbcd`, used the permanent read-only P9 workflow, ran on Ubuntu 24.04 with Rust 1.98.0, completed the single clean-state First-Light proof, executed all NC-01…NC-12, emitted all fifteen frozen PASS markers in order, passed every P9/predecessor/workspace gate, and finished with a clean worktree.
+
+The temporary `.github/workflows/p9-development.yml` was removed before the source-under-test proof. It is not part of the canonical source boundary.
+
+## Canonical P9 workflow
+
+```text
+path:        .github/workflows/p9-canonical-proof.yml
+blob SHA:    d9bc72e96be27259d948b2ced2a5cbe3de959755
+permissions: contents: read
+runner:      ubuntu-24.04
+Rust:        1.98.0
+rustc:       88d9e12ae178fab0fb5cc050a94da85685d449ea
+cargo:       1.98.0 (797e8a9bc 2026-08-05)
+host:        x86_64-unknown-linux-gnu
+LLVM:        22.1.8
+```
+
+The final freeze requires this exact workflow blob to remain unchanged on the documentation-bearing candidate head.
+
+## P8 → P9 reviewed source delta
+
+```text
+base:    fa369b6241c0c069176e5939acf4d5ec74eb8085
+head:    7b26c560b0edc5d7726e33f201e0a7be28ebcbcd
 status:  ahead
-ahead:   37 commits
+ahead:   64 commits
 behind:  0 commits
-files:   20
+files:   48 changed files
 ```
 
-Exact source-proof -> frozen-docs-head compare:
+The P9 source delta adds durable semantic activation, activation-derived U1 capability closure, explicit zero-rediscovery reuse compilation, admitted-binary second-query reuse, canonical First-Light proof/negative-control identities, an independent verifier, a single clean-state canonical proof harness, and the permanent read-only workflow. Temporary development and one-shot helper workflows are absent at the source proof boundary.
+
+## What P9 proves
+
+P9 closes the frozen First-Light loop in one canonical authority state:
 
 ```text
-base:    3ca395e13de7dbbc611347f37b8cbaf3875d4236
-head:    fa369b6241c0c069176e5939acf4d5ec74eb8085
-status:  ahead
-ahead:   1 commit
-behind:  0 commits
-files:   2 documentation files only
+FL-A
+ -> FL-B
+ -> FL-C
+ -> checker-certified promotion
+ -> U0 -> U1
+ -> durable semantic ACTIVATED state
+ -> U1 capability closure expansion
+ -> deterministic native realization
+ -> independent native validation
+ -> admitted native binary
+ -> second COUNT query
+ -> reuse-only compilation
+ -> exact dispatch of the already-admitted binary
+ -> independent manifest replay/verification
 ```
 
-Pinned canonical proof toolchain:
+For the second query P9 proves:
 
 ```text
-Rust 1.98.0
-host: x86_64-unknown-linux-gnu
-runner: ubuntu-24.04
-Cargo proof commands: --locked / --offline where applicable
-canonical workflow permissions: contents: read
+primitive-discovery CandidateSpaces = 0
+primitive-discovery WorkCells = 0
+source regeneration after reuse boundary = 0
+rustc invocations after reuse boundary = 0
+realization reauthorizations after reuse boundary = 0
+realization readmissions after reuse boundary = 0
+COUNT = 9
 ```
 
-## What P8 proves
+The reuse path consumes the U1 capability closure and selects the already-admitted P8 native realization under the exact generation/world/authority/observer context. Missing capability or context mismatch fails closed.
 
-P8 converts the P7-admitted FL-C semantic primitive into one bounded native CPU realization while keeping mathematical authority and realization authority separate:
+## Source-run proof identities
+
+Exact source-run evidence from run `33929718636`, job `101205682563`:
 
 ```text
-P7-admitted semantic primitive in U1
- -> exact SpecializationIdentity
- -> deterministic standalone Rust source
- -> rustc 1.98.0 -O
- -> native binary
- -> execute all 256 U8 inputs
- -> independent checker validation
- -> opaque RealizationAuthorization
- -> AuthorityStore::admit_realization
- -> exact context dispatch
+P9_SOURCE_SHA=7b26c560b0edc5d7726e33f201e0a7be28ebcbcd
+P9_TOOLCHAIN_RELEASE=1.98.0
+P9_TOOLCHAIN_HOST=x86_64-unknown-linux-gnu
+P9_MANIFEST=sha256:8d19f240fe676285d13b905524ce374f12d01d25f81e239f4e55383bec19be09
+P9_U0=sha256:5eda5f9b76a4cad1a431c5712020b7024466617bc1b5236212993a711f979606
+P9_U1=sha256:f3884926ef9eb477b19dcd3cc9056b01e65b285e38ef56209f65b7da8c9dcbe1
+P9_NEGATIVE_CONTROLS=sha256:4a854e865807c9831001e6b82af0280c39836a0bba38457497bd034dfa6b67f8
+P9_COUNT=9
 ```
 
-P8 proves:
+`FirstLightProofManifest` binds the exact source commit string. Therefore the final documentation-bearing run will correctly have its own source-bound manifest digest while U0, U1, the negative-control identity, semantic result, and marker contract remain unchanged unless proof semantics changed.
+
+## Executed NC-01…NC-12
+
+The canonical negative-control manifest contains the exact required controls once each and the clean-state run executes their concrete rejection paths:
 
 ```text
-canonical specialization identity
-EXACT_EQUIVALENCE lowering identity
-canonical source/toolchain/binary realization manifest
-realization generator cannot reach checker/store authority
-compiler success cannot self-admit
-checker-issued opaque realization authorization
-source mutation rejection
-binary mutation rejection
-specialization/toolchain/context mismatch rejection
-exact 256-input native CPU equivalence
-active-generation admission check
-content-addressed binary admission
-exact dispatch-context matching
-tampered admitted binary fails closed
-U0 mathematical generation unchanged
-U1 mathematical generation unchanged
-P7 mathematical authority preserved
-CPU-local/offline proof after dependency priming
+NC-01 ModifiedSealedTarget
+NC-02 SealedImportAttempt
+NC-03 FlASampleNearMiss
+NC-04 FlBCorruptedTranslation
+NC-05 FlCZeroNearMiss
+NC-06 ForgedEvidence
+NC-07 CandidateMutationAfterCertificate
+NC-08 SearchAuthorityWrite
+NC-09 MutatedRealizationBinary
+NC-10 ActivationRemoved
+NC-11 StricterAuthorityWithoutEvidence
+NC-12 PromotionParentRace
+```
+
+This is execution evidence, not a list-only definition.
+
+## P9 frozen marker contract
+
+The source proof independently replayed the full manifest and emitted exactly these fifteen ordered markers:
+
+```text
+PASS D1_AUTHORITY_SEPARATION
+PASS D2_IDENTITY_GENERATION_REPLAY
+PASS D2_CERTIFICATE_ROUTING
+PASS D2_SEARCH_STATE_SEPARATION
+PASS D3_BLIND_SEMANTIC_ELABORATION
+PASS D3_REPRESENTATION_REDUCTION
+PASS D3_SYMBOLIC_CANDIDATE_SPACE
+PASS D3_FALSE_NEARMISS_REJECTION
+PASS D4_NATIVE_REALIZATION_EQUIVALENCE
+PASS D4_CPU_LOCAL_OFFLINE
+PASS D5_ATOMIC_PROMOTION
+PASS D5_CAPABILITY_CLOSURE_EXPANDED
+PASS D5_SECOND_QUERY_REUSE
+PASS NEGATIVE_CONTROLS
+PASS FIRST_LIGHT_COMPLETE
+```
+
+`FIRST_LIGHT_COMPLETE` has been earned on the exact source-under-test run. Under the P9 freeze plan it does **not** become recovered cross-chat final authority until the unchanged canonical workflow also succeeds on the documentation-bearing head.
+
+## Canonical source-run gates
+
+Run `33929718636` passed:
+
+```text
+identity + toolchain
+locked/offline metadata
+canonical clean-state First-Light proof
+independent final verifier
+reuse compiler
+semantic activation store
+activation-derived capability closure
+admitted-binary second-query reuse
+manifest identities
+predecessor architecture firewalls
+formula-core tests
+formula-check tests
+formula-store tests
+formula-realize tests
+formula-packages tests
+formula-engine tests
+formula-first-light tests
+canonical harness tests
+workspace tests
+workspace build
+rustfmt
+Clippy with -D warnings
+dependency trees
+authority dependency firewall
+clean worktree
 ```
 
 ## Authority boundary
 
-The P8 authority split is executable:
+P9 extends rather than weakens the frozen P0–P8 authority split:
 
 ```text
-mathematical authority:
-  P7 checker + promotion -> immutable U1 semantic primitive
-
-realization production:
-  formula-realize + rustc -> untrusted source/binary candidate
-
-realization authority:
-  formula-check -> opaque RealizationAuthorization
-  formula-store -> consume authorization + persist immutable binary
-
-execution:
-  RealizationDispatchContext -> exact admitted artifact only
+search/discovery -> candidate only
+checker -> mathematical/realization verification authority
+promotion -> atomic generation-producing mathematical publication
+AuthorityStore -> authorization-consuming immutable persistence
+formula-realize/rustc -> untrusted realization production
+semantic activation -> active-generation-bound durable activation record
+capability closure -> derived state only
+reuse compiler -> exact admitted-capability consumption; no discovery authority
+execution -> exact admitted realization dispatch only
 ```
 
-Production realization generation remains outside authority publication:
+Production dependency laws remain enforced. In particular, the checker cannot link search/engine/store/realization/First-Light implementation authority; the engine cannot link checker/store/First-Light authority; realization generation cannot reach checker/store/First-Light authority; and First-Light production dependencies remain sealed from checker/store/realize implementation dependencies.
 
-```text
-formula-realize -> formula-core + formula-engine
-formula-realize -/-> formula-check
-formula-realize -/-> formula-store
-formula-realize -/-> formula-first-light
+## P0–P8 remain authority
 
-formula-engine -/-> formula-check
-formula-engine -/-> formula-store
-formula-engine -/-> formula-first-light
-```
-
-`formula-first-light` links checker/store/realize only as **dev-dependencies** for integration proof. Its production dependencies remain `formula-core` + `formula-engine`.
-
-## Realization identity law
-
-`SpecializationIdentity` binds:
-
-```text
-semantic target
-generation
-world
-authority contract
-observer
-EXACT_EQUIVALENCE lowering class
-```
-
-`NativeRealizationManifest` additionally binds exact source digest, toolchain identity, and binary digest. A changed source, compiler identity, binary, generation, world, authority contract, observer, or specialization cannot silently reuse an existing authorization.
-
-## Independent checker law
-
-The compiler/generator is not trusted to certify realization correctness.
-
-The checker requires exact native/check-manifest bindings and exhaustive 256-input output equality. Successful validation is the only constructor path to opaque `RealizationAuthorization`; its authority-bearing fields are private and it has no public constructor.
-
-Negative controls include:
-
-```text
-changed specialization -> reject
-changed toolchain -> reject
-changed source bytes -> reject
-changed binary bytes -> reject
-short output set -> reject
-one wrong native output -> exact counterexample
-compiler output without authorization -> not dispatchable
-stale generation at admission -> reject
-changed binary at admission -> reject
-wrong dispatch context -> no artifact
-tampered stored binary -> verified blob failure
-```
-
-## Store and dispatch law
-
-P8 extends the existing `AuthorityStore`; it does not create a second authority root.
-
-Admission requires checker authorization, exact active generation, and exact binary digest before bytes enter the existing content-addressed immutable BlobStore and realization registry.
-
-Dispatch is exact over semantic target, generation, world, authority contract, and observer. Context mismatch fails closed.
-
-## FL-C real native CPU proof
-
-The canonical P8 proof re-runs the P7 FL-C discovery/promotion path, specializes the U1-admitted semantic expression, generates Rust, compiles it with pinned `rustc 1.98.0 -O`, executes the native binary for every input `0..=255`, independently checks those outputs, admits only the checker-authorized binary, and dispatches it through the exact context.
-
-The targeted native proof passed on both the source proof head and the final documentation-bearing head. The final exact-head run repeated the path through First-Light and workspace sweeps.
-
-Realization admission does not create a new mathematical generation:
-
-```text
-U0 digest/bytes unchanged
-U1 digest/bytes unchanged
-```
-
-A failed realization therefore cannot invalidate or rewrite already-admitted mathematics.
-
-## P8 proof markers
-
-Both canonical source run `33898667278` and final exact-head run `33899079722` earned the required P8 markers after their corresponding gates passed:
-
-```text
-PASS P8_SEMANTIC_BINDING
-PASS P8_SPECIALIZATION_IDENTITY
-PASS P8_EXACT_LOWERING_CLASS
-PASS P8_SOURCE_TOOLCHAIN_BINARY_BOUND
-PASS P8_COMPILER_CANNOT_SELF_ADMIT
-PASS P8_ALL_256_INPUTS_EQUIVALENT
-PASS P8_MUTATED_SOURCE_REJECTED
-PASS P8_MUTATED_BINARY_REJECTED
-PASS P8_DISPATCH_IDENTITY_ENFORCED
-PASS P8_CPU_LOCAL_OFFLINE
-PASS P8_P7_MATH_AUTHORITY_PRESERVED
-```
-
-## P0–P7 remain authority
-
-P8 extends rather than replaces:
+P9 consumes and extends, but does not rewrite:
 
 ```text
 P0 reproducible repository/build + architecture firewall
@@ -253,43 +237,35 @@ P4 deterministic query/compiler/campaign planning
 P5 bounded CandidateSpace + discovery
 P6 sealed First-Light harness + blindness gates
 P7 checker-authorized atomic promotion into immutable U1
+P8 independently authorized native realization + exact dispatch
 ```
 
-## Not proved by P8
+## Not proved by P9
 
-Do not claim from P8:
+Do not claim from P9:
 
 ```text
-second-query reuse under U1
-proof that search/synthesis is skipped on reuse
-P9 reusable dispatch policy
-complete P9 First-Light proof manifest
-FIRST_LIGHT_COMPLETE
+P10 generalized self-expansion machinery
+unbounded/general discovery beyond the frozen First-Light targets
 GPU/SIMD/JIT realization
 Ptah/distributed execution
-P9 completion
+network-backed proof authority
+model-backed proof authority
+arbitrary realization/result-class policies outside the frozen P9 contract
 P10 completion
 ```
 
 ## Next implementation boundary
 
-The next frozen-roadmap phase is **P9 — reuse / complete First-Light proof**.
+After the P9 documentation-bearing candidate passes the unchanged canonical workflow, P9 may be labeled **FINALLY FROZEN** and the next frozen-roadmap phase is **P10**.
 
-P8 is now fully frozen, so P9 may begin from exact frozen P8 proof head:
-
-```text
-fa369b6241c0c069176e5939acf4d5ec74eb8085
-```
-
-P9 must be implemented as a new phase/branch. It must consume the P8-authorized realization and prove next-query reuse behavior without silently re-running synthesis when reuse is valid. `FIRST_LIGHT_COMPLETE` is not earned by P8.
-
-**P9 has not started.**
+P10 must start from the exact finally frozen P9 head. It must not rewrite P9 source or proof authority.
 
 ## Constitutional laws to preserve
 
 1. Search may propose mathematics. Only Certification + Promotion can create mathematical authority.
 2. Execution may consume authority. Execution cannot manufacture authority.
-3. Mathematical correctness and realization correctness are separate proof obligations.
+3. Mathematical correctness and realization correctness remain separate proof obligations.
 4. Candidate/search/compiler state remains outside admitted generation authority until explicitly promoted.
 5. Resource exhaustion never becomes mathematical refutation or weakens an Authority Contract.
 6. Promotion is generation-producing, atomic, and history preserving.
@@ -301,31 +277,34 @@ P9 must be implemented as a new phase/branch. It must consume the P8-authorized 
 12. Realization admission requires independent checker authorization and exact semantic/source/toolchain/binary/context binding.
 13. Compilation success alone never creates realization authority.
 14. Dispatch may select only an admitted realization matching the exact authority context.
+15. Semantic reuse requires exact active-generation capability evidence and cannot silently fall back to rediscovery under the canonical reuse contract.
+16. `FIRST_LIGHT_COMPLETE` is final recovery authority only after the unchanged canonical P9 workflow proves the documentation-bearing head.
 
 ## Recovery procedure
 
 1. Read this file.
-2. Read the P8 checkpoint, P8 design, and P8 implementation plan.
-3. Treat `fa369b6241c0c069176e5939acf4d5ec74eb8085` as the exact finally frozen P8 proof head.
-4. Verify final canonical run `33899079722`, job `101108627933`, if P8 freeze authority is questioned.
-5. Preserve frozen P7 predecessor `e82f7b0535694285baeeb4baae37edc27b6864b8` as the predecessor review boundary.
-6. Start P9 only as a separate phase from the frozen P8 proof head; do not rewrite P8 history.
-7. Do not reopen broad research unless repository evidence exposes a concrete contradiction or missing requirement.
+2. Read the P9 checkpoint, P9 design, and P9 implementation plan.
+3. Treat `fa369b6241c0c069176e5939acf4d5ec74eb8085` as the exact frozen P8 predecessor.
+4. Treat `7b26c560b0edc5d7726e33f201e0a7be28ebcbcd`, run `33929718636`, job `101205682563`, as the exact P9 **source-under-test proof boundary**.
+5. Verify the canonical workflow blob is `d9bc72e96be27259d948b2ced2a5cbe3de959755` and has `contents: read`.
+6. Until the documentation-bearing exact-head run succeeds, report P9 as **source proved; docs-head proof pending**, not finally frozen.
+7. Once that exact docs-head run succeeds, record the frozen head/run/job as post-proof recovery metadata without treating that recording commit as a new proof boundary.
+8. Do not reopen broad research unless repository evidence exposes a concrete contradiction or missing requirement.
 
 ## Freeze state
 
-P8 is **FINALLY FROZEN** on exact documentation-bearing proof head:
+Current state:
 
 ```text
-fa369b6241c0c069176e5939acf4d5ec74eb8085
-workflow: P8 canonical proof
-run: 33899079722
-job: 101108627933
-conclusion: success
+P9 source proof:       PROVED
+source head:           7b26c560b0edc5d7726e33f201e0a7be28ebcbcd
+source run:            33929718636
+source job:            101205682563
+source conclusion:     success
+canonical workflow:    d9bc72e96be27259d948b2ced2a5cbe3de959755
+documentation proof:   PENDING
+P9 final freeze:       NOT YET CLAIMED
+FIRST_LIGHT_COMPLETE:  earned on source, pending final docs-head recovery authority
 ```
 
-The source-under-test proof remains independently recorded at `3ca395e13de7dbbc611347f37b8cbaf3875d4236`, run `33898667278`, job `101107293202`, success.
-
-Any later commit that changes only recovery documentation to record this already-earned result is **post-freeze metadata**. It does not redefine the P8 frozen proof head and does not create a recursive requirement to prove the run ID that records itself.
-
-The P8 branch has **not** been merged to `main`. P9 has **not** started.
+The next action is the final plan gate: run the **unchanged** canonical workflow on this documentation-bearing candidate head. Only success on that exact head may establish the finally frozen P9 boundary.
