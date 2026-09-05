@@ -1,0 +1,43 @@
+name: P10 rustfmt once
+
+on:
+  push:
+    branches:
+      - implementation/p10-self-expansion-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  rustfmt:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: implementation/p10-self-expansion-hardening
+
+      - name: Install pinned Rust formatter
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt
+
+      - name: Format Rust sources
+        run: cargo fmt --all
+
+      - name: Commit formatter output only when required
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'rustfmt produced no changes'
+            exit 0
+          fi
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- '*.rs'
+          git commit -m 'style(p10): apply pinned rustfmt'
+          git push origin HEAD:implementation/p10-self-expansion-hardening
