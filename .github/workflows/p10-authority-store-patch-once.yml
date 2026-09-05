@@ -26,124 +26,101 @@ jobs:
           path = Path("crates/formula-store/src/authority_store.rs")
           text = path.read_text()
 
-          replacements = [
-              (
-                  "mod activation_store;\nmod realization_store;",
-                  "mod activation_store;\nmod expansion_store;\nmod realization_store;",
-              ),
-              (
-                  """    SemanticActivationDigestMismatch {
-                  stored: ArtifactDigest,
-                  reconstructed: ArtifactDigest,
-              },
-              RealizationGenerationMismatch {""",
-                  """    SemanticActivationDigestMismatch {
-                  stored: ArtifactDigest,
-                  reconstructed: ArtifactDigest,
-              },
-              ExpansionActivationGenerationMismatch {
-                  expected: ArtifactDigest,
-                  actual: ArtifactDigest,
-              },
-              ExpansionActivationSubjectNotAdmitted(ArtifactDigest),
-              ExpansionActivationEvidenceNotAuthorityBound(ArtifactDigest),
-              ExpansionActivationQuarantined,
-              ExpansionActivationDigestMismatch {
-                  stored: ArtifactDigest,
-                  reconstructed: ArtifactDigest,
-              },
-              ExpansionActivationUnknownPromotionClass(String),
-              ExpansionActivationUnknownMode(String),
-              SupersessionEvidenceNotAuthorityBound(ArtifactDigest),
-              SupersessionDigestMismatch {
-                  stored: ArtifactDigest,
-                  reconstructed: ArtifactDigest,
-              },
-              SupersessionUnknownKind(String),
-              RealizationGenerationMismatch {""",
-              ),
-              (
-                  """            Self::SemanticActivationDigestMismatch {
-                  stored,
-                  reconstructed,
-              } => write!(
-                  f,
-                  \"semantic activation digest mismatch: stored {}, reconstructed {}\",
-                  stored.as_str(),
-                  reconstructed.as_str()
-              ),
-              Self::RealizationGenerationMismatch { expected, actual } => write!(""",
-                  """            Self::SemanticActivationDigestMismatch {
-                  stored,
-                  reconstructed,
-              } => write!(
-                  f,
-                  \"semantic activation digest mismatch: stored {}, reconstructed {}\",
-                  stored.as_str(),
-                  reconstructed.as_str()
-              ),
-              Self::ExpansionActivationGenerationMismatch { expected, actual } => write!(
-                  f,
-                  \"expansion activation generation mismatch: expected {}, got {}\",
-                  expected.as_str(),
-                  actual.as_str()
-              ),
-              Self::ExpansionActivationSubjectNotAdmitted(digest) => write!(
-                  f,
-                  \"expansion activation subject is not admitted: {}\",
-                  digest.as_str()
-              ),
-              Self::ExpansionActivationEvidenceNotAuthorityBound(digest) => write!(
-                  f,
-                  \"expansion activation evidence is not authority-bound: {}\",
-                  digest.as_str()
-              ),
-              Self::ExpansionActivationQuarantined => {
-                  f.write_str(\"quarantined expansion activation cannot be consumed\")
-              }
-              Self::ExpansionActivationDigestMismatch {
-                  stored,
-                  reconstructed,
-              } => write!(
-                  f,
-                  \"expansion activation digest mismatch: stored {}, reconstructed {}\",
-                  stored.as_str(),
-                  reconstructed.as_str()
-              ),
-              Self::ExpansionActivationUnknownPromotionClass(value) => write!(
-                  f,
-                  \"unknown stored expansion promotion class: {value}\"
-              ),
-              Self::ExpansionActivationUnknownMode(value) => {
-                  write!(f, \"unknown stored expansion activation mode: {value}\")
-              }
-              Self::SupersessionEvidenceNotAuthorityBound(digest) => write!(
-                  f,
-                  \"supersession evidence is not authority-bound: {}\",
-                  digest.as_str()
-              ),
-              Self::SupersessionDigestMismatch {
-                  stored,
-                  reconstructed,
-              } => write!(
-                  f,
-                  \"supersession digest mismatch: stored {}, reconstructed {}\",
-                  stored.as_str(),
-                  reconstructed.as_str()
-              ),
-              Self::SupersessionUnknownKind(value) => {
-                  write!(f, \"unknown stored supersession kind: {value}\")
-              }
-              Self::RealizationGenerationMismatch { expected, actual } => write!(""",
-              ),
-          ]
+          module_anchor = "mod activation_store;\nmod realization_store;"
+          enum_anchor = "    RealizationGenerationMismatch {"
+          display_anchor = "            Self::RealizationGenerationMismatch { expected, actual } => write!("
 
-          for old, new in replacements:
-              count = text.count(old)
+          enum_insert = """    ExpansionActivationGenerationMismatch {
+              expected: ArtifactDigest,
+              actual: ArtifactDigest,
+          },
+          ExpansionActivationSubjectNotAdmitted(ArtifactDigest),
+          ExpansionActivationEvidenceNotAuthorityBound(ArtifactDigest),
+          ExpansionActivationQuarantined,
+          ExpansionActivationDigestMismatch {
+              stored: ArtifactDigest,
+              reconstructed: ArtifactDigest,
+          },
+          ExpansionActivationUnknownPromotionClass(String),
+          ExpansionActivationUnknownMode(String),
+          SupersessionEvidenceNotAuthorityBound(ArtifactDigest),
+          SupersessionDigestMismatch {
+              stored: ArtifactDigest,
+              reconstructed: ArtifactDigest,
+          },
+          SupersessionUnknownKind(String),
+          """
+
+          display_insert = """            Self::ExpansionActivationGenerationMismatch { expected, actual } => write!(
+              f,
+              \"expansion activation generation mismatch: expected {}, got {}\",
+              expected.as_str(),
+              actual.as_str()
+          ),
+          Self::ExpansionActivationSubjectNotAdmitted(digest) => write!(
+              f,
+              \"expansion activation subject is not admitted: {}\",
+              digest.as_str()
+          ),
+          Self::ExpansionActivationEvidenceNotAuthorityBound(digest) => write!(
+              f,
+              \"expansion activation evidence is not authority-bound: {}\",
+              digest.as_str()
+          ),
+          Self::ExpansionActivationQuarantined => {
+              f.write_str(\"quarantined expansion activation cannot be consumed\")
+          }
+          Self::ExpansionActivationDigestMismatch {
+              stored,
+              reconstructed,
+          } => write!(
+              f,
+              \"expansion activation digest mismatch: stored {}, reconstructed {}\",
+              stored.as_str(),
+              reconstructed.as_str()
+          ),
+          Self::ExpansionActivationUnknownPromotionClass(value) => write!(
+              f,
+              \"unknown stored expansion promotion class: {value}\"
+          ),
+          Self::ExpansionActivationUnknownMode(value) => {
+              write!(f, \"unknown stored expansion activation mode: {value}\")
+          }
+          Self::SupersessionEvidenceNotAuthorityBound(digest) => write!(
+              f,
+              \"supersession evidence is not authority-bound: {}\",
+              digest.as_str()
+          ),
+          Self::SupersessionDigestMismatch {
+              stored,
+              reconstructed,
+          } => write!(
+              f,
+              \"supersession digest mismatch: stored {}, reconstructed {}\",
+              stored.as_str(),
+              reconstructed.as_str()
+          ),
+          Self::SupersessionUnknownKind(value) => {
+              write!(f, \"unknown stored supersession kind: {value}\")
+          }
+          """
+
+          for name, anchor in [
+              ("module", module_anchor),
+              ("enum", enum_anchor),
+              ("display", display_anchor),
+          ]:
+              count = text.count(anchor)
               if count != 1:
-                  raise SystemExit(f"expected exactly one authority-store patch anchor, found {count}")
-              text = text.replace(old, new, 1)
+                  raise SystemExit(f"expected exactly one {name} anchor, found {count}")
 
+          text = text.replace(
+              module_anchor,
+              "mod activation_store;\nmod expansion_store;\nmod realization_store;",
+              1,
+          )
+          text = text.replace(enum_anchor, enum_insert + enum_anchor, 1)
+          text = text.replace(display_anchor, display_insert + display_anchor, 1)
           path.write_text(text)
 
       - name: Commit authority-store integration only
