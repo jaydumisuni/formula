@@ -1,7 +1,9 @@
 pub mod activation;
 pub mod builtin;
 pub mod closure;
+pub mod expansion;
 pub mod federation;
+pub mod grammar;
 pub mod morphisms;
 pub mod shared_facts;
 
