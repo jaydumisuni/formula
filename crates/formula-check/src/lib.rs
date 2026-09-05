@@ -4,7 +4,7 @@ pub mod gf2;
 pub mod identity;
 pub mod polynomial;
 pub mod promotion;
-mod proof_evolution;
+pub mod proof_evolution;
 pub mod realization;
 pub mod router;
 pub mod self_expansion;
