@@ -15,7 +15,7 @@ use formula_core::{
     },
     self_expansion::{RealizationUpgrade, SemanticChangeClass, SupersessionKind},
 };
-use formula_store::authority_store::{AuthorityStore, AuthorityStoreError};
+use formula_store::authority_store::{AuthorityStore, RealizationUpgradeError};
 use tempfile::tempdir;
 
 fn d(label: &str) -> ArtifactDigest {
@@ -164,7 +164,12 @@ fn faster_admitted_realization_can_replace_selection_without_new_universe_genera
         .unwrap();
     assert_eq!(preferred.manifest_digest(), admitted_r2.manifest_digest());
     assert_eq!(store.active_generation().unwrap(), Some(before));
-    assert!(store.realization_by_manifest(admitted_r1.manifest_digest()).unwrap().is_some());
+    assert!(
+        store
+            .realization_by_manifest(admitted_r1.manifest_digest())
+            .unwrap()
+            .is_some()
+    );
     assert_eq!(
         store
             .supersessions_for(admitted_r1.manifest_digest())
@@ -195,7 +200,7 @@ fn realization_upgrade_cannot_smuggle_semantic_admission() {
     );
     assert!(matches!(
         store.record_realization_upgrade(&upgrade),
-        Err(AuthorityStoreError::RealizationUpgradeSemanticNotAdmitted(_))
+        Err(RealizationUpgradeError::SemanticNotAdmitted(_))
     ));
 }
 
@@ -233,6 +238,11 @@ fn realization_selection_can_roll_back_without_deleting_new_variant_or_changing_
             .manifest_digest(),
         admitted_r1.manifest_digest()
     );
-    assert!(store.realization_by_manifest(admitted_r2.manifest_digest()).unwrap().is_some());
+    assert!(
+        store
+            .realization_by_manifest(admitted_r2.manifest_digest())
+            .unwrap()
+            .is_some()
+    );
     assert_eq!(store.active_generation().unwrap(), Some(before));
 }
