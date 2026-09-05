@@ -17,7 +17,13 @@ fn every_frozen_d5_promotion_class_has_one_deterministic_policy() {
     let policies = PromotionClassRegistryV1::policies();
     assert_eq!(policies.len(), PromotionClass::ALL.len());
     for class in PromotionClass::ALL {
-        assert_eq!(policies.iter().filter(|policy| policy.class() == class).count(), 1);
+        assert_eq!(
+            policies
+                .iter()
+                .filter(|policy| policy.class() == class)
+                .count(),
+            1
+        );
     }
     assert_eq!(
         PromotionClassRegistryV1::digest(),
@@ -106,5 +112,8 @@ fn semantic_change_identity_tracks_class_and_dependency_cone() {
 
     assert_eq!(first.structural_digest(), second.structural_digest());
     assert_eq!(EvidenceFreshness::Transportable.as_str(), "TRANSPORTABLE");
-    assert_eq!(SupersessionKind::ReplacedRealizationBy.as_str(), "REPLACED_REALIZATION_BY");
+    assert_eq!(
+        SupersessionKind::ReplacedRealizationBy.as_str(),
+        "REPLACED_REALIZATION_BY"
+    );
 }

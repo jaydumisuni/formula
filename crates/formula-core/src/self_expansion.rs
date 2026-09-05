@@ -334,14 +334,21 @@ impl PromotionClassRegistryV1 {
                 with_terminal(vec![ManualOnly, DefaultAutomatic]),
                 false,
             ),
-            Representation | Reduction | MorphismTheoryInterpretation
+            Representation
+            | Reduction
+            | MorphismTheoryInterpretation
             | DecompositionSufficientSummary => PromotionClassPolicy::new(
                 class,
                 true,
                 true,
                 true,
                 false,
-                with_terminal(vec![ManualOnly, ShadowOnly, BoundedAutomatic, DefaultAutomatic]),
+                with_terminal(vec![
+                    ManualOnly,
+                    ShadowOnly,
+                    BoundedAutomatic,
+                    DefaultAutomatic,
+                ]),
                 false,
             ),
             SemanticPrimitive | Capability | PackageTheoryExtension => PromotionClassPolicy::new(
@@ -350,7 +357,12 @@ impl PromotionClassRegistryV1 {
                 true,
                 true,
                 false,
-                with_terminal(vec![ManualOnly, ShadowOnly, BoundedAutomatic, DefaultAutomatic]),
+                with_terminal(vec![
+                    ManualOnly,
+                    ShadowOnly,
+                    BoundedAutomatic,
+                    DefaultAutomatic,
+                ]),
                 false,
             ),
             MetaprimitiveSearchMethod => PromotionClassPolicy::new(
@@ -359,7 +371,12 @@ impl PromotionClassRegistryV1 {
                 false,
                 true,
                 false,
-                with_terminal(vec![ManualOnly, ShadowOnly, BoundedAutomatic, DefaultAutomatic]),
+                with_terminal(vec![
+                    ManualOnly,
+                    ShadowOnly,
+                    BoundedAutomatic,
+                    DefaultAutomatic,
+                ]),
                 true,
             ),
             Realization | ToolchainCheckerRealization => PromotionClassPolicy::new(
@@ -375,10 +392,7 @@ impl PromotionClassRegistryV1 {
     }
 
     pub fn policies() -> Vec<PromotionClassPolicy> {
-        PromotionClass::ALL
-            .into_iter()
-            .map(Self::policy)
-            .collect()
+        PromotionClass::ALL.into_iter().map(Self::policy).collect()
     }
 
     pub fn digest() -> ArtifactDigest {
@@ -481,7 +495,10 @@ impl StructuralIdentity for ClassifiedPromotionCandidate {
             "activation_effects".into(),
             digest_array(&self.activation_effects),
         );
-        object.insert("grammar_effects".into(), digest_array(&self.grammar_effects));
+        object.insert(
+            "grammar_effects".into(),
+            digest_array(&self.grammar_effects),
+        );
         object.insert("scope".into(), digest_array(&self.scope));
         CanonicalValue::Object(object)
     }
@@ -636,7 +653,10 @@ impl StructuralIdentity for GrammarGeneration {
             "universe_generation".into(),
             CanonicalValue::Digest(self.universe_generation),
         );
-        object.insert("parent_grammar".into(), optional_digest(self.parent_grammar));
+        object.insert(
+            "parent_grammar".into(),
+            optional_digest(self.parent_grammar),
+        );
         object.insert(
             "activated_constructors".into(),
             digest_array(&self.activated_constructors),
@@ -739,10 +759,7 @@ impl StructuralIdentity for MetaprimitiveGateEvidence {
             CanonicalValue::Digest(self.adversarial),
         );
         object.insert("transfer".into(), CanonicalValue::Digest(self.transfer));
-        object.insert(
-            "comparison".into(),
-            CanonicalValue::Digest(self.comparison),
-        );
+        object.insert("comparison".into(), CanonicalValue::Digest(self.comparison));
         object.insert("fallback".into(), CanonicalValue::Digest(self.fallback));
         object.insert("scope".into(), digest_array(&self.scope));
         CanonicalValue::Object(object)
