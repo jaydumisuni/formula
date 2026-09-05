@@ -218,5 +218,8 @@ pub(crate) fn is_automatic(mode: ActivationMode) -> bool {
 }
 
 pub(crate) fn is_terminal(mode: ActivationMode) -> bool {
-    matches!(mode, ActivationMode::Superseded | ActivationMode::Quarantined)
+    matches!(
+        mode,
+        ActivationMode::Superseded | ActivationMode::Quarantined
+    )
 }
