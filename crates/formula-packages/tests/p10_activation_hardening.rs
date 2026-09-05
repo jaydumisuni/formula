@@ -54,7 +54,7 @@ fn nogood_scope_mismatch_does_not_prune_unrelated_context() {
     );
     let activation = ScopedNogoodActivation::new(&generation, &record).unwrap();
 
-    assert!(applicable_nogoods(&[other_scope], &[activation.clone()]).is_empty());
+    assert!(applicable_nogoods(&[other_scope], std::slice::from_ref(&activation)).is_empty());
     assert_eq!(
         applicable_nogoods(&[scope, other_scope], &[activation]),
         vec![subject]
@@ -84,7 +84,7 @@ fn promoted_route_requires_preservation_evidence_and_enters_active_routes() {
 
     let activation =
         PromotedRouteActivation::new(&generation, &record, vec![result_class]).unwrap();
-    assert_eq!(active_routes(&[activation.clone()]), vec![route]);
+    assert_eq!(active_routes(std::slice::from_ref(&activation)), vec![route]);
 
     let grammar = derive_grammar_generation(
         &generation,
