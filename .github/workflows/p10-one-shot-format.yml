@@ -31,6 +31,7 @@ jobs:
           crates/formula-check/tests/p10_proof_evolution.rs
           crates/formula-engine/src/self_expansion.rs
           crates/formula-engine/tests/p10_grammar_binding.rs
+          crates/formula-packages/tests/p10_activation_hardening.rs
           crates/formula-realize/tests/p10_realization_upgrade.rs
           crates/formula-store/src/authority_store/realization_store.rs
           crates/formula-store/tests/p10_realization_upgrade.rs
