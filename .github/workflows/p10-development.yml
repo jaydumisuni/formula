@@ -1,0 +1,76 @@
+name: P10 development
+
+on:
+  push:
+    branches:
+      - implementation/p10-self-expansion-hardening
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p10-development:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - name: Print identity
+        run: |
+          set -euxo pipefail
+          echo "P10_SOURCE_SHA=${GITHUB_SHA}"
+          rustc -Vv
+          cargo -V
+
+      - name: Prime locked dependencies
+        run: cargo fetch --locked
+
+      - name: Workspace tests
+        env:
+          CARGO_NET_OFFLINE: "true"
+        run: cargo test --workspace --all-targets --locked --offline
+
+      - name: Workspace build
+        env:
+          CARGO_NET_OFFLINE: "true"
+        run: cargo build --workspace --all-targets --locked --offline
+
+      - name: Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy warnings denied
+        env:
+          CARGO_NET_OFFLINE: "true"
+        run: cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+
+      - name: Dependency firewall
+        env:
+          CARGO_NET_OFFLINE: "true"
+        run: |
+          set -euxo pipefail
+          cargo tree -p formula-check --locked --offline
+          cargo tree -p formula-engine --locked --offline
+          cargo tree -p formula-realize --locked --offline
+          if cargo tree -p formula-check --locked --offline | grep -Eq 'formula-(engine|store|realize|first-light)'; then
+            echo 'formula-check authority firewall violated' >&2
+            exit 1
+          fi
+          if cargo tree -p formula-engine --locked --offline | grep -Eq 'formula-(check|store|realize|first-light)'; then
+            echo 'formula-engine authority firewall violated' >&2
+            exit 1
+          fi
+
+      - name: Clean worktree
+        run: |
+          set -euxo pipefail
+          test -z "$(git status --porcelain)"
