@@ -1,5 +1,4 @@
 use formula_core::{
-    artifacts::StructuralIdentity,
     digest::ArtifactDigest,
     generation::UniverseGeneration,
     self_expansion::{ActivationMode, ExpansionActivationRecord, PromotionClass},
@@ -131,7 +130,12 @@ fn wrong_generation_activation_is_rejected_before_use() {
     let subject = d("p10:wrong-generation-nogood");
     let evidence = d("p10:wrong-generation:evidence");
     let generation = UniverseGeneration::new(0, None, vec![subject], vec![evidence]);
-    let wrong_generation = UniverseGeneration::new(1, Some(generation.digest()), vec![subject], vec![evidence]);
+    let wrong_generation = UniverseGeneration::new(
+        1,
+        Some(generation.digest()),
+        vec![subject],
+        vec![evidence],
+    );
     let record = ExpansionActivationRecord::new(
         subject,
         PromotionClass::CounterexampleNogood,
