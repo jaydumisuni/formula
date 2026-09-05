@@ -2,7 +2,9 @@ use crate::expansion::{ExpansionError, PromotedRouteActivation, active_routes, v
 use formula_core::{
     digest::ArtifactDigest,
     generation::UniverseGeneration,
-    self_expansion::{ActivationMode, ExpansionActivationRecord, GrammarGeneration, PromotionClass},
+    self_expansion::{
+        ActivationMode, ExpansionActivationRecord, GrammarGeneration, PromotionClass,
+    },
 };
 
 pub fn derive_grammar_generation(
