@@ -2,7 +2,7 @@ mod activation_store;
 mod expansion_store;
 mod realization_store;
 
-pub use realization_store::AdmittedRealization;
+pub use realization_store::{AdmittedRealization, RealizationUpgradeError};
 
 use crate::blob_store::{BlobStore, BlobStoreError};
 use formula_core::{
