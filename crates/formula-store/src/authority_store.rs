@@ -1,4 +1,5 @@
 mod activation_store;
+mod expansion_store;
 mod realization_store;
 
 pub use realization_store::AdmittedRealization;
@@ -67,6 +68,25 @@ pub enum AuthorityStoreError {
         stored: ArtifactDigest,
         reconstructed: ArtifactDigest,
     },
+    ExpansionActivationGenerationMismatch {
+    expected: ArtifactDigest,
+    actual: ArtifactDigest,
+},
+ExpansionActivationSubjectNotAdmitted(ArtifactDigest),
+ExpansionActivationEvidenceNotAuthorityBound(ArtifactDigest),
+ExpansionActivationQuarantined,
+ExpansionActivationDigestMismatch {
+    stored: ArtifactDigest,
+    reconstructed: ArtifactDigest,
+},
+ExpansionActivationUnknownPromotionClass(String),
+ExpansionActivationUnknownMode(String),
+SupersessionEvidenceNotAuthorityBound(ArtifactDigest),
+SupersessionDigestMismatch {
+    stored: ArtifactDigest,
+    reconstructed: ArtifactDigest,
+},
+SupersessionUnknownKind(String),
     RealizationGenerationMismatch {
         expected: ArtifactDigest,
         actual: ArtifactDigest,
@@ -161,6 +181,58 @@ impl fmt::Display for AuthorityStoreError {
                 stored.as_str(),
                 reconstructed.as_str()
             ),
+            Self::ExpansionActivationGenerationMismatch { expected, actual } => write!(
+    f,
+    "expansion activation generation mismatch: expected {}, got {}",
+    expected.as_str(),
+    actual.as_str()
+),
+Self::ExpansionActivationSubjectNotAdmitted(digest) => write!(
+    f,
+    "expansion activation subject is not admitted: {}",
+    digest.as_str()
+),
+Self::ExpansionActivationEvidenceNotAuthorityBound(digest) => write!(
+    f,
+    "expansion activation evidence is not authority-bound: {}",
+    digest.as_str()
+),
+Self::ExpansionActivationQuarantined => {
+    f.write_str("quarantined expansion activation cannot be consumed")
+}
+Self::ExpansionActivationDigestMismatch {
+    stored,
+    reconstructed,
+} => write!(
+    f,
+    "expansion activation digest mismatch: stored {}, reconstructed {}",
+    stored.as_str(),
+    reconstructed.as_str()
+),
+Self::ExpansionActivationUnknownPromotionClass(value) => write!(
+    f,
+    "unknown stored expansion promotion class: {value}"
+),
+Self::ExpansionActivationUnknownMode(value) => {
+    write!(f, "unknown stored expansion activation mode: {value}")
+}
+Self::SupersessionEvidenceNotAuthorityBound(digest) => write!(
+    f,
+    "supersession evidence is not authority-bound: {}",
+    digest.as_str()
+),
+Self::SupersessionDigestMismatch {
+    stored,
+    reconstructed,
+} => write!(
+    f,
+    "supersession digest mismatch: stored {}, reconstructed {}",
+    stored.as_str(),
+    reconstructed.as_str()
+),
+Self::SupersessionUnknownKind(value) => {
+    write!(f, "unknown stored supersession kind: {value}")
+}
             Self::RealizationGenerationMismatch { expected, actual } => write!(
                 f,
                 "realization generation mismatch: expected {}, got {}",
