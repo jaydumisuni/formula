@@ -226,12 +226,6 @@ fn strict_metaprimitive_gate_binds_all_checked_evidence_and_scope() {
     assert_eq!(gate_authorization.scope(), &[scope]);
     assert_eq!(gate_authorization.gate_evidence(), gate.structural_digest());
     assert!(
-        authorize_expansion_v1(
-            &base,
-            &automatic,
-            &f.parent,
-            Some(&gate_authorization)
-        )
-        .is_ok()
+        authorize_expansion_v1(&base, &automatic, &f.parent, Some(&gate_authorization)).is_ok()
     );
 }
