@@ -2,9 +2,9 @@
 
 ## Status
 
-**SOURCE PROVED. DOCUMENTATION-HEAD PROOF PENDING.**
+**P9 FINALLY FROZEN. `FIRST_LIGHT_COMPLETE` IS RECOVERED CROSS-CHAT AUTHORITY.**
 
-This checkpoint records the exact P9 source-under-test proof required by the frozen P9 design and implementation plan. P9 is not `FINALLY FROZEN` until the unchanged read-only canonical workflow succeeds on the documentation-bearing head containing this checkpoint and the corresponding `CURRENT.md` update.
+The frozen P9 proof boundary is the documentation-bearing head below. Later commits that change only recovery documentation to record this already-earned result are post-freeze metadata: they do not redefine the frozen proof head and do not create a recursive requirement to prove the run ID that records itself.
 
 ## Authority chain
 
@@ -24,7 +24,7 @@ P9 canonical branch:
 implementation/p9-canonical-first-light-proof
 ```
 
-P9 canonical source-under-test proof:
+P9 source-under-test proof:
 
 ```text
 head:       7b26c560b0edc5d7726e33f201e0a7be28ebcbcd
@@ -34,9 +34,21 @@ job:        101205682563
 conclusion: success
 ```
 
-The temporary P9 development workflow was removed before this source proof. The source head therefore contains the permanent read-only canonical workflow only for P9 closure.
+P9 **finally frozen documentation-bearing proof**:
+
+```text
+head:       b353365fa8b20a13b658c07b3027334b69eff108
+workflow:   P9 canonical proof
+run:        33950470295
+job:        101264153162
+conclusion: success
+```
+
+The final workflow checked out exact head `b353365fa8b20a13b658c07b3027334b69eff108` and passed every canonical gate through clean-tree.
 
 ## Canonical workflow identity
+
+The workflow used for the source run and the final documentation-bearing run was byte-for-byte unchanged:
 
 ```text
 path:        .github/workflows/p9-canonical-proof.yml
@@ -50,24 +62,46 @@ host:        x86_64-unknown-linux-gnu
 LLVM:        22.1.8
 ```
 
-The workflow primes locked dependencies, then runs proof execution with locked/offline Cargo operations where applicable. The canonical proof itself is CPU-local, model-free, GPU-free, Ptah-free, and network-free after dependency priming.
+The temporary `.github/workflows/p9-development.yml` was removed before the source-under-test proof and is not part of either canonical proof boundary.
+
+## Structural freeze review
+
+The exact source-proof → final-proof comparison was:
+
+```text
+base:          7b26c560b0edc5d7726e33f201e0a7be28ebcbcd
+final:         b353365fa8b20a13b658c07b3027334b69eff108
+status:        ahead
+ahead:         2 commits
+behind:        0 commits
+changed files: 2
+```
+
+The two changed files were recovery documentation only:
+
+```text
+CURRENT.md
+docs/checkpoints/2026-09-04-p9-canonical-first-light-proof.md
+```
+
+No source crate, test, Cargo metadata, fixture, design implementation surface, or canonical workflow changed between the proven source boundary and the final documentation-bearing proof head.
 
 ## Reviewed P8 → P9 source delta
 
 ```text
 base:        fa369b6241c0c069176e5939acf4d5ec74eb8085
-head:        7b26c560b0edc5d7726e33f201e0a7be28ebcbcd
+source head: 7b26c560b0edc5d7726e33f201e0a7be28ebcbcd
 status:      ahead
 ahead:       64 commits
 behind:      0 commits
 files:       48 changed files
 ```
 
-The reviewed delta adds the P9 design/plan and implementation surfaces for durable semantic activation, activation-derived capability closure, explicit reuse compilation, second-query admitted-binary reuse, canonical First-Light manifest/verifier identities, the independent verifier, the canonical proof harness, the permanent read-only proof workflow, and supporting tests. Temporary development/one-shot workflow helpers are not present at the source boundary.
+The reviewed source delta adds durable semantic activation, activation-derived capability closure, explicit reuse compilation, admitted-binary second-query reuse, canonical First-Light manifest/verifier identities, the independent verifier, the one-state canonical proof harness, permanent read-only proof workflow, and supporting tests. Temporary development/one-shot helpers are absent from the source proof boundary.
 
 ## Single clean-state canonical proof
 
-The canonical run constructs one clean authority state and proves this sequence without replacing predecessor authority:
+One clean authority state proves this sequence without replacing predecessor authority:
 
 ```text
 FL-A
@@ -86,15 +120,19 @@ FL-A
  -> independent First-Light replay/verifier
 ```
 
-The second query creates zero primitive-discovery CandidateSpaces and zero primitive-discovery WorkCells. After the reuse-query boundary it does not regenerate source, invoke rustc, reauthorize, or readmit the realization.
-
-Canonical second-query result:
+For the second query the proof establishes:
 
 ```text
+primitive-discovery CandidateSpaces = 0
+primitive-discovery WorkCells = 0
+source regeneration after reuse boundary = 0
+rustc invocations after reuse boundary = 0
+realization reauthorizations after reuse boundary = 0
+realization readmissions after reuse boundary = 0
 COUNT = 9
 ```
 
-## Frozen source-run identities
+## Source-run identities
 
 ```text
 P9_SOURCE_SHA=7b26c560b0edc5d7726e33f201e0a7be28ebcbcd
@@ -107,11 +145,24 @@ P9_NEGATIVE_CONTROLS=sha256:4a854e865807c9831001e6b82af0280c39836a0bba38457497bd
 P9_COUNT=9
 ```
 
-`P9_MANIFEST` binds the exact source commit string, so a documentation-bearing head is expected to have its own source-bound manifest identity. U0, U1, the negative-control manifest, semantic behavior, and marker order must remain stable unless source semantics change.
+## Finally frozen docs-head identities
+
+```text
+P9_SOURCE_SHA=b353365fa8b20a13b658c07b3027334b69eff108
+P9_TOOLCHAIN_RELEASE=1.98.0
+P9_TOOLCHAIN_HOST=x86_64-unknown-linux-gnu
+P9_MANIFEST=sha256:b1ddcb7bb73cc1f7247e87c85371ffd5f6c82538e8480440a31583475c46e078
+P9_U0=sha256:5eda5f9b76a4cad1a431c5712020b7024466617bc1b5236212993a711f979606
+P9_U1=sha256:f3884926ef9eb477b19dcd3cc9056b01e65b285e38ef56209f65b7da8c9dcbe1
+P9_NEGATIVE_CONTROLS=sha256:4a854e865807c9831001e6b82af0280c39836a0bba38457497bd034dfa6b67f8
+P9_COUNT=9
+```
+
+`P9_MANIFEST` intentionally changes because the manifest binds the exact source-commit string. U0, U1, negative-control identity, COUNT result, proof semantics, and frozen marker order reproduced unchanged on the documentation-bearing head.
 
 ## Executed negative controls
 
-All twelve required controls are present exactly once in the negative-control manifest and are executed against concrete fail-closed paths:
+All twelve controls are present exactly once in the negative-control manifest and are executed against concrete fail-closed paths:
 
 ```text
 NC-01 ModifiedSealedTarget
@@ -128,11 +179,11 @@ NC-11 StricterAuthorityWithoutEvidence
 NC-12 PromotionParentRace
 ```
 
-The source run proves these are rejection evidence, not merely named identities.
+These are executed rejection evidence, not list-only definitions.
 
 ## Frozen PASS markers
 
-The independent verifier emitted the following fifteen markers in this exact order after replaying and validating the complete manifest:
+The independent verifier reproduced these fifteen markers in this exact order on both the source proof and the final documentation-bearing proof:
 
 ```text
 PASS D1_AUTHORITY_SEPARATION
@@ -152,9 +203,9 @@ PASS NEGATIVE_CONTROLS
 PASS FIRST_LIGHT_COMPLETE
 ```
 
-## Canonical source-run gates
+## Finally frozen canonical gates
 
-Exact run `33929718636`, job `101205682563`, passed all of the following on source head `7b26c560b0edc5d7726e33f201e0a7be28ebcbcd`:
+Exact run `33950470295`, job `101264153162`, passed on head `b353365fa8b20a13b658c07b3027334b69eff108`:
 
 ```text
 identity + toolchain
@@ -186,7 +237,7 @@ clean worktree
 
 ## Authority properties preserved
 
-P9 preserves the P0–P8 constitutional split:
+P9 extends but does not weaken P0–P8:
 
 - search/discovery may propose mathematics but cannot publish authority;
 - only independent certification plus promotion can create mathematical authority;
@@ -195,15 +246,15 @@ P9 preserves the P0–P8 constitutional split:
 - realization correctness remains independently checked;
 - semantic activation is durable derived authority state bound to the active admitted generation;
 - capability closure is derived state and cannot manufacture authority;
-- reuse requires the exact admitted capability and authority context;
+- reuse requires exact admitted capability and authority context;
 - second-query execution selects an already-admitted realization and cannot silently rediscover/recompile it;
 - checker, search/compiler, realization, store, and sealed First-Light dependency firewalls remain enforced.
 
 ## What P9 proves
 
-P9 closes the frozen First-Light loop for the canonical targets by proving, from one clean state, that the system can discover/certify/promote a semantic primitive, realize and independently admit a native implementation, make that primitive reusable through U1 capability closure, and answer a later COUNT query by dispatching the already-admitted binary with zero primitive rediscovery.
+P9 closes the frozen First-Light loop for the canonical targets from one clean state: discover/certify/promote a semantic primitive, persist and activate U1 authority, realize and independently admit a native implementation, expand reusable capability closure, and answer a later COUNT query by exact dispatch of the already-admitted binary with zero primitive rediscovery.
 
-The exact source proof earns `FIRST_LIGHT_COMPLETE` subject to the final documentation-head reproducibility gate required by the frozen plan.
+`FIRST_LIGHT_COMPLETE` is now final recovery authority for P9.
 
 ## Exclusions
 
@@ -221,16 +272,31 @@ arbitrary new result-class realization policies outside the frozen P9 contract
 
 ## Next boundary
 
-After P9 is finally frozen, the next roadmap boundary is **P10**. P10 must start from the exact P9 frozen head and must not retroactively rewrite P9 proof authority.
-
-## Final freeze gate
-
-Current state of this checkpoint:
+The next frozen-roadmap boundary is **P10**. P10 must start from exact finally frozen P9 proof head:
 
 ```text
-source proof:      PROVED
-docs-head proof:   PENDING
-P9 final freeze:   NOT YET CLAIMED
+b353365fa8b20a13b658c07b3027334b69eff108
 ```
 
-The next required action is to run the **unchanged** `.github/workflows/p9-canonical-proof.yml` on the documentation-bearing head containing this checkpoint and the matching `CURRENT.md` update. Only a successful exact-head run may change P9 status to `FINALLY FROZEN` and make `FIRST_LIGHT_COMPLETE` recovered cross-chat authority.
+P10 must not retroactively rewrite P9 source or proof authority.
+
+## Freeze state
+
+```text
+P9 source proof:       PROVED
+source head:           7b26c560b0edc5d7726e33f201e0a7be28ebcbcd
+source run:            33929718636
+source job:            101205682563
+source conclusion:     success
+canonical workflow:    d9bc72e96be27259d948b2ced2a5cbe3de959755
+docs-head proof:       PROVED
+frozen proof head:     b353365fa8b20a13b658c07b3027334b69eff108
+frozen run:            33950470295
+frozen job:            101264153162
+frozen conclusion:     success
+P9 final freeze:       FINALLY FROZEN
+FIRST_LIGHT_COMPLETE:  FINAL RECOVERY AUTHORITY
+next roadmap phase:    P10
+```
+
+Any later commit that changes only this checkpoint and/or `CURRENT.md` to record the already-earned result is post-freeze metadata. It does not redefine `b353365fa8b20a13b658c07b3027334b69eff108` as the frozen proof head and does not require another recursive proof run.
