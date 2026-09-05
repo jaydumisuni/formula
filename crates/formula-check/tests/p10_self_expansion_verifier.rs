@@ -1,11 +1,11 @@
-use formula_check::self_expansion::{
+use formula_check::self_expansion_verifier::{
     P10_CANONICAL_MARKERS, SelfExpansionReplayClaims, SelfExpansionReplayEvidence,
     SelfExpansionVerificationFailure, verify_self_expansion_manifest,
 };
 use formula_core::{
     artifacts::StructuralIdentity,
     digest::ArtifactDigest,
-    self_expansion::{
+    self_expansion_proof::{
         SelfExpansionNegativeControl, SelfExpansionNegativeControlEvidence,
         SelfExpansionNegativeControlManifest, SelfExpansionProofManifest,
     },
