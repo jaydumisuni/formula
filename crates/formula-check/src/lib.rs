@@ -8,6 +8,7 @@ pub mod proof_evolution;
 pub mod realization;
 pub mod router;
 pub mod self_expansion;
+pub mod self_expansion_verifier;
 pub mod u8;
 pub mod verdict;
 
