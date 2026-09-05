@@ -119,7 +119,11 @@ impl AuthorityStore {
                  WHERE generation_digest = ?1
                    AND subject_digest = ?2
                    AND promotion_class = ?3",
-                params![generation.as_str(), subject.as_str(), promotion_class.as_str()],
+                params![
+                    generation.as_str(),
+                    subject.as_str(),
+                    promotion_class.as_str()
+                ],
                 |row| {
                     Ok(ExpansionActivationRow {
                         activation_digest: row.get(0)?,
@@ -389,9 +393,7 @@ fn parse_promotion_class(value: &str) -> Result<PromotionClass, AuthorityStoreEr
         "REALIZATION" => Ok(PromotionClass::Realization),
         "PACKAGE_THEORY_EXTENSION" => Ok(PromotionClass::PackageTheoryExtension),
         "TOOLCHAIN_CHECKER_REALIZATION" => Ok(PromotionClass::ToolchainCheckerRealization),
-        _ => Err(AuthorityStoreError::ExpansionActivationUnknownPromotionClass(
-            value.to_owned(),
-        )),
+        _ => Err(AuthorityStoreError::ExpansionActivationUnknownPromotionClass(value.to_owned())),
     }
 }
 
@@ -415,6 +417,8 @@ fn parse_supersession_kind(value: &str) -> Result<SupersessionKind, AuthoritySto
         "REFUTED_BY" => Ok(SupersessionKind::RefutedBy),
         "REPLACED_REALIZATION_BY" => Ok(SupersessionKind::ReplacedRealizationBy),
         "WITHDRAWN_FROM_DEFAULT_ACTIVATION" => Ok(SupersessionKind::WithdrawnFromDefaultActivation),
-        _ => Err(AuthorityStoreError::SupersessionUnknownKind(value.to_owned())),
+        _ => Err(AuthorityStoreError::SupersessionUnknownKind(
+            value.to_owned(),
+        )),
     }
 }

@@ -49,15 +49,8 @@ fn promote_one(
         vec![],
         vec![],
     );
-    let decision = authorize_promotion_v1(
-        &manifest,
-        &frozen,
-        &promotion,
-        &[evidence],
-        parent,
-        &[],
-    )
-    .unwrap();
+    let decision =
+        authorize_promotion_v1(&manifest, &frozen, &promotion, &[evidence], parent, &[]).unwrap();
     let PromotionDecision::Authorized(authorization) = decision else {
         panic!("valid store promotion must authorize")
     };
@@ -104,11 +97,7 @@ fn expansion_activation_round_trips_exact_structural_identity() {
 
     let reopened = AuthorityStore::open(dir.path()).unwrap();
     let resolved = reopened
-        .resolve_expansion_activation(
-            generation_digest,
-            subject,
-            PromotionClass::StructureWitness,
-        )
+        .resolve_expansion_activation(generation_digest, subject, PromotionClass::StructureWitness)
         .unwrap()
         .expect("expansion activation must survive reopen");
     assert_eq!(resolved, record);
@@ -165,12 +154,7 @@ fn supersession_ledger_round_trips_without_rewriting_history() {
     let successor = d("p10-successor");
     let evidence = d("p10-supersession-evidence");
     let scope = d("p10-supersession-scope");
-    let generation = UniverseGeneration::new(
-        0,
-        None,
-        vec![subject, successor],
-        vec![evidence],
-    );
+    let generation = UniverseGeneration::new(0, None, vec![subject, successor], vec![evidence]);
     let generation_digest = generation.digest();
     let record = SupersessionRecord::new(
         subject,
@@ -195,7 +179,10 @@ fn supersession_ledger_round_trips_without_rewriting_history() {
     let records = reopened.supersessions_for(subject).unwrap();
     assert_eq!(records, vec![record]);
     assert_eq!(records[0].structural_digest(), record_digest);
-    assert_eq!(reopened.replay_generation(generation_digest).unwrap(), generation);
+    assert_eq!(
+        reopened.replay_generation(generation_digest).unwrap(),
+        generation
+    );
 }
 
 #[test]
@@ -212,12 +199,21 @@ fn rollback_reselects_historical_generation_without_deleting_newer_history() {
     let u2 = store.replay_generation(u2_digest).unwrap();
     assert_eq!(store.active_generation().unwrap(), Some(u2_digest));
 
-    assert_eq!(store.select_active_generation(u0_digest).unwrap(), u0_digest);
+    assert_eq!(
+        store.select_active_generation(u0_digest).unwrap(),
+        u0_digest
+    );
     assert_eq!(store.active_generation().unwrap(), Some(u0_digest));
     assert_eq!(store.replay_generation(u1_digest).unwrap(), u1);
     assert_eq!(store.replay_generation(u2_digest).unwrap(), u2);
 
-    assert_eq!(store.select_active_generation(u2_digest).unwrap(), u2_digest);
+    assert_eq!(
+        store.select_active_generation(u2_digest).unwrap(),
+        u2_digest
+    );
     assert_eq!(store.active_generation().unwrap(), Some(u2_digest));
-    assert_eq!(store.replay_generation(u2_digest).unwrap().digest(), u2_digest);
+    assert_eq!(
+        store.replay_generation(u2_digest).unwrap().digest(),
+        u2_digest
+    );
 }
