@@ -52,7 +52,7 @@ All temporary P10 development and write-capable formatter workflows were removed
 
 ```text
 path:        .github/workflows/p10-canonical-proof.yml
-blob SHA:    e2b3cc615c33a2ea6dbee3754df0e032c960bb0e
+blob SHA:    39dd9ec67a416b097f4c31d6d2b10120e617a875
 permissions: contents: read
 runner:      ubuntu-24.04
 Rust:        1.98.0
@@ -290,7 +290,7 @@ docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md
 The permanent canonical workflow blob must remain exactly:
 
 ```text
-e2b3cc615c33a2ea6dbee3754df0e032c960bb0e
+39dd9ec67a416b097f4c31d6d2b10120e617a875
 ```
 
 That unchanged workflow must succeed on the exact documentation-bearing head. Stable semantic identities and all thirteen markers must match the source proof; only the source SHA and source-bound proof-manifest digest may change.
@@ -334,7 +334,7 @@ P11 begins only after P10 is finally frozen by the exact documentation-head cano
 2. Read the P10 checkpoint, P10 design, and P10 implementation/freeze plan.
 3. Treat `b353365fa8b20a13b658c07b3027334b69eff108` as the exact frozen P9 predecessor.
 4. Treat `4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696`, run `34024050037`, job `101461753634`, as the exact P10 **source-under-test proof boundary**.
-5. Verify `.github/workflows/p10-canonical-proof.yml` blob is `e2b3cc615c33a2ea6dbee3754df0e032c960bb0e` and has `contents: read`.
+5. Verify `.github/workflows/p10-canonical-proof.yml` blob is `39dd9ec67a416b097f4c31d6d2b10120e617a875` and has `contents: read`.
 6. Until the exact documentation-bearing run succeeds, report P10 as **source proved; docs-head proof pending**, not finally frozen.
 7. Once that exact docs-head run succeeds, record its SHA/run/job as post-proof recovery metadata without treating that recording commit as a new proof boundary.
 8. Only after that may P11 begin.
@@ -349,7 +349,7 @@ source head:             4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696
 source run:              34024050037
 source job:              101461753634
 source conclusion:       success
-canonical workflow:      e2b3cc615c33a2ea6dbee3754df0e032c960bb0e
+canonical workflow:      39dd9ec67a416b097f4c31d6d2b10120e617a875
 documentation proof:     PENDING
 P10 final freeze:        NOT YET CLAIMED
 SELF_EXPANSION_HARDENED: earned on source; pending final docs-head recovery authority
