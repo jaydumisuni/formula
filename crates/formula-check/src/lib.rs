@@ -1,3 +1,4 @@
+pub mod bootstrap;
 pub mod envelope;
 pub mod exact_arithmetic;
 pub mod federation_verifier;
