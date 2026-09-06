@@ -34,6 +34,15 @@ jobs:
       - name: P12 targeted core identities
         run: CARGO_NET_OFFLINE=true cargo test -p formula-core --test p12_bootstrap_identity --locked --offline
 
+      - name: P12 targeted generator
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-realize --test p12_bootstrap_generator --locked --offline
+
+      - name: P12 targeted independent validator
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test p12_bootstrap_validator --locked --offline
+
+      - name: P12 targeted bootstrap store
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-store --test p12_bootstrap_store --locked --offline
+
       - name: Workspace tests
         run: CARGO_NET_OFFLINE=true cargo test --workspace --all-targets --locked --offline
 
