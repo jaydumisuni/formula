@@ -1,0 +1,42 @@
+name: P10 format once
+
+on:
+  push:
+    branches:
+      - implementation/p10-self-expansion-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  format-p10-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: implementation/p10-self-expansion-hardening
+          fetch-depth: 0
+
+      - name: Install pinned formatter
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt
+
+      - name: Format exact reviewed P10 integration file
+        run: |
+          set -euxo pipefail
+          cargo fmt --all
+          mapfile -t changed < <(git diff --name-only)
+          test "${#changed[@]}" -gt 0
+          for path in "${changed[@]}"; do
+            test "$path" = "crates/formula-first-light/tests/p10_self_expansion_hardening.rs"
+          done
+          git diff --check
+          git config user.name "THE TECH GUY"
+          git config user.email "65334711+jaydumisuni@users.noreply.github.com"
+          git add crates/formula-first-light/tests/p10_self_expansion_hardening.rs
+          git commit -m "style(p10): normalize canonical integration"
+          git push origin HEAD:implementation/p10-self-expansion-hardening
