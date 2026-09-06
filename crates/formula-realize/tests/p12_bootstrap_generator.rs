@@ -31,7 +31,8 @@ fn image_driven_rebuild_matches_direct_compilation() {
 
 #[test]
 fn bootstrap_bytecode_executes_identity_semantics() {
-    let bytecode = compile_bootstrap_source(&BootstrapProgramSource::identity_checker_v1()).unwrap();
+    let bytecode =
+        compile_bootstrap_source(&BootstrapProgramSource::identity_checker_v1()).unwrap();
     let same = d("same");
     assert_eq!(
         execute_bootstrap_bytecode(&bytecode, same, same),
