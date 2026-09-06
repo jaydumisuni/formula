@@ -4,7 +4,7 @@ use formula_core::{
     bootstrap::{BootstrapBytecode, BootstrapGenerationId, BootstrapSeedManifest},
     digest::{ArtifactDigest, DigestError},
 };
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use std::{error::Error, fmt, fs, path::Path};
 
 #[derive(Debug)]
@@ -231,11 +231,10 @@ impl BootstrapAuthorityStore {
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let count: i64 = transaction.query_row(
-            "SELECT COUNT(*) FROM bootstrap_generations",
-            [],
-            |row| row.get(0),
-        )?;
+        let count: i64 =
+            transaction.query_row("SELECT COUNT(*) FROM bootstrap_generations", [], |row| {
+                row.get(0)
+            })?;
         if count != 0 || active_generation_in(&transaction)?.is_some() {
             return Err(BootstrapStoreError::BootstrapRootAlreadyExists);
         }
@@ -465,8 +464,8 @@ fn active_generation_in(
     let ordinal_i64: i64 = active
         .parse()
         .map_err(|_| BootstrapStoreError::GenerationOrdinalOverflow)?;
-    let ordinal = u64::try_from(ordinal_i64)
-        .map_err(|_| BootstrapStoreError::GenerationOrdinalOverflow)?;
+    let ordinal =
+        u64::try_from(ordinal_i64).map_err(|_| BootstrapStoreError::GenerationOrdinalOverflow)?;
     let digest: String = connection.query_row(
         "SELECT digest FROM bootstrap_generations WHERE ordinal = ?1",
         params![ordinal_i64],
@@ -487,10 +486,7 @@ fn root_seed_identity_in(connection: &Connection) -> Result<ArtifactDigest, Boot
     Ok(ArtifactDigest::parse(&seed)?)
 }
 
-fn set_active_ordinal(
-    connection: &Connection,
-    ordinal: i64,
-) -> Result<(), BootstrapStoreError> {
+fn set_active_ordinal(connection: &Connection, ordinal: i64) -> Result<(), BootstrapStoreError> {
     connection.execute(
         "INSERT INTO bootstrap_meta(key, value) VALUES('active_ordinal', ?1)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value",

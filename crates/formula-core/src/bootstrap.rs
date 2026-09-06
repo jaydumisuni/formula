@@ -1,6 +1,4 @@
-use crate::{
-    artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest,
-};
+use crate::{artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest};
 use num_bigint::BigInt;
 use std::collections::BTreeMap;
 
@@ -686,9 +684,7 @@ impl BootstrapNegativeControlManifest {
                 .map(BootstrapNegativeControlEvidence::control)
                 .ne(BootstrapNegativeControl::ALL)
         {
-            return Err(
-                BootstrapNegativeControlManifestError::MissingDuplicateOrUnexpectedControl,
-            );
+            return Err(BootstrapNegativeControlManifestError::MissingDuplicateOrUnexpectedControl);
         }
         Ok(Self { controls })
     }
@@ -783,22 +779,54 @@ impl BootstrapProofManifest {
         }
     }
 
-    pub fn source_commit(&self) -> &str { &self.source_commit }
-    pub fn predecessor_p11(&self) -> ArtifactDigest { self.predecessor_p11 }
-    pub fn seed(&self) -> &BootstrapSeedManifest { &self.seed }
-    pub fn t0(&self) -> BootstrapGenerationId { self.t0 }
-    pub fn t1(&self) -> BootstrapGenerationId { self.t1 }
-    pub fn t2(&self) -> BootstrapGenerationId { self.t2 }
-    pub fn program_source(&self) -> ArtifactDigest { self.program_source }
-    pub fn stage1(&self) -> &BootstrapRebuildManifest { &self.stage1 }
-    pub fn stage2(&self) -> &BootstrapRebuildManifest { &self.stage2 }
-    pub fn stage1_artifact(&self) -> ArtifactDigest { self.stage1_artifact }
-    pub fn stage2_artifact(&self) -> ArtifactDigest { self.stage2_artifact }
-    pub fn negative_controls(&self) -> &BootstrapNegativeControlManifest { &self.negative_controls }
-    pub fn universe_before(&self) -> ArtifactDigest { self.universe_before }
-    pub fn universe_after(&self) -> ArtifactDigest { self.universe_after }
-    pub fn checker_identity(&self) -> ArtifactDigest { self.checker_identity }
-    pub fn verifier_identity(&self) -> ArtifactDigest { self.verifier_identity }
+    pub fn source_commit(&self) -> &str {
+        &self.source_commit
+    }
+    pub fn predecessor_p11(&self) -> ArtifactDigest {
+        self.predecessor_p11
+    }
+    pub fn seed(&self) -> &BootstrapSeedManifest {
+        &self.seed
+    }
+    pub fn t0(&self) -> BootstrapGenerationId {
+        self.t0
+    }
+    pub fn t1(&self) -> BootstrapGenerationId {
+        self.t1
+    }
+    pub fn t2(&self) -> BootstrapGenerationId {
+        self.t2
+    }
+    pub fn program_source(&self) -> ArtifactDigest {
+        self.program_source
+    }
+    pub fn stage1(&self) -> &BootstrapRebuildManifest {
+        &self.stage1
+    }
+    pub fn stage2(&self) -> &BootstrapRebuildManifest {
+        &self.stage2
+    }
+    pub fn stage1_artifact(&self) -> ArtifactDigest {
+        self.stage1_artifact
+    }
+    pub fn stage2_artifact(&self) -> ArtifactDigest {
+        self.stage2_artifact
+    }
+    pub fn negative_controls(&self) -> &BootstrapNegativeControlManifest {
+        &self.negative_controls
+    }
+    pub fn universe_before(&self) -> ArtifactDigest {
+        self.universe_before
+    }
+    pub fn universe_after(&self) -> ArtifactDigest {
+        self.universe_after
+    }
+    pub fn checker_identity(&self) -> ArtifactDigest {
+        self.checker_identity
+    }
+    pub fn verifier_identity(&self) -> ArtifactDigest {
+        self.verifier_identity
+    }
 }
 
 impl StructuralIdentity for BootstrapProofManifest {
