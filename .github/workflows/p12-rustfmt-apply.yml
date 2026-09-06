@@ -22,10 +22,10 @@ jobs:
         with:
           toolchain: 1.98.0
           components: rustfmt
-      - name: Format remaining large files
+      - name: Format Task 5 files
         run: |
           cargo fmt --all
-          git add crates/formula-core/src/bootstrap.rs crates/formula-store/src/bootstrap_store.rs
+          git add crates/formula-first-light/src/p12.rs crates/formula-first-light/tests/p12_bootstrap_trust_reduction.rs
           git diff --cached --check
       - name: Commit exact formatter output
         run: |
@@ -35,5 +35,5 @@ jobs:
           fi
           git config user.name "THE TECH GUY"
           git config user.email "65334711+jaydumisuni@users.noreply.github.com"
-          git commit -m "style(p12): apply pinned rustfmt output"
+          git commit -m "style(p12): format canonical bootstrap integration"
           git push origin HEAD:implementation/p12-self-hosting-bootstrap-trust-reduction
