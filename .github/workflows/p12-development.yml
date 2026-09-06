@@ -43,6 +43,9 @@ jobs:
       - name: P12 targeted bootstrap store
         run: CARGO_NET_OFFLINE=true cargo test -p formula-store --test p12_bootstrap_store --locked --offline
 
+      - name: P12 targeted canonical bootstrap integration
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-first-light --test p12_bootstrap_trust_reduction --locked --offline
+
       - name: Workspace tests
         run: CARGO_NET_OFFLINE=true cargo test --workspace --all-targets --locked --offline
 
