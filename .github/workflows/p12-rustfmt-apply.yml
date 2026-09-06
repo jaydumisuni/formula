@@ -17,23 +17,93 @@ jobs:
         with:
           ref: implementation/p12-self-hosting-bootstrap-trust-reduction
           fetch-depth: 0
+
       - name: Install pinned Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.98.0
           components: rustfmt
-      - name: Format Task 5 files
+
+      - name: Bind final verifier into canonical integration
         run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('crates/formula-first-light/tests/p12_bootstrap_trust_reduction.rs')
+          text = path.read_text()
+          old = '''use formula_check::bootstrap::{
+              BootstrapValidationFailure, canonical_build_recipe_identity,
+              canonical_normalization_rules_identity, reference_compile, semantic_evidence_identity,
+              validate_bootstrap_candidate,
+          };
+          '''
+          new = '''use formula_check::{
+              bootstrap::{
+                  BootstrapValidationFailure, canonical_build_recipe_identity,
+                  canonical_normalization_rules_identity, reference_compile, semantic_evidence_identity,
+                  validate_bootstrap_candidate,
+              },
+              bootstrap_verifier::{
+                  BootstrapReplayEvidence, P12_CANONICAL_MARKERS, verify_bootstrap_proof_manifest,
+              },
+          };
+          '''
+          assert old in text, 'formula_check import anchor changed'
+          text = text.replace(old, new, 1)
+          old = '    let negative_controls = BootstrapNegativeControlManifest::new(negatives).unwrap();\n'
+          new = '    let negative_controls = BootstrapNegativeControlManifest::new(negatives.clone()).unwrap();\n'
+          assert old in text, 'negative controls anchor changed'
+          text = text.replace(old, new, 1)
+          text = text.replace('        stage1_rebuild,\n        stage2_rebuild,\n', '        stage1_rebuild.clone(),\n        stage2_rebuild.clone(),\n', 1)
+          text = text.replace('        negative_controls,\n        u_before,\n', '        negative_controls.clone(),\n        u_before,\n', 1)
+          anchor = '''        checker_identity(),
+              verifier_identity(),
+          );
+
+              println!("P12_SOURCE_COMMIT={}", source_commit());
+          '''
+          replacement = '''        checker_identity(),
+              verifier_identity(),
+          );
+
+              let replay = BootstrapReplayEvidence::new(
+                  proof.structural_digest(),
+                  source_commit().into(),
+                  p11_frozen_proof_identity(),
+                  seed.clone(),
+                  t0,
+                  t1,
+                  t2,
+                  source.clone(),
+                  stage1_rebuild,
+                  stage2_rebuild,
+                  stage1.clone(),
+                  stage2.clone(),
+                  negatives,
+                  u_before,
+                  u_after,
+                  checker_identity(),
+                  verifier_identity(),
+              );
+              let verified = verify_bootstrap_proof_manifest(&proof, &replay)
+                  .expect("canonical P12 proof must independently replay");
+              assert_eq!(verified.markers(), &P12_CANONICAL_MARKERS);
+              for marker in verified.markers() {
+                  println!("{marker}");
+              }
+
+              println!("P12_SOURCE_COMMIT={}", source_commit());
+          '''
+          assert anchor in text, 'proof emission anchor changed'
+          text = text.replace(anchor, replacement, 1)
+          path.write_text(text)
+          PY
           cargo fmt --all
-          git add crates/formula-first-light/src/p12.rs crates/formula-first-light/tests/p12_bootstrap_trust_reduction.rs
+          git add crates/formula-first-light/tests/p12_bootstrap_trust_reduction.rs
           git diff --cached --check
-      - name: Commit exact formatter output
+
+      - name: Commit exact integration correction
         run: |
-          if git diff --cached --quiet; then
-            echo "No remaining formatter delta"
-            exit 0
-          fi
           git config user.name "THE TECH GUY"
           git config user.email "65334711+jaydumisuni@users.noreply.github.com"
-          git commit -m "style(p12): format canonical bootstrap integration"
+          git commit -m "test(p12): emit markers only after independent replay"
           git push origin HEAD:implementation/p12-self-hosting-bootstrap-trust-reduction
