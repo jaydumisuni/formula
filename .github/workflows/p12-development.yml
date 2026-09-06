@@ -1,0 +1,71 @@
+name: P12 development proof
+
+on:
+  push:
+    branches:
+      - implementation/p12-self-hosting-bootstrap-trust-reduction
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p12-development:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+
+      - name: Exact identity
+        run: test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: P12 targeted core identities
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-core --test p12_bootstrap_identity --locked --offline
+
+      - name: Workspace tests
+        run: CARGO_NET_OFFLINE=true cargo test --workspace --all-targets --locked --offline
+
+      - name: Workspace build
+        run: CARGO_NET_OFFLINE=true cargo build --workspace --all-targets --locked --offline
+
+      - name: Rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: Clippy warnings denied
+        run: CARGO_NET_OFFLINE=true cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+
+      - name: Authority dependency firewall
+        run: |
+          set -euxo pipefail
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-check --edges normal | tee /tmp/p12-check-tree.txt
+          ! grep -Eq 'formula-engine|formula-store|formula-realize|formula-first-light' /tmp/p12-check-tree.txt
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-realize --edges normal | tee /tmp/p12-realize-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-first-light' /tmp/p12-realize-tree.txt
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-engine --edges normal | tee /tmp/p12-engine-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-realize|formula-first-light' /tmp/p12-engine-tree.txt
+
+      - name: Source authority firewall
+        run: |
+          set -euxo pipefail
+          if grep -R -n -E 'formula_check|formula_store|formula_first_light|formula::sealed|mod[[:space:]]+sealed' \
+            crates/formula-engine/src crates/formula-realize/src --include='*.rs'; then
+            echo 'P12 engine/realize source authority firewall violated' >&2
+            exit 1
+          fi
+
+      - name: Clean worktree
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
