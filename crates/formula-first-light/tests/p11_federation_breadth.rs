@@ -140,11 +140,9 @@ fn p11_heterogeneous_federation_breadth() {
         n("340282366920938463463374607431768211507"),
         n("18446744073709551629"),
     );
-    let arithmetic_receipt = check_decimal_integer_result(
-        &operation,
-        "340282366920938463481821351505477763136",
-    )
-    .unwrap();
+    let arithmetic_receipt =
+        check_decimal_integer_result(&operation, "340282366920938463481821351505477763136")
+            .unwrap();
     let arithmetic_subject = d("subject:arithmetic-result");
     let arithmetic_translation = d("translation:decimal-bigint:v1");
     let arithmetic_checker = d("checker:exact-bigint:v1");
@@ -443,13 +441,8 @@ fn p11_heterogeneous_federation_breadth() {
         &[unsafe_composition.structural_digest()],
     ));
 
-    let producer_identity_request = FederationRequest::new(
-        "UNSAT_BRANCH".into(),
-        true,
-        None,
-        None,
-        false,
-    );
+    let producer_identity_request =
+        FederationRequest::new("UNSAT_BRANCH".into(), true, None, None, false);
     assert_eq!(
         validate_federation_adapter(
             &sat_adapter,
@@ -530,7 +523,10 @@ fn p11_heterogeneous_federation_breadth() {
         arithmetic_adapter.structural_digest()
     );
     println!("P11_BRIDGE={}", bridge.structural_digest());
-    println!("P11_NEGATIVE_CONTROLS={}", manifest.negative_controls().structural_digest());
+    println!(
+        "P11_NEGATIVE_CONTROLS={}",
+        manifest.negative_controls().structural_digest()
+    );
     println!("P11_FINAL_TARGET={final_target}");
     for marker in P11_CANONICAL_MARKERS {
         println!("{marker}");
