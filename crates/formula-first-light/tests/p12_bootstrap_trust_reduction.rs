@@ -7,8 +7,8 @@ use formula_core::{
     artifacts::StructuralIdentity,
     bootstrap::{
         BootstrapBytecode, BootstrapDecision, BootstrapEquivalenceLevel, BootstrapNegativeControl,
-        BootstrapNegativeControlEvidence, BootstrapNegativeControlManifest, BootstrapProofManifest,
-        BootstrapProgramSource, BootstrapRebuildManifest, BootstrapValidationState,
+        BootstrapNegativeControlEvidence, BootstrapNegativeControlManifest, BootstrapProgramSource,
+        BootstrapProofManifest, BootstrapRebuildManifest, BootstrapValidationState,
     },
     digest::ArtifactDigest,
     generation::UniverseGeneration,
@@ -110,7 +110,12 @@ fn p12_self_hosting_bootstrap_trust_reduction() {
     );
     let auth1 = validate_bootstrap_candidate(&stage1_rebuild, &source, &stage1, &seed)
         .expect("Stage1 requires independent validation");
-    assert_eq!(bootstrap.admit_bootstrap_successor(&auth1, &stage1).unwrap(), t1);
+    assert_eq!(
+        bootstrap
+            .admit_bootstrap_successor(&auth1, &stage1)
+            .unwrap(),
+        t1
+    );
 
     let admitted_t1 = bootstrap.replay_bootstrap_generation(t1).unwrap();
     let admitted_stage1 = admitted_t1
@@ -138,7 +143,12 @@ fn p12_self_hosting_bootstrap_trust_reduction() {
     );
     let auth2 = validate_bootstrap_candidate(&stage2_rebuild, &source, &stage2, &seed)
         .expect("Stage2 requires independent validation");
-    assert_eq!(bootstrap.admit_bootstrap_successor(&auth2, &stage2).unwrap(), t2);
+    assert_eq!(
+        bootstrap
+            .admit_bootstrap_successor(&auth2, &stage2)
+            .unwrap(),
+        t2
+    );
 
     assert_eq!(stage1.bytes(), stage2.bytes());
     let same = d("p12:semantic-same");

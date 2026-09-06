@@ -45,10 +45,7 @@ pub fn seed_manifest() -> BootstrapSeedManifest {
         "x86_64-unknown-linux-gnu".into(),
         environment_digest("P12_RUSTC_SHA256", b"LOCAL_RUSTC_SHA256"),
         environment_digest("P12_CARGO_SHA256", b"LOCAL_CARGO_SHA256"),
-        environment_digest(
-            "P12_RUST_TOOLCHAIN_SHA256",
-            b"LOCAL_RUST_TOOLCHAIN_SHA256",
-        ),
+        environment_digest("P12_RUST_TOOLCHAIN_SHA256", b"LOCAL_RUST_TOOLCHAIN_SHA256"),
         "pinned-rust-1.98.0".into(),
         if canonical {
             "workflow-sha256".into()
