@@ -1,7 +1,12 @@
-use formula_check::bootstrap::{
-    BootstrapValidationFailure, canonical_build_recipe_identity,
-    canonical_normalization_rules_identity, reference_compile, semantic_evidence_identity,
-    validate_bootstrap_candidate,
+use formula_check::{
+    bootstrap::{
+        BootstrapValidationFailure, canonical_build_recipe_identity,
+        canonical_normalization_rules_identity, reference_compile, semantic_evidence_identity,
+        validate_bootstrap_candidate,
+    },
+    bootstrap_verifier::{
+        BootstrapReplayEvidence, P12_CANONICAL_MARKERS, verify_bootstrap_proof_manifest,
+    },
 };
 use formula_core::{
     artifacts::StructuralIdentity,
@@ -393,7 +398,7 @@ fn p12_self_hosting_bootstrap_trust_reduction() {
         evidence("nc-bs-10", &[u_before, u_after, t2.digest()]),
     ));
 
-    let negative_controls = BootstrapNegativeControlManifest::new(negatives).unwrap();
+    let negative_controls = BootstrapNegativeControlManifest::new(negatives.clone()).unwrap();
     assert!(negative_controls.is_complete());
 
     let proof = BootstrapProofManifest::new(
@@ -404,16 +409,42 @@ fn p12_self_hosting_bootstrap_trust_reduction() {
         t1,
         t2,
         source.structural_digest(),
-        stage1_rebuild,
-        stage2_rebuild,
+        stage1_rebuild.clone(),
+        stage2_rebuild.clone(),
         stage1.structural_digest(),
         stage2.structural_digest(),
-        negative_controls,
+        negative_controls.clone(),
         u_before,
         u_after,
         checker_identity(),
         verifier_identity(),
     );
+
+    let replay = BootstrapReplayEvidence::new(
+        proof.structural_digest(),
+        source_commit().into(),
+        p11_frozen_proof_identity(),
+        seed.clone(),
+        t0,
+        t1,
+        t2,
+        source.clone(),
+        stage1_rebuild,
+        stage2_rebuild,
+        stage1.clone(),
+        stage2.clone(),
+        negatives,
+        u_before,
+        u_after,
+        checker_identity(),
+        verifier_identity(),
+    );
+    let verified = verify_bootstrap_proof_manifest(&proof, &replay)
+        .expect("canonical P12 proof must independently replay");
+    assert_eq!(verified.markers(), &P12_CANONICAL_MARKERS);
+    for marker in verified.markers() {
+        println!("{marker}");
+    }
 
     println!("P12_SOURCE_COMMIT={}", source_commit());
     println!("P12_SEED={}", seed.structural_digest().as_str());
