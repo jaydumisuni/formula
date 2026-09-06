@@ -1,5 +1,6 @@
 pub mod envelope;
 pub mod exact_arithmetic;
+pub mod federation_verifier;
 pub mod first_light;
 pub mod gf2;
 pub mod identity;
