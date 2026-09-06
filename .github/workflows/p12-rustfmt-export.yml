@@ -1,0 +1,37 @@
+name: P12 rustfmt export
+
+on:
+  push:
+    branches:
+      - tooling/p12-rustfmt-export-20260906
+
+permissions:
+  contents: read
+
+jobs:
+  format-export:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout canonical P12 head
+        uses: actions/checkout@v4
+        with:
+          ref: 42c6f78e77841c85d7fe8857b89dfde3f9c644d9
+          persist-credentials: false
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt
+      - name: Format exact tree
+        run: cargo fmt --all
+      - name: Export formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: p12-rustfmt-output
+          if-no-files-found: error
+          path: |
+            crates/formula-check/tests/p12_bootstrap_validator.rs
+            crates/formula-core/src/bootstrap.rs
+            crates/formula-realize/src/bootstrap.rs
+            crates/formula-realize/tests/p12_bootstrap_generator.rs
+            crates/formula-store/src/bootstrap_store.rs
