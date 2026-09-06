@@ -1,6 +1,6 @@
 use formula_check::federation_verifier::{
-    P11_CANONICAL_MARKERS, FederationReplayClaims, FederationReplayEvidence,
-    FederationVerificationFailure, verify_federation_breadth_manifest,
+    FederationReplayClaims, FederationReplayEvidence, FederationVerificationFailure,
+    P11_CANONICAL_MARKERS, verify_federation_breadth_manifest,
 };
 use formula_core::{
     artifacts::StructuralIdentity,
