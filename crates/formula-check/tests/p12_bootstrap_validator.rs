@@ -23,7 +23,10 @@ fn canonical_normalization() -> ArtifactDigest {
     d("formula-bootstrap-normalization:none:v1")
 }
 
-fn semantic_evidence(source: &BootstrapProgramSource, candidate: &BootstrapBytecode) -> ArtifactDigest {
+fn semantic_evidence(
+    source: &BootstrapProgramSource,
+    candidate: &BootstrapBytecode,
+) -> ArtifactDigest {
     let mut bytes = b"formula-bootstrap-semantic-evidence:v1".to_vec();
     bytes.extend_from_slice(source.structural_digest().as_str().as_bytes());
     bytes.extend_from_slice(candidate.structural_digest().as_str().as_bytes());
@@ -207,7 +210,8 @@ fn exact_seed_source_recipe_normalization_and_candidate_bindings_are_required() 
         BootstrapValidationState::Candidate,
     );
     assert!(
-        validate_bootstrap_candidate(&wrong_semantic_evidence, &source, &candidate, &seed()).is_err(),
+        validate_bootstrap_candidate(&wrong_semantic_evidence, &source, &candidate, &seed())
+            .is_err(),
         "semantic evidence identity must be checker-derived"
     );
 
