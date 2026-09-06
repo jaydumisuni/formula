@@ -20,6 +20,12 @@ impl fmt::Display for DigestError {
 
 impl Error for DigestError {}
 
+impl fmt::Display for ArtifactDigest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "sha256:{}", self.hex())
+    }
+}
+
 impl ArtifactDigest {
     pub fn of_bytes(bytes: &[u8]) -> Self {
         let hash = Sha256::digest(bytes);
@@ -59,7 +65,7 @@ impl ArtifactDigest {
     }
 
     pub fn as_str(&self) -> String {
-        format!("sha256:{}", self.hex())
+        self.to_string()
     }
 }
 
