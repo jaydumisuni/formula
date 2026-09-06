@@ -1,4 +1,5 @@
 pub mod envelope;
+pub mod exact_arithmetic;
 pub mod first_light;
 pub mod gf2;
 pub mod identity;
