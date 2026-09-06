@@ -1,0 +1,39 @@
+name: P12 rustfmt apply
+
+on:
+  push:
+    branches:
+      - tooling/p12-rustfmt-export-20260906
+
+permissions:
+  contents: write
+
+jobs:
+  format-apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout canonical P12 branch
+        uses: actions/checkout@v4
+        with:
+          ref: implementation/p12-self-hosting-bootstrap-trust-reduction
+          fetch-depth: 0
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt
+      - name: Format remaining large files
+        run: |
+          cargo fmt --all
+          git add crates/formula-core/src/bootstrap.rs crates/formula-store/src/bootstrap_store.rs
+          git diff --cached --check
+      - name: Commit exact formatter output
+        run: |
+          if git diff --cached --quiet; then
+            echo "No remaining formatter delta"
+            exit 0
+          fi
+          git config user.name "THE TECH GUY"
+          git config user.email "65334711+jaydumisuni@users.noreply.github.com"
+          git commit -m "style(p12): apply pinned rustfmt output"
+          git push origin HEAD:implementation/p12-self-hosting-bootstrap-trust-reduction
