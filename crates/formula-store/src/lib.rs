@@ -1,5 +1,6 @@
 pub mod authority_store;
 pub mod blob_store;
+pub mod bootstrap_store;
 pub mod promotion_store;
 
 pub const CRATE_ROLE: &str = "local authority persistence boundary";
