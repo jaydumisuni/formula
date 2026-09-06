@@ -40,6 +40,9 @@ jobs:
       - name: P12 targeted independent validator
         run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test p12_bootstrap_validator --locked --offline
 
+      - name: P12 targeted final bootstrap replay
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test p12_bootstrap_verifier --locked --offline
+
       - name: P12 targeted bootstrap store
         run: CARGO_NET_OFFLINE=true cargo test -p formula-store --test p12_bootstrap_store --locked --offline
 
