@@ -30,13 +30,14 @@ jobs:
           from pathlib import Path
           path = Path('crates/formula-first-light/tests/p12_bootstrap_trust_reduction.rs')
           text = path.read_text()
-          old = '''use formula_check::bootstrap::{
+
+          old_import = '''use formula_check::bootstrap::{
               BootstrapValidationFailure, canonical_build_recipe_identity,
               canonical_normalization_rules_identity, reference_compile, semantic_evidence_identity,
               validate_bootstrap_candidate,
           };
           '''
-          new = '''use formula_check::{
+          new_import = '''use formula_check::{
               bootstrap::{
                   BootstrapValidationFailure, canonical_build_recipe_identity,
                   canonical_normalization_rules_identity, reference_compile, semantic_evidence_identity,
@@ -47,56 +48,57 @@ jobs:
               },
           };
           '''
-          assert old in text, 'formula_check import anchor changed'
-          text = text.replace(old, new, 1)
-          old = '    let negative_controls = BootstrapNegativeControlManifest::new(negatives).unwrap();\n'
-          new = '    let negative_controls = BootstrapNegativeControlManifest::new(negatives.clone()).unwrap();\n'
-          assert old in text, 'negative controls anchor changed'
-          text = text.replace(old, new, 1)
-          text = text.replace('        stage1_rebuild,\n        stage2_rebuild,\n', '        stage1_rebuild.clone(),\n        stage2_rebuild.clone(),\n', 1)
-          text = text.replace('        negative_controls,\n        u_before,\n', '        negative_controls.clone(),\n        u_before,\n', 1)
-          anchor = '''        checker_identity(),
+          assert text.count(old_import) == 1, 'formula_check import anchor changed'
+          text = text.replace(old_import, new_import, 1)
+
+          old_controls = '    let negative_controls = BootstrapNegativeControlManifest::new(negatives).unwrap();\n'
+          new_controls = '    let negative_controls = BootstrapNegativeControlManifest::new(negatives.clone()).unwrap();\n'
+          assert text.count(old_controls) == 1, 'negative controls anchor changed'
+          text = text.replace(old_controls, new_controls, 1)
+
+          old_stages = '        stage1_rebuild,\n        stage2_rebuild,\n'
+          new_stages = '        stage1_rebuild.clone(),\n        stage2_rebuild.clone(),\n'
+          assert text.count(old_stages) == 1, 'stage rebuild ownership anchor changed'
+          text = text.replace(old_stages, new_stages, 1)
+
+          old_manifest_controls = '        negative_controls,\n        u_before,\n'
+          new_manifest_controls = '        negative_controls.clone(),\n        u_before,\n'
+          assert text.count(old_manifest_controls) == 1, 'proof control ownership anchor changed'
+          text = text.replace(old_manifest_controls, new_manifest_controls, 1)
+
+          marker = '    println!("P12_SOURCE_COMMIT={}", source_commit());\n'
+          assert text.count(marker) == 1, 'identity emission marker changed'
+          replay = '''    let replay = BootstrapReplayEvidence::new(
+              proof.structural_digest(),
+              source_commit().into(),
+              p11_frozen_proof_identity(),
+              seed.clone(),
+              t0,
+              t1,
+              t2,
+              source.clone(),
+              stage1_rebuild,
+              stage2_rebuild,
+              stage1.clone(),
+              stage2.clone(),
+              negatives,
+              u_before,
+              u_after,
+              checker_identity(),
               verifier_identity(),
           );
+          let verified = verify_bootstrap_proof_manifest(&proof, &replay)
+              .expect("canonical P12 proof must independently replay");
+          assert_eq!(verified.markers(), &P12_CANONICAL_MARKERS);
+          for marker in verified.markers() {
+              println!("{marker}");
+          }
 
-              println!("P12_SOURCE_COMMIT={}", source_commit());
           '''
-          replacement = '''        checker_identity(),
-              verifier_identity(),
-          );
-
-              let replay = BootstrapReplayEvidence::new(
-                  proof.structural_digest(),
-                  source_commit().into(),
-                  p11_frozen_proof_identity(),
-                  seed.clone(),
-                  t0,
-                  t1,
-                  t2,
-                  source.clone(),
-                  stage1_rebuild,
-                  stage2_rebuild,
-                  stage1.clone(),
-                  stage2.clone(),
-                  negatives,
-                  u_before,
-                  u_after,
-                  checker_identity(),
-                  verifier_identity(),
-              );
-              let verified = verify_bootstrap_proof_manifest(&proof, &replay)
-                  .expect("canonical P12 proof must independently replay");
-              assert_eq!(verified.markers(), &P12_CANONICAL_MARKERS);
-              for marker in verified.markers() {
-                  println!("{marker}");
-              }
-
-              println!("P12_SOURCE_COMMIT={}", source_commit());
-          '''
-          assert anchor in text, 'proof emission anchor changed'
-          text = text.replace(anchor, replacement, 1)
+          text = text.replace(marker, replay + marker, 1)
           path.write_text(text)
           PY
+
           cargo fmt --all
           git add crates/formula-first-light/tests/p12_bootstrap_trust_reduction.rs
           git diff --cached --check
