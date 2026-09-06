@@ -50,9 +50,7 @@ pub fn compile_bootstrap_source(
         return Err(BootstrapGenerationError::UnsupportedSource);
     }
 
-    Ok(BootstrapBytecode::new(
-        b"FBC1\x01\x02\x03\x04".to_vec(),
-    ))
+    Ok(BootstrapBytecode::new(b"FBC1\x01\x02\x03\x04".to_vec()))
 }
 
 pub fn rebuild_with_generator_image(
