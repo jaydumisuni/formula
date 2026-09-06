@@ -8,7 +8,7 @@ Recover repository evidence before reasoning. Do not reconstruct implementation 
 
 1. [`docs/design/README.md`](docs/design/README.md) — frozen D1-D5 design precedence.
 2. [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md) — frozen roadmap P0 onward.
-3. [`docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md`](docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md) — P10 canonical source-proof checkpoint; final docs-head proof pending.
+3. [`docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md`](docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md) — exact finally frozen P10 checkpoint.
 4. [`docs/superpowers/specs/2026-09-05-p10-self-expansion-hardening-design.md`](docs/superpowers/specs/2026-09-05-p10-self-expansion-hardening-design.md) — frozen P10 design.
 5. [`docs/superpowers/plans/2026-09-05-p10-self-expansion-hardening.md`](docs/superpowers/plans/2026-09-05-p10-self-expansion-hardening.md) — executed P10 implementation/freeze plan.
 6. [`docs/checkpoints/2026-09-04-p9-canonical-first-light-proof.md`](docs/checkpoints/2026-09-04-p9-canonical-first-light-proof.md) — exact frozen P9 predecessor checkpoint.
@@ -16,7 +16,9 @@ Recover repository evidence before reasoning. Do not reconstruct implementation 
 
 ## Exact current implementation state
 
-**P10 — Self-Expansion Hardening: SOURCE PROVED; DOCUMENTATION-HEAD PROOF PENDING.**
+**P10 — Self-Expansion Hardening: FINALLY FROZEN.**
+
+**`SELF_EXPANSION_HARDENED`: FINAL RECOVERY AUTHORITY.**
 
 Canonical branch:
 
@@ -44,7 +46,17 @@ job:      101461753634
 result:   success
 ```
 
-The source run checked out that exact SHA, used the permanent read-only P10 workflow, ran on Ubuntu 24.04 with Rust 1.98.0, executed the complete one-clean-state self-expansion hardening proof and all NC10-01...NC10-12, independently replayed the proof manifest, emitted all thirteen frozen markers in order, passed the P9 predecessor proof and every P10/workspace/authority gate, and finished with a clean worktree.
+Exact finally frozen P10 documentation proof boundary:
+
+```text
+3aeb61daf4d575db0f018245ee271597ad475e7b
+workflow: P10 canonical proof
+run:      34024846890
+job:      101463880804
+result:   success
+```
+
+The source proof established the full P10 implementation under the permanent read-only workflow. The final documentation proof then reran that **unchanged** workflow on the exact documentation-bearing head and passed every canonical gate through clean worktree. The post-proof commits that record this result are recovery metadata only; they do not redefine the frozen proof boundary.
 
 All temporary P10 development and write-capable formatter workflows were removed before the source-under-test proof. They are not part of canonical P10 authority.
 
@@ -62,7 +74,14 @@ host:        x86_64-unknown-linux-gnu
 LLVM:        22.1.8
 ```
 
-The final freeze requires this exact workflow blob to remain unchanged on the documentation-bearing candidate head.
+This exact workflow blob was verified on both the proved source head and the final documentation-bearing head. The source-to-docs comparison contained only:
+
+```text
+CURRENT.md
+docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md
+```
+
+No workflow or implementation file changed across the final documentation proof boundary.
 
 ## What P10 proves
 
@@ -134,18 +153,24 @@ P10_UNLOCKED_CAPABILITY=sha256:9ea6e3e3482b2f44c71af2026e42b4e1a2c706c791cc67bcb
 P10_NEGATIVE_CONTROLS=sha256:f6f0ffd18fd26939531d403c9ee9f641b76c38dd7cb594ae357fe3f7b117fb25
 ```
 
-`SelfExpansionProofManifest` binds the exact source commit. Therefore the documentation-head canonical proof is expected to produce its own `P10_SOURCE_SHA` and source-bound `P10_MANIFEST`. The following must remain identical unless proof semantics changed:
+## Final documentation-run proof identities
+
+Exact final recovery evidence from run `34024846890`, job `101463880804`:
 
 ```text
-P10_U_G
-P10_U_G1
-P10_REGISTRY
-P10_LAMBDA_G
-P10_LAMBDA_G1
-P10_UNLOCKED_CAPABILITY
-P10_NEGATIVE_CONTROLS
-all thirteen ordered PASS markers
+P10_SOURCE_SHA=3aeb61daf4d575db0f018245ee271597ad475e7b
+P10_P9_PREDECESSOR=b353365fa8b20a13b658c07b3027334b69eff108
+P10_MANIFEST=sha256:3b4a652eddd7db96d49994733db673d195ae10c315c6e518ead607a22cef9732
+P10_U_G=sha256:697a498ab0e445168b361a1c84ba9679aa1b829111ff0fd88ae6118849009e23
+P10_U_G1=sha256:1c241afd0832fbf9fcfd3c1c98ea86b0fa532afff3e574ba34409a16332b167c
+P10_REGISTRY=sha256:af2672745b79096bca39d0f4259832df3bbd57bfbc97610973b23f127423b116
+P10_LAMBDA_G=sha256:d5e93854c360d41fe12d6503ca651192364aea2268059d1c41bc2384f1959f0c
+P10_LAMBDA_G1=sha256:da34606abc4fa9cc4b15a41d739acdf1e078c4dbeb487b30ae9d76c9019addbc
+P10_UNLOCKED_CAPABILITY=sha256:9ea6e3e3482b2f44c71af2026e42b4e1a2c706c791cc67bcb5dc9409331e7583
+P10_NEGATIVE_CONTROLS=sha256:f6f0ffd18fd26939531d403c9ee9f641b76c38dd7cb594ae357fe3f7b117fb25
 ```
+
+The final proof satisfies the frozen identity rule exactly. Only the documentation head's `P10_SOURCE_SHA` and source-bound `P10_MANIFEST` changed. `P10_U_G`, `P10_U_G1`, registry, both `Lambda` identities, unlocked capability, negative-control identity, predecessor identity, and the marker contract remained identical.
 
 ## Executed NC10-01...NC10-12
 
@@ -170,7 +195,7 @@ This is executable failure-path evidence, not a list-only declaration.
 
 ## P10 frozen marker contract
 
-The source proof independently replayed the complete manifest and emitted exactly:
+Both the source proof and final documentation-head proof independently replayed the complete manifest and emitted exactly:
 
 ```text
 PASS P10_PROMOTION_CLASS_REGISTRY
@@ -188,11 +213,11 @@ PASS P10_NEGATIVE_CONTROLS
 PASS SELF_EXPANSION_HARDENED
 ```
 
-`SELF_EXPANSION_HARDENED` has been earned on the exact source-under-test run. It becomes final cross-chat recovery authority only after the unchanged canonical workflow proves the exact documentation-bearing candidate head.
+`SELF_EXPANSION_HARDENED` is final cross-chat recovery authority at exact proof boundary `3aeb61daf4d575db0f018245ee271597ad475e7b`.
 
-## Canonical source-run gates
+## Canonical proof gates
 
-Run `34024050037` passed:
+Both canonical proofs passed:
 
 ```text
 exact identity + pinned toolchain
@@ -276,32 +301,34 @@ model-backed proof authority
 P11 completion
 ```
 
-## Remaining freeze action
+## P10 final freeze — satisfied
 
-Only the documentation-head proof remains.
+The P10 freeze plan is closed:
 
-The source-proof-to-final-docs candidate must differ only in:
-
-```text
-CURRENT.md
-docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md
-```
-
-The permanent canonical workflow blob must remain exactly:
-
-```text
-39dd9ec67a416b097f4c31d6d2b10120e617a875
-```
-
-That unchanged workflow must succeed on the exact documentation-bearing head. Stable semantic identities and all thirteen markers must match the source proof; only the source SHA and source-bound proof-manifest digest may change.
-
-After that success, the exact docs-head SHA/run/job may be recorded as post-proof recovery metadata. That recording does not recursively redefine the frozen proof boundary.
+1. Pinned Rust 1.98 formatting normalization was applied to the exact proof-file scope.
+2. The one-clean-state `p10_self_expansion_hardening` integration executes all twelve NC10 controls and derives all thirteen markers from actual evidence.
+3. The harness passed Clippy, dependency/source firewalls, and clean-tree.
+4. Temporary development/write workflows were removed and replaced by the permanent read-only canonical workflow.
+5. Exact source head `4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696` passed canonical proof run `34024050037`, job `101461753634`.
+6. Source SHA/run/job and all frozen identities were recovered from the exact job log.
+7. `CURRENT.md` and the P10 checkpoint formed the only documentation delta.
+8. Exact docs head `3aeb61daf4d575db0f018245ee271597ad475e7b` passed the **unchanged** canonical workflow in run `34024846890`, job `101463880804`.
+9. Stable semantic identities and all thirteen markers matched the source proof exactly; only the source SHA and source-bound manifest changed.
+10. The exact docs SHA/run/job are now recorded as post-proof recovery metadata without recursively redefining the proof boundary.
 
 ## Next implementation boundary
 
-**Do not start P11 yet.**
+The next frozen-roadmap phase is **P11**.
 
-P11 begins only after P10 is finally frozen by the exact documentation-head canonical proof.
+P11 must start from the exact finally frozen P10 authority state and must not rewrite P10 source/proof authority. The frozen P10 proof boundary remains:
+
+```text
+3aeb61daf4d575db0f018245ee271597ad475e7b
+run: 34024846890
+job: 101463880804
+```
+
+Later post-proof metadata commits are not replacements for that boundary.
 
 ## Constitutional laws to preserve
 
@@ -326,34 +353,37 @@ P11 begins only after P10 is finally frozen by the exact documentation-head cano
 19. Proof transport/repair requires exact checker authorization and produces new evidence identity.
 20. Realization-only evolution cannot create mathematical admission or advance the universe generation.
 21. Supersession and rollback are append-only/history-preserving selection operations.
-22. `SELF_EXPANSION_HARDENED` becomes final recovery authority only after the unchanged canonical P10 workflow proves the documentation-bearing head.
+22. `SELF_EXPANSION_HARDENED` is final recovery authority only because the unchanged canonical P10 workflow proved the exact documentation-bearing head.
 
 ## Recovery procedure
 
 1. Read this file.
 2. Read the P10 checkpoint, P10 design, and P10 implementation/freeze plan.
 3. Treat `b353365fa8b20a13b658c07b3027334b69eff108` as the exact frozen P9 predecessor.
-4. Treat `4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696`, run `34024050037`, job `101461753634`, as the exact P10 **source-under-test proof boundary**.
-5. Verify `.github/workflows/p10-canonical-proof.yml` blob is `39dd9ec67a416b097f4c31d6d2b10120e617a875` and has `contents: read`.
-6. Until the exact documentation-bearing run succeeds, report P10 as **source proved; docs-head proof pending**, not finally frozen.
-7. Once that exact docs-head run succeeds, record its SHA/run/job as post-proof recovery metadata without treating that recording commit as a new proof boundary.
-8. Only after that may P11 begin.
+4. Treat `4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696`, run `34024050037`, job `101461753634`, as the exact P10 source-under-test proof boundary.
+5. Treat `3aeb61daf4d575db0f018245ee271597ad475e7b`, run `34024846890`, job `101463880804`, as the exact **finally frozen P10 documentation proof boundary**.
+6. Verify `.github/workflows/p10-canonical-proof.yml` blob is `39dd9ec67a416b097f4c31d6d2b10120e617a875` and has `contents: read`.
+7. Treat later documentation-only commits that merely record the successful proof metadata as post-proof recovery metadata; they do not move the frozen P10 boundary.
+8. P11 may now begin from this frozen P10 authority state.
 
 ## Freeze state
 
-Current state before the documentation-head canonical run:
-
 ```text
-P10 source proof:        PROVED
-source head:             4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696
-source run:              34024050037
-source job:              101461753634
-source conclusion:       success
-canonical workflow:      39dd9ec67a416b097f4c31d6d2b10120e617a875
-documentation proof:     PENDING
-P10 final freeze:        NOT YET CLAIMED
-SELF_EXPANSION_HARDENED: earned on source; pending final docs-head recovery authority
-next roadmap phase:      P11 only after final P10 freeze
+P10 source proof:          PROVED
+source head:               4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696
+source run:                34024050037
+source job:                101461753634
+source conclusion:         success
+canonical workflow blob:   39dd9ec67a416b097f4c31d6d2b10120e617a875
+documentation proof:       PROVED
+final proved docs head:    3aeb61daf4d575db0f018245ee271597ad475e7b
+final docs run:            34024846890
+final docs job:            101463880804
+final docs conclusion:     success
+final docs P10_MANIFEST:   sha256:3b4a652eddd7db96d49994733db673d195ae10c315c6e518ead607a22cef9732
+P10 final freeze:          FINALLY FROZEN
+SELF_EXPANSION_HARDENED:   FINAL RECOVERY AUTHORITY
+next roadmap phase:        P11
 ```
 
-The next action is the final plan gate: prove the **exact documentation-bearing candidate head** with the **unchanged** P10 canonical workflow.
+P10 is closed. The exact frozen proof boundary remains `3aeb61daf4d575db0f018245ee271597ad475e7b`; post-proof recovery metadata commits do not move it.
