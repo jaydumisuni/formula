@@ -1,13 +1,17 @@
 use formula_core::{
     artifacts::StructuralIdentity,
     bootstrap::{
-        BOOTSTRAP_CORE_SCHEMA_V1, BootstrapBytecode, BootstrapDecision,
-        BootstrapEquivalenceLevel, BootstrapGenerationId, BootstrapInstruction,
-        BootstrapProgramSource, BootstrapRebuildManifest, BootstrapSeedManifest,
-        BootstrapValidationState,
+        BOOTSTRAP_CORE_SCHEMA_V1, BootstrapBytecode, BootstrapDecision, BootstrapEquivalenceLevel,
+        BootstrapGenerationId, BootstrapInstruction, BootstrapProgramSource,
+        BootstrapRebuildManifest, BootstrapSeedManifest, BootstrapValidationState,
     },
     digest::ArtifactDigest,
 };
+
+const BOOTSTRAP_BUILD_RECIPE_V1: &[u8] = b"formula-bootstrap-build-recipe:v1:FBC1";
+const BOOTSTRAP_NORMALIZATION_NONE_V1: &[u8] = b"formula-bootstrap-normalization:none:v1";
+const BOOTSTRAP_SEMANTIC_EVIDENCE_V1: &[u8] = b"formula-bootstrap-semantic-evidence:v1";
+const BOOTSTRAP_SEMANTIC_CASES_V1: &[u8] = b"equal:VALID;different:REJECT";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BootstrapValidationFailure {
@@ -15,11 +19,14 @@ pub enum BootstrapValidationFailure {
     GeneratorEqualsValidator,
     SeedProvenanceMismatch,
     SourceDigestMismatch,
+    BuildRecipeDigestMismatch,
     CandidateArtifactBindingMismatch,
     IndependentArtifactMismatch,
     CandidateReferenceMismatch,
+    NormalizationRulesMismatch,
     EquivalenceNotByteForByte,
     InvalidValidationState,
+    SemanticEvidenceMismatch,
     SemanticEquivalenceFailed,
 }
 
@@ -74,6 +81,25 @@ impl BootstrapValidationAuthorization {
     }
 }
 
+pub fn canonical_build_recipe_identity() -> ArtifactDigest {
+    ArtifactDigest::of_bytes(BOOTSTRAP_BUILD_RECIPE_V1)
+}
+
+pub fn canonical_normalization_rules_identity() -> ArtifactDigest {
+    ArtifactDigest::of_bytes(BOOTSTRAP_NORMALIZATION_NONE_V1)
+}
+
+pub fn semantic_evidence_identity(
+    source: &BootstrapProgramSource,
+    candidate: &BootstrapBytecode,
+) -> ArtifactDigest {
+    let mut bytes = BOOTSTRAP_SEMANTIC_EVIDENCE_V1.to_vec();
+    bytes.extend_from_slice(source.structural_digest().as_str().as_bytes());
+    bytes.extend_from_slice(candidate.structural_digest().as_str().as_bytes());
+    bytes.extend_from_slice(BOOTSTRAP_SEMANTIC_CASES_V1);
+    ArtifactDigest::of_bytes(&bytes)
+}
+
 pub fn reference_compile(
     source: &BootstrapProgramSource,
 ) -> Result<BootstrapBytecode, BootstrapValidationFailure> {
@@ -111,14 +137,23 @@ pub fn validate_bootstrap_candidate(
     if rebuild.source_digest() != source.structural_digest() {
         return Err(BootstrapValidationFailure::SourceDigestMismatch);
     }
+    if rebuild.build_recipe_digest() != canonical_build_recipe_identity() {
+        return Err(BootstrapValidationFailure::BuildRecipeDigestMismatch);
+    }
     if rebuild.candidate_artifact() != candidate.structural_digest() {
         return Err(BootstrapValidationFailure::CandidateArtifactBindingMismatch);
+    }
+    if rebuild.normalization_rules() != canonical_normalization_rules_identity() {
+        return Err(BootstrapValidationFailure::NormalizationRulesMismatch);
     }
     if rebuild.equivalence() != BootstrapEquivalenceLevel::ByteForByte {
         return Err(BootstrapValidationFailure::EquivalenceNotByteForByte);
     }
     if rebuild.state() != BootstrapValidationState::Candidate {
         return Err(BootstrapValidationFailure::InvalidValidationState);
+    }
+    if rebuild.semantic_evidence() != semantic_evidence_identity(source, candidate) {
+        return Err(BootstrapValidationFailure::SemanticEvidenceMismatch);
     }
 
     let independently_compiled = reference_compile(source)?;
