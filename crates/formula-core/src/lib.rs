@@ -1,4 +1,5 @@
 pub mod artifacts;
+pub mod bootstrap;
 pub mod canonical;
 pub mod certification;
 pub mod digest;
