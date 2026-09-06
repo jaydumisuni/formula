@@ -8,45 +8,23 @@ Recover repository evidence before reasoning. Do not reconstruct implementation 
 
 1. [`docs/design/README.md`](docs/design/README.md) — frozen D1-D5 design precedence.
 2. [`docs/roadmap/2026-08-28-implementation-roadmap.md`](docs/roadmap/2026-08-28-implementation-roadmap.md) — frozen roadmap P0 onward.
-3. [`docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md`](docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md) — exact finally frozen P10 checkpoint.
-4. [`docs/superpowers/specs/2026-09-05-p10-self-expansion-hardening-design.md`](docs/superpowers/specs/2026-09-05-p10-self-expansion-hardening-design.md) — frozen P10 design.
-5. [`docs/superpowers/plans/2026-09-05-p10-self-expansion-hardening.md`](docs/superpowers/plans/2026-09-05-p10-self-expansion-hardening.md) — executed P10 implementation/freeze plan.
-6. [`docs/checkpoints/2026-09-04-p9-canonical-first-light-proof.md`](docs/checkpoints/2026-09-04-p9-canonical-first-light-proof.md) — exact frozen P9 predecessor checkpoint.
+3. [`docs/checkpoints/2026-09-06-p11-federation-breadth.md`](docs/checkpoints/2026-09-06-p11-federation-breadth.md) — exact P11 source-proof checkpoint; docs-head proof pending.
+4. [`docs/superpowers/specs/2026-09-06-p11-federation-breadth-design.md`](docs/superpowers/specs/2026-09-06-p11-federation-breadth-design.md) — frozen P11 design.
+5. [`docs/superpowers/plans/2026-09-06-p11-federation-breadth.md`](docs/superpowers/plans/2026-09-06-p11-federation-breadth.md) — executed P11 implementation/freeze plan.
+6. [`docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md`](docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md) — exact finally frozen P10 predecessor checkpoint.
 7. [`docs/research/`](docs/research/) — preserved research evidence; reopen only for a concrete contradiction or missing obligation.
 
 ## Exact current implementation state
 
-**P10 — Self-Expansion Hardening: FINALLY FROZEN.**
-
-**`SELF_EXPANSION_HARDENED`: FINAL RECOVERY AUTHORITY.**
+**P11 — Federation Breadth: SOURCE PROVED; documentation-head proof pending.**
 
 Canonical branch:
 
 ```text
-implementation/p10-self-expansion-hardening
+implementation/p11-federation-breadth
 ```
 
-Exact finally frozen P9 predecessor:
-
-```text
-b353365fa8b20a13b658c07b3027334b69eff108
-workflow: P9 canonical proof
-run:      33950470295
-job:      101264153162
-result:   success
-```
-
-Canonical P10 source-under-test proof boundary:
-
-```text
-4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696
-workflow: P10 canonical proof
-run:      34024050037
-job:      101461753634
-result:   success
-```
-
-Exact finally frozen P10 documentation proof boundary:
+Exact finally frozen P10 predecessor:
 
 ```text
 3aeb61daf4d575db0f018245ee271597ad475e7b
@@ -56,15 +34,25 @@ job:      101463880804
 result:   success
 ```
 
-The source proof established the full P10 implementation under the permanent read-only workflow. The final documentation proof then reran that **unchanged** workflow on the exact documentation-bearing head and passed every canonical gate through clean worktree. The post-proof commits that record this result are recovery metadata only; they do not redefine the frozen proof boundary.
-
-All temporary P10 development and write-capable formatter workflows were removed before the source-under-test proof. They are not part of canonical P10 authority.
-
-## Permanent canonical P10 workflow
+Canonical P11 source-under-test proof boundary:
 
 ```text
-path:        .github/workflows/p10-canonical-proof.yml
-blob SHA:    39dd9ec67a416b097f4c31d6d2b10120e617a875
+b5377eb78c7540d927fca1aea9e04ca5b3a56371
+workflow: P11 canonical proof
+run:      34030804901
+job:      101479821966
+result:   success
+```
+
+P11 source implementation is complete under the permanent read-only canonical workflow. The final documentation-bearing proof has not yet been earned at the time of this recovery record; therefore P11 is not yet finally frozen.
+
+The temporary P11 development workflow was removed before the source-under-test proof and is not part of canonical authority.
+
+## Permanent canonical P11 workflow
+
+```text
+path:        .github/workflows/p11-canonical-proof.yml
+blob SHA:    97192299b4ea2aac469da38b4885e2608b2d7bd3
 permissions: contents: read
 runner:      ubuntu-24.04
 Rust:        1.98.0
@@ -74,157 +62,103 @@ host:        x86_64-unknown-linux-gnu
 LLVM:        22.1.8
 ```
 
-This exact workflow blob was verified on both the proved source head and the final documentation-bearing head. The source-to-docs comparison contained only:
+## What P11 proves at the source boundary
+
+P11 extends the frozen federation architecture with two heterogeneous independently checked specialist routes while keeping producer identity untrusted:
 
 ```text
-CURRENT.md
-docs/checkpoints/2026-09-05-p10-self-expansion-hardening.md
+untrusted SAT/LRAT producer
+ -> DIMACS semantic identity
+ -> independent LRAT/RUP checker
+ -> checker-bound evidence
+ -> exact adapter-route admission
+ -> provenance-bound CertifiedFederationFact
+ -> explicit directional BridgeContract
+
+untrusted exact-arithmetic producer
+ -> arbitrary-precision IntegerOperation identity
+ -> independent BigInt recomputation
+ -> canonical decimal equality
+ -> checker-bound evidence
+ -> exact adapter-route admission
+ -> provenance-bound CertifiedFederationFact
+
+checked SAT fact + safe bridge/composition + checked arithmetic fact
+ -> heterogeneous final target
+ -> NC11-01...NC11-14
+ -> FederationBreadthProofManifest
+ -> independent final replay verifier
+ -> PASS FEDERATION_BREADTH_PROVED
 ```
 
-No workflow or implementation file changed across the final documentation proof boundary.
-
-## What P10 proves
-
-P10 extends the frozen P0-P9 system with explicit, replayable self-expansion authority rather than allowing search, grammar changes, proof reuse, or realization selection to mutate semantics implicitly.
-
-The canonical proof establishes:
-
-```text
-frozen P9 predecessor
- -> deterministic PromotionClassRegistryV1
- -> existing Integer/Rational packages in U_g
- -> no Rational field capability before new evidence
- -> checked StructureWitness promotion
- -> checker-issued expansion authorization
- -> immutable U_g -> U_g+1 promotion
- -> existing generic capability closure consumes admitted witness
- -> Rational field capability becomes available
- -> Rational package digest remains unchanged
- -> explicit Lambda_g and Lambda_g+1 identities
- -> CandidateSpace exact Lambda binding
- -> scoped automatic nogoods
- -> preservation-gated promoted routes
- -> shadow-first metaprimitive behavior
- -> explicit semantic-change freshness
- -> checker-gated proof transport/repair
- -> multiple independently admitted realization variants
- -> realization-only upgrade and rollback without changing U
- -> immutable historical generation/variant replay
- -> NC10-01...NC10-12
- -> source-bound SelfExpansionProofManifest
- -> independent final verifier
- -> PASS SELF_EXPANSION_HARDENED
-```
-
-### Promotion/activation policy
-
-Every frozen P10 promotion class has one deterministic policy defining whether it may affect universe admission, capability closure, grammar, or realization selection and which activation modes are legal. A classified P10 authorization remains bound to the exact underlying checker-authorized promotion.
-
-### Non-primitive capability expansion
-
-A promoted `StructureWitness` can unlock a capability already described by an unchanged theory package. The canonical Rational proof demonstrates this with `cap:rational:field`; no Rational solver/package source rewrite is used to manufacture the capability.
-
-### Grammar and CandidateSpace binding
-
-Grammar generations are structural identities bound to the universe generation and active/shadow route/metaprimitive state. CandidateSpace state is bound to the exact `Lambda` digest, so a candidate built under `Lambda_g` cannot be silently reinterpreted under `Lambda_g+1`.
-
-### Proof evolution
-
-Semantic change receives an explicit freshness class. Non-conservative change cannot silently transport existing evidence. Transport and repair plans require exact checker-issued authorization and produce new structural evidence identities.
-
-### Realization-only evolution
-
-Multiple admitted realizations may coexist for one exact semantic dispatch context. Selection can upgrade to a different admitted variant or roll back to an older one without creating a new mathematical universe generation, deleting the newer variant, or rewriting supersession/history.
+Unsupported LRAT behavior fails closed. Candidate-only routes cannot certify facts. Bridge direction, source package/subject/polarity, translation, composition class and non-strengthening polarity are explicit checked contracts. Package or producer identity alone never authorizes mathematics.
 
 ## Source-run proof identities
 
-Exact source-run evidence from run `34024050037`, job `101461753634`:
+Exact source-run evidence from run `34030804901`, job `101479821966`:
 
 ```text
-P10_SOURCE_SHA=4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696
-P10_P9_PREDECESSOR=b353365fa8b20a13b658c07b3027334b69eff108
-P10_MANIFEST=sha256:17e6798fcb991cb280b83084fff0374f4c3ed4f0af330e8cdac4e8b93feda16e
-P10_U_G=sha256:697a498ab0e445168b361a1c84ba9679aa1b829111ff0fd88ae6118849009e23
-P10_U_G1=sha256:1c241afd0832fbf9fcfd3c1c98ea86b0fa532afff3e574ba34409a16332b167c
-P10_REGISTRY=sha256:af2672745b79096bca39d0f4259832df3bbd57bfbc97610973b23f127423b116
-P10_LAMBDA_G=sha256:d5e93854c360d41fe12d6503ca651192364aea2268059d1c41bc2384f1959f0c
-P10_LAMBDA_G1=sha256:da34606abc4fa9cc4b15a41d739acdf1e078c4dbeb487b30ae9d76c9019addbc
-P10_UNLOCKED_CAPABILITY=sha256:9ea6e3e3482b2f44c71af2026e42b4e1a2c706c791cc67bcb5dc9409331e7583
-P10_NEGATIVE_CONTROLS=sha256:f6f0ffd18fd26939531d403c9ee9f641b76c38dd7cb594ae357fe3f7b117fb25
+P11_SOURCE_SHA=b5377eb78c7540d927fca1aea9e04ca5b3a56371
+P11_P10_PREDECESSOR=sha256:37a0309762564ecdec48792b951c1d0eaf6fb5342c354cdd7d58f57934079486
+P11_MANIFEST=sha256:94cc3ddbf41b4993d50ca4e6e2fc37f0483804b46f3aadd7399f99d357eaf88b
+P11_SAT_PACKAGE=sha256:c3351c1d8e030cf01d29c70d1d7f3119e578b97dcd20de013b7f780d37daede2
+P11_SAT_ADAPTER=sha256:3d41a245fd2b28d0387b104e3efc0ed7bbd31a2582d3debead36cc2817aa4862
+P11_ARITHMETIC_PACKAGE=sha256:adbabc997de811b254ad9e7052324d6a89d57014024c3c07b0fc9e1391f35e8d
+P11_ARITHMETIC_ADAPTER=sha256:7fca1ad7b7b79a9af6de140769008e20d86df1036c8c584e745a1ea9ccb793b5
+P11_BRIDGE=sha256:7ffc888a9ee6d9703ac6e52b61dc1f1fb086d974cd5af7981fa9d84e27266406
+P11_NEGATIVE_CONTROLS=sha256:3faadf4580899f87e2a6c8a9a26e108b8d40121981f5a32b6de40f5700a40375
+P11_FINAL_TARGET=sha256:dd35426c857ad922d8439e7d539fabe34d2daabb9f255dd35953b57a752a8844
 ```
 
-## Final documentation-run proof identities
-
-Exact final recovery evidence from run `34024846890`, job `101463880804`:
+## Executed NC11-01...NC11-14
 
 ```text
-P10_SOURCE_SHA=3aeb61daf4d575db0f018245ee271597ad475e7b
-P10_P9_PREDECESSOR=b353365fa8b20a13b658c07b3027334b69eff108
-P10_MANIFEST=sha256:3b4a652eddd7db96d49994733db673d195ae10c315c6e518ead607a22cef9732
-P10_U_G=sha256:697a498ab0e445168b361a1c84ba9679aa1b829111ff0fd88ae6118849009e23
-P10_U_G1=sha256:1c241afd0832fbf9fcfd3c1c98ea86b0fa532afff3e574ba34409a16332b167c
-P10_REGISTRY=sha256:af2672745b79096bca39d0f4259832df3bbd57bfbc97610973b23f127423b116
-P10_LAMBDA_G=sha256:d5e93854c360d41fe12d6503ca651192364aea2268059d1c41bc2384f1959f0c
-P10_LAMBDA_G1=sha256:da34606abc4fa9cc4b15a41d739acdf1e078c4dbeb487b30ae9d76c9019addbc
-P10_UNLOCKED_CAPABILITY=sha256:9ea6e3e3482b2f44c71af2026e42b4e1a2c706c791cc67bcb5dc9409331e7583
-P10_NEGATIVE_CONTROLS=sha256:f6f0ffd18fd26939531d403c9ee9f641b76c38dd7cb594ae357fe3f7b117fb25
+NC11-01 CANDIDATE_ONLY_AUTHORITY_ATTEMPT
+NC11-02 FORGED_LRAT_HINT
+NC11-03 LRAT_MISSING_EMPTY_CLAUSE
+NC11-04 UNSUPPORTED_RAT_PROOF_FAILS_CLOSED
+NC11-05 WRONG_SAT_CHECKER_ROUTE
+NC11-06 INCORRECT_EXACT_ARITHMETIC_RESULT
+NC11-07 MALFORMED_EXACT_ARITHMETIC_DECIMAL
+NC11-08 WRONG_ARITHMETIC_TRANSLATION
+NC11-09 STALE_SEMANTIC_INPUT_DIGEST
+NC11-10 SHARED_FACT_POLARITY_UPGRADE
+NC11-11 MISSING_BRIDGE_CONTRACT
+NC11-12 WRONG_BRIDGE_DIRECTION
+NC11-13 UNSAFE_COMPOSITION_CLASS
+NC11-14 PRODUCER_IDENTITY_CANNOT_AUTHORIZE
 ```
 
-The final proof satisfies the frozen identity rule exactly. Only the documentation head's `P10_SOURCE_SHA` and source-bound `P10_MANIFEST` changed. `P10_U_G`, `P10_U_G1`, registry, both `Lambda` identities, unlocked capability, negative-control identity, predecessor identity, and the marker contract remained identical.
+The canonical integration constructs the negative-control manifest only after each concrete failure path is observed.
 
-## Executed NC10-01...NC10-12
+## P11 marker contract
 
-The canonical clean-state integration executes these exact negative controls and only afterward constructs the complete negative-control manifest:
+The source proof emitted exactly:
 
 ```text
-NC10-01 WrongBasePromotion
-NC10-02 ForbiddenClassEffect
-NC10-03 UnadmittedStructureWitness
-NC10-04 UnboundStructureEvidence
-NC10-05 UnscopedAutomaticNogood
-NC10-06 RouteMissingPreservationEvidence
-NC10-07 GrammarGenerationMismatch
-NC10-08 UngatedAutomaticMetaprimitive
-NC10-09 NonConservativeSilentTransport
-NC10-10 UnauthorizedProofRepairOrTransport
-NC10-11 RealizationUpgradeSemanticAdmission
-NC10-12 RollbackHistoryRewrite
+PASS P11_SAT_LRAT_CHECKED
+PASS P11_EXACT_ARITHMETIC_CHECKED
+PASS P11_FEDERATION_PROVENANCE_BOUND
+PASS P11_SHARED_FACT_POLARITY_PRESERVED
+PASS P11_BRIDGE_CONTRACT_ENFORCED
+PASS P11_HETEROGENEOUS_COOPERATION
+PASS P11_PRODUCER_IDENTITY_UNTRUSTED
+PASS P11_NEGATIVE_CONTROLS
+PASS FEDERATION_BREADTH_PROVED
 ```
 
-This is executable failure-path evidence, not a list-only declaration.
+This marker set is source-proved but does not become final cross-chat recovery authority until the unchanged canonical workflow proves the documentation-bearing head.
 
-## P10 frozen marker contract
+## Canonical source gates
 
-Both the source proof and final documentation-head proof independently replayed the complete manifest and emitted exactly:
-
-```text
-PASS P10_PROMOTION_CLASS_REGISTRY
-PASS P10_STRUCTURE_WITNESS_PROMOTION
-PASS P10_NON_PRIMITIVE_CAPABILITY_UNLOCK
-PASS P10_NOGOOD_SCOPE_ENFORCED
-PASS P10_ROUTE_PROMOTION_GATED
-PASS P10_GRAMMAR_GENERATION_BOUND
-PASS P10_METAPRIMITIVE_SHADOW_GATE
-PASS P10_SEMANTIC_CHANGE_REVALIDATION
-PASS P10_PROOF_TRANSPORT_REPAIR_GATED
-PASS P10_REALIZATION_ONLY_UPGRADE
-PASS P10_ROLLBACK_HISTORY_PRESERVED
-PASS P10_NEGATIVE_CONTROLS
-PASS SELF_EXPANSION_HARDENED
-```
-
-`SELF_EXPANSION_HARDENED` is final cross-chat recovery authority at exact proof boundary `3aeb61daf4d575db0f018245ee271597ad475e7b`.
-
-## Canonical proof gates
-
-Both canonical proofs passed:
+Run `34030804901` passed:
 
 ```text
 exact identity + pinned toolchain
 locked/offline metadata
-canonical one-clean-state P10 proof
-independent P10 final verifier
-frozen P9 predecessor canonical proof
+canonical heterogeneous federation proof
+independent final verifier
+frozen P10 predecessor proof
 predecessor architecture firewalls
 formula-core tests
 formula-check tests
@@ -245,29 +179,22 @@ clean worktree
 
 ## Authority boundary
 
-P10 extends rather than weakens the frozen architecture:
-
 ```text
-search/discovery -> candidate only
-checker -> mathematical / realization / proof-evolution verification authority
-promotion -> atomic generation-producing mathematical publication
-AuthorityStore -> authorization-consuming immutable persistence
-capability closure -> generation/world/package-bound derived state only
-grammar generation -> explicit structural state bound to U
-CandidateSpace -> exact Lambda-bound search state
-metaprimitive automation -> shadow by default; strict checker gate for automatic use
-proof transport/repair -> exact checker-authorized plan only
-realization generation -> untrusted production
-realization upgrade -> selection-only over already admitted variants
-rollback -> active selection only; immutable history remains replayable
-execution -> exact admitted realization dispatch only
+search / external producers -> candidate/evidence only
+independent checker -> evidence authority
+adapter manifest -> semantic route contract, not authority
+CertifiedFederationFact -> checked provenance binding
+BridgeContract -> explicit directional translation contract
+SharedFact -> world/subject/polarity/evidence-bound exchange
+composition -> safe class required
+independent P11 verifier -> final manifest replay authority
 ```
 
-The permanent workflow enforces both dependency and source authority firewalls. Checker, engine, realization generation, First-Light production code, and store retain separate roles.
+The P11 workflow preserves the frozen checker/engine/store/realization/First-Light dependency and source firewalls.
 
-## P0-P9 remain authority
+## P0-P10 remain authority
 
-P10 consumes and extends, but does not rewrite:
+P11 consumes and extends, but does not rewrite, the frozen predecessor system:
 
 ```text
 P0 reproducible repository/build + architecture firewall
@@ -280,110 +207,78 @@ P6 sealed First-Light harness + blindness gates
 P7 checker-authorized atomic promotion into immutable U1
 P8 independently authorized native realization + exact dispatch
 P9 canonical First-Light closure + durable activation + zero-rediscovery reuse
+P10 self-expansion hardening + explicit grammar/proof/realization evolution authority
 ```
 
-The exact P9 predecessor is `b353365fa8b20a13b658c07b3027334b69eff108`.
+Exact frozen P10 proof boundary remains `3aeb61daf4d575db0f018245ee271597ad475e7b`.
 
-## Not proved by P10
+## Not proved by P11
 
-Do not claim from P10:
+Do not claim from P11:
 
 ```text
-unbounded/general theorem discovery
-proof transport across arbitrary unproved semantic relations
-automatic metaprimitive activation without the strict frozen gate
-semantic admission through realization-only upgrade
-history deletion/mutation during rollback
-GPU/SIMD/JIT realization completeness
-Ptah/distributed execution completeness
+producer identity as mathematical authority
+full LRAT including arbitrary unsupported RAT/deletion semantics
+arbitrary external solver trust
+polarity-strengthening bridges
+unsafe heuristic composition as certified cooperation
 network-backed proof authority
 model-backed proof authority
-P11 completion
+unbounded specialist ecosystem coverage
+P12 completion
 ```
 
-## P10 final freeze — satisfied
+## Documentation-head freeze requirement
 
-The P10 freeze plan is closed:
+The next exact operation is not more P11 implementation. It is recursive recovery proof:
 
-1. Pinned Rust 1.98 formatting normalization was applied to the exact proof-file scope.
-2. The one-clean-state `p10_self_expansion_hardening` integration executes all twelve NC10 controls and derives all thirteen markers from actual evidence.
-3. The harness passed Clippy, dependency/source firewalls, and clean-tree.
-4. Temporary development/write workflows were removed and replaced by the permanent read-only canonical workflow.
-5. Exact source head `4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696` passed canonical proof run `34024050037`, job `101461753634`.
-6. Source SHA/run/job and all frozen identities were recovered from the exact job log.
-7. `CURRENT.md` and the P10 checkpoint formed the only documentation delta.
-8. Exact docs head `3aeb61daf4d575db0f018245ee271597ad475e7b` passed the **unchanged** canonical workflow in run `34024846890`, job `101463880804`.
-9. Stable semantic identities and all thirteen markers matched the source proof exactly; only the source SHA and source-bound manifest changed.
-10. The exact docs SHA/run/job are now recorded as post-proof recovery metadata without recursively redefining the proof boundary.
-
-## Next implementation boundary
-
-The next frozen-roadmap phase is **P11**.
-
-P11 must start from the exact finally frozen P10 authority state and must not rewrite P10 source/proof authority. The frozen P10 proof boundary remains:
-
-```text
-3aeb61daf4d575db0f018245ee271597ad475e7b
-run: 34024846890
-job: 101463880804
-```
-
-Later post-proof metadata commits are not replacements for that boundary.
+1. this file and the P11 checkpoint must be the only source-to-docs changes;
+2. `.github/workflows/p11-canonical-proof.yml` must remain blob `97192299b4ea2aac469da38b4885e2608b2d7bd3`;
+3. the unchanged workflow must pass on the exact documentation-bearing head;
+4. predecessor, package/adapter, bridge, negative-control, final-target and marker identities must reproduce; only `P11_SOURCE_SHA` and source-bound `P11_MANIFEST` may change;
+5. exact docs SHA/run/job are then recorded as post-proof metadata without recursively moving the proof boundary;
+6. only then is `FEDERATION_BREADTH_PROVED` final recovery authority and the next roadmap phase may begin.
 
 ## Constitutional laws to preserve
 
 1. Search may propose mathematics. Only Certification + Promotion can create mathematical authority.
 2. Execution may consume authority. Execution cannot manufacture authority.
 3. Mathematical correctness and realization correctness remain separate proof obligations.
-4. Candidate/search/compiler state remains outside admitted generation authority until explicitly promoted.
-5. Resource exhaustion never becomes mathematical refutation or weakens an Authority Contract.
-6. Promotion is generation-producing, atomic, and history preserving.
-7. A false realization cannot invalidate already admitted mathematics.
-8. Capability closure is derived state, never an authority source.
-9. Heuristics cannot delete exact candidates or create authority.
-10. Sealed First-Light targets cannot leak backward into discovery.
-11. Raw generation publication cannot bypass checker-issued promotion authorization.
-12. Realization admission requires independent checker authorization and exact semantic/source/toolchain/binary/context binding.
-13. Compilation success alone never creates realization authority.
-14. Dispatch may select only an admitted realization matching the exact authority context.
-15. Semantic reuse requires exact active-generation capability evidence and cannot silently fall back to rediscovery under the canonical reuse contract.
-16. Promotion-class effects and activation modes are checked policy, not producer discretion.
-17. CandidateSpace semantics are bound to an explicit grammar-generation identity.
-18. Non-conservative change cannot silently transport prior proof authority.
-19. Proof transport/repair requires exact checker authorization and produces new evidence identity.
-20. Realization-only evolution cannot create mathematical admission or advance the universe generation.
-21. Supersession and rollback are append-only/history-preserving selection operations.
-22. `SELF_EXPANSION_HARDENED` is final recovery authority only because the unchanged canonical P10 workflow proved the exact documentation-bearing head.
+4. Resource exhaustion never becomes mathematical refutation or weakens an Authority Contract.
+5. Promotion is atomic and history preserving.
+6. Capability closure is derived state, never an authority source.
+7. Heuristics cannot delete exact candidates or create authority.
+8. Compilation success alone never creates realization authority.
+9. Semantic reuse requires exact active-generation authority evidence.
+10. Promotion-class effects and activation modes are checked policy, not producer discretion.
+11. CandidateSpace semantics are bound to an explicit grammar-generation identity.
+12. Non-conservative change cannot silently transport prior proof authority.
+13. Realization-only evolution cannot create mathematical admission.
+14. Federation producers and adapters are untrusted until independent checking establishes evidence authority.
+15. Cross-package Shared Fact propagation requires an explicit safe directional bridge and may not strengthen polarity.
+16. `FEDERATION_BREADTH_PROVED` becomes final recovery authority only after the unchanged canonical P11 workflow proves the exact documentation-bearing head.
 
 ## Recovery procedure
 
 1. Read this file.
-2. Read the P10 checkpoint, P10 design, and P10 implementation/freeze plan.
-3. Treat `b353365fa8b20a13b658c07b3027334b69eff108` as the exact frozen P9 predecessor.
-4. Treat `4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696`, run `34024050037`, job `101461753634`, as the exact P10 source-under-test proof boundary.
-5. Treat `3aeb61daf4d575db0f018245ee271597ad475e7b`, run `34024846890`, job `101463880804`, as the exact **finally frozen P10 documentation proof boundary**.
-6. Verify `.github/workflows/p10-canonical-proof.yml` blob is `39dd9ec67a416b097f4c31d6d2b10120e617a875` and has `contents: read`.
-7. Treat later documentation-only commits that merely record the successful proof metadata as post-proof recovery metadata; they do not move the frozen P10 boundary.
-8. P11 may now begin from this frozen P10 authority state.
+2. Read the P11 checkpoint, P11 design and P11 implementation/freeze plan.
+3. Treat `3aeb61daf4d575db0f018245ee271597ad475e7b` as exact frozen P10 predecessor proof authority.
+4. Treat `b5377eb78c7540d927fca1aea9e04ca5b3a56371`, run `34030804901`, job `101479821966`, as the exact P11 source-under-test proof boundary.
+5. Verify `.github/workflows/p11-canonical-proof.yml` blob is `97192299b4ea2aac469da38b4885e2608b2d7bd3` and has `contents: read`.
+6. Resolve the documentation-bearing candidate and its unchanged canonical run.
+7. Do not mark P11 finally frozen until that exact run succeeds.
 
 ## Freeze state
 
 ```text
-P10 source proof:          PROVED
-source head:               4ca5f7d6bc5725ad41ab3afaf94fcf8493f2f696
-source run:                34024050037
-source job:                101461753634
+P11 source proof:          PROVED
+source head:               b5377eb78c7540d927fca1aea9e04ca5b3a56371
+source run:                34030804901
+source job:                101479821966
 source conclusion:         success
-canonical workflow blob:   39dd9ec67a416b097f4c31d6d2b10120e617a875
-documentation proof:       PROVED
-final proved docs head:    3aeb61daf4d575db0f018245ee271597ad475e7b
-final docs run:            34024846890
-final docs job:            101463880804
-final docs conclusion:     success
-final docs P10_MANIFEST:   sha256:3b4a652eddd7db96d49994733db673d195ae10c315c6e518ead607a22cef9732
-P10 final freeze:          FINALLY FROZEN
-SELF_EXPANSION_HARDENED:   FINAL RECOVERY AUTHORITY
-next roadmap phase:        P11
+canonical workflow blob:   97192299b4ea2aac469da38b4885e2608b2d7bd3
+documentation proof:       PENDING
+P11 final freeze:          PENDING
+FEDERATION_BREADTH_PROVED: SOURCE-PROVED ONLY
+next roadmap phase:        blocked only by P11 docs-head proof
 ```
-
-P10 is closed. The exact frozen proof boundary remains `3aeb61daf4d575db0f018245ee271597ad475e7b`; post-proof recovery metadata commits do not move it.
