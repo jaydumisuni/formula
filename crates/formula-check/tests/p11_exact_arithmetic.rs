@@ -14,11 +14,9 @@ fn independently_checks_integer_addition_beyond_u128() {
         n("340282366920938463463374607431768211507"),
         n("18446744073709551629"),
     );
-    let receipt = check_decimal_integer_result(
-        &operation,
-        "340282366920938463481821351505477763136",
-    )
-    .expect("exact result must verify");
+    let receipt =
+        check_decimal_integer_result(&operation, "340282366920938463481821351505477763136")
+            .expect("exact result must verify");
 
     assert_eq!(
         receipt.result_decimal(),
@@ -70,10 +68,7 @@ fn canonical_negative_result_is_supported() {
         n("340282366920938463463374607431768211507"),
     );
     assert!(
-        check_decimal_integer_result(
-            &operation,
-            "-340282366920938463444927863358058659878",
-        )
-        .is_ok()
+        check_decimal_integer_result(&operation, "-340282366920938463444927863358058659878",)
+            .is_ok()
     );
 }
