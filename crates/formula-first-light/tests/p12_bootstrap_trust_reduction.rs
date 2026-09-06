@@ -14,8 +14,8 @@ use formula_core::{
     generation::UniverseGeneration,
 };
 use formula_first_light::p12::{
-    checker_identity, p11_frozen_proof_identity, seed_manifest, source_commit,
-    successor_generation, verifier_identity, P11_FROZEN_PROOF_HEAD,
+    P11_FROZEN_PROOF_HEAD, checker_identity, p11_frozen_proof_identity, seed_manifest,
+    source_commit, successor_generation, verifier_identity,
 };
 use formula_realize::bootstrap::{
     BootstrapExecutionError, canonical_generator_image, execute_bootstrap_bytecode,
@@ -116,7 +116,7 @@ fn p12_self_hosting_bootstrap_trust_reduction() {
     let admitted_stage1 = admitted_t1
         .candidate()
         .expect("T1 must replay admitted Stage1 candidate");
-    let stage1_image = generator_image_from_bootstrap_artifact(admitted_stage1)
+    let stage1_image = generator_image_from_bootstrap_artifact(&source, admitted_stage1)
         .expect("admitted Stage1 artifact must seed Stage2 generator");
     let stage2 = rebuild_with_generator_image(&stage1_image, &source).unwrap();
     let t2 = successor_generation(
@@ -413,6 +413,9 @@ fn p12_self_hosting_bootstrap_trust_reduction() {
     println!("P12_SOURCE={}", source.structural_digest().as_str());
     println!("P12_STAGE1={}", stage1.structural_digest().as_str());
     println!("P12_STAGE2={}", stage2.structural_digest().as_str());
-    println!("P12_NC={}", proof.negative_controls().structural_digest().as_str());
+    println!(
+        "P12_NC={}",
+        proof.negative_controls().structural_digest().as_str()
+    );
     println!("P12_PROOF={}", proof.structural_digest().as_str());
 }
