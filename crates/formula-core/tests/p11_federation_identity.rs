@@ -2,7 +2,8 @@ use formula_core::{
     artifacts::StructuralIdentity,
     canonical::CanonicalValue,
     digest::ArtifactDigest,
-    theory::{BridgeContract, CertifiedFederationFact, FactPolarity, SharedFact},
+    federation::{BridgeContract, CertifiedFederationFact},
+    theory::{FactPolarity, SharedFact},
 };
 
 fn d(label: &str) -> ArtifactDigest {
