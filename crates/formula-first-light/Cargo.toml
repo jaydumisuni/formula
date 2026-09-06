@@ -14,4 +14,5 @@ formula-check = { path = "../formula-check" }
 formula-packages = { path = "../formula-packages" }
 formula-realize = { path = "../formula-realize" }
 formula-store = { path = "../formula-store" }
+num-bigint.workspace = true
 tempfile.workspace = true
