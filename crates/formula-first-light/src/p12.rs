@@ -1,6 +1,6 @@
 use formula_core::{
     bootstrap::{BootstrapGenerationId, BootstrapRole, BootstrapSeedManifest},
-    digest::ArtifactDigest,
+    digest::{ArtifactDigest, DigestError},
 };
 
 pub const P11_FROZEN_PROOF_HEAD: &str = "6f8ce7bb6702ea1baf119aab9950aa5ba0f87283";
@@ -21,38 +21,71 @@ pub fn verifier_identity() -> ArtifactDigest {
     ArtifactDigest::of_bytes(b"formula-check:p12-bootstrap-final-replay:v1")
 }
 
-fn environment_digest(name: &str, fallback: &[u8]) -> ArtifactDigest {
-    match std::env::var(name) {
-        Ok(value) => ArtifactDigest::of_bytes(value.as_bytes()),
-        Err(_) => ArtifactDigest::of_bytes(fallback),
-    }
-}
-
-pub fn seed_manifest() -> BootstrapSeedManifest {
-    let canonical = [
-        "P12_RUSTC_SHA256",
-        "P12_CARGO_SHA256",
-        "P12_RUST_TOOLCHAIN_SHA256",
-    ]
-    .iter()
-    .all(|name| std::env::var(name).is_ok());
-
+fn bootstrap_seed_manifest(
+    rustc_executable: ArtifactDigest,
+    cargo_executable: ArtifactDigest,
+    rust_toolchain_file: ArtifactDigest,
+    provenance: &str,
+) -> BootstrapSeedManifest {
     BootstrapSeedManifest::new(
         BootstrapRole::ExternalToolchainSeed,
         "rust-1.98.0".into(),
         "88d9e12ae178fab0fb5cc050a94da85685d449ea".into(),
         "cargo-1.98.0".into(),
         "x86_64-unknown-linux-gnu".into(),
-        environment_digest("P12_RUSTC_SHA256", b"LOCAL_RUSTC_SHA256"),
-        environment_digest("P12_CARGO_SHA256", b"LOCAL_CARGO_SHA256"),
-        environment_digest("P12_RUST_TOOLCHAIN_SHA256", b"LOCAL_RUST_TOOLCHAIN_SHA256"),
+        rustc_executable,
+        cargo_executable,
+        rust_toolchain_file,
         "pinned-rust-1.98.0".into(),
-        if canonical {
-            "workflow-sha256".into()
-        } else {
-            "local-fallback".into()
-        },
+        provenance.into(),
     )
+}
+
+fn parse_workflow_sha256(value: &str) -> Result<ArtifactDigest, DigestError> {
+    ArtifactDigest::parse(&format!("sha256:{value}"))
+}
+
+pub fn seed_manifest_from_workflow_sha256(
+    rustc_sha256: &str,
+    cargo_sha256: &str,
+    rust_toolchain_sha256: &str,
+) -> Result<BootstrapSeedManifest, DigestError> {
+    Ok(bootstrap_seed_manifest(
+        parse_workflow_sha256(rustc_sha256)?,
+        parse_workflow_sha256(cargo_sha256)?,
+        parse_workflow_sha256(rust_toolchain_sha256)?,
+        "workflow-sha256",
+    ))
+}
+
+fn local_seed_manifest() -> BootstrapSeedManifest {
+    bootstrap_seed_manifest(
+        ArtifactDigest::of_bytes(b"LOCAL_RUSTC_SHA256"),
+        ArtifactDigest::of_bytes(b"LOCAL_CARGO_SHA256"),
+        ArtifactDigest::of_bytes(b"LOCAL_RUST_TOOLCHAIN_SHA256"),
+        "local-fallback",
+    )
+}
+
+pub fn seed_manifest() -> BootstrapSeedManifest {
+    let rustc = std::env::var("P12_RUSTC_SHA256");
+    let cargo = std::env::var("P12_CARGO_SHA256");
+    let toolchain = std::env::var("P12_RUST_TOOLCHAIN_SHA256");
+
+    match (rustc, cargo, toolchain) {
+        (Ok(rustc), Ok(cargo), Ok(toolchain)) => {
+            seed_manifest_from_workflow_sha256(&rustc, &cargo, &toolchain)
+                .expect("P12 workflow SHA-256 provenance must be canonical lowercase hex")
+        }
+        (
+            Err(std::env::VarError::NotPresent),
+            Err(std::env::VarError::NotPresent),
+            Err(std::env::VarError::NotPresent),
+        ) => local_seed_manifest(),
+        _ => panic!(
+            "P12 workflow provenance must provide all three SHA-256 values together or none"
+        ),
+    }
 }
 
 pub fn successor_generation(
