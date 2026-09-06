@@ -1,9 +1,9 @@
 use formula_check::{
+    promotion::{PromotionDecision, authorize_promotion_v1},
     proof_evolution::{
         ProofEvolutionFailure, authorize_repair_v1, authorize_transport_v1, classify_freshness,
         repair_evidence_v1, transport_evidence_v1,
     },
-    promotion::{PromotionDecision, authorize_promotion_v1},
     realization::authorize_native_u8_realization_v1,
     self_expansion::{ExpansionPolicyFailure, authorize_expansion_v1},
     self_expansion_verifier::{
@@ -46,7 +46,9 @@ use formula_first_light::p10::{
 use formula_packages::{
     activation::validate_activation,
     builtin::{integer_package, rational_package},
-    closure::{AdmittedStructureWitness, CapabilityClosure, CapabilityClosureDelta, derive_capabilities},
+    closure::{
+        AdmittedStructureWitness, CapabilityClosure, CapabilityClosureDelta, derive_capabilities,
+    },
     expansion::{
         ExpansionError, PromotedRouteActivation, ScopedNogoodActivation, active_routes,
         applicable_nogoods,
@@ -335,14 +337,8 @@ fn p10_self_expansion_hardening() {
     );
     assert_eq!(rational_after.structural_digest(), rational_digest);
 
-    let lambda_g = derive_grammar_generation(
-        &u_g,
-        None,
-        &[],
-        &[],
-        &[d("p10:canonical:theory-rule")],
-    )
-    .unwrap();
+    let lambda_g =
+        derive_grammar_generation(&u_g, None, &[], &[], &[d("p10:canonical:theory-rule")]).unwrap();
     let nogood_record = ExpansionActivationRecord::new(
         nogood_subject,
         PromotionClass::CounterexampleNogood,
@@ -372,13 +368,12 @@ fn p10_self_expansion_hardening() {
         vec![route_evidence],
         vec![route_scope],
     );
-    let route_activation = PromotedRouteActivation::new(
-        &u_g1,
-        &route_record,
-        vec![route_result_class],
-    )
-    .unwrap();
-    assert_eq!(active_routes(std::slice::from_ref(&route_activation)), vec![route_subject]);
+    let route_activation =
+        PromotedRouteActivation::new(&u_g1, &route_record, vec![route_result_class]).unwrap();
+    assert_eq!(
+        active_routes(std::slice::from_ref(&route_activation)),
+        vec![route_subject]
+    );
     let route_proof = digest_parts(
         "p10:route-proof",
         &[
@@ -447,11 +442,7 @@ fn p10_self_expansion_hardening() {
         vec![transport_relation],
     );
     assert_eq!(
-        classify_freshness(
-            &semantic_change,
-            &[transport_dep],
-            Some(transport_relation)
-        ),
+        classify_freshness(&semantic_change, &[transport_dep], Some(transport_relation)),
         EvidenceFreshness::Transportable
     );
     let transport_plan = ProofTransportPlan::new(
@@ -505,7 +496,10 @@ fn p10_self_expansion_hardening() {
     let repaired = repair_evidence_v1(&repair_auth, &repair_plan).unwrap();
     let proof_evolution = digest_parts(
         "p10:proof-evolution",
-        &[transported.structural_digest(), repaired.structural_digest()],
+        &[
+            transported.structural_digest(),
+            repaired.structural_digest(),
+        ],
     );
 
     let r1_auth = realization_authorization(
@@ -603,7 +597,10 @@ fn p10_self_expansion_hardening() {
     let nc01 = nc(
         SelfExpansionNegativeControl::WrongBasePromotion,
         "p10:nc01:base-mismatch",
-        &[wrong_base.structural_digest(), promotion.structural_digest()],
+        &[
+            wrong_base.structural_digest(),
+            promotion.structural_digest(),
+        ],
     );
 
     let forbidden_effect = ClassifiedPromotionCandidate::new(
@@ -625,7 +622,11 @@ fn p10_self_expansion_hardening() {
         &[forbidden_effect.structural_digest()],
     );
 
-    let unadmitted_witness = StructureWitness::new(world, d("p10:unadmitted-goal"), d("p10:unadmitted-evidence"));
+    let unadmitted_witness = StructureWitness::new(
+        world,
+        d("p10:unadmitted-goal"),
+        d("p10:unadmitted-evidence"),
+    );
     assert!(AdmittedStructureWitness::new(&u_g1, unadmitted_witness.clone()).is_err());
     let nc03 = nc(
         SelfExpansionNegativeControl::UnadmittedStructureWitness,
@@ -633,7 +634,8 @@ fn p10_self_expansion_hardening() {
         &[unadmitted_witness.structural_digest(), u_g1_digest],
     );
 
-    let unbound_witness = StructureWitness::new(world, d("p10:unbound-goal"), d("p10:unbound-evidence"));
+    let unbound_witness =
+        StructureWitness::new(world, d("p10:unbound-goal"), d("p10:unbound-evidence"));
     let unbound_generation = UniverseGeneration::new(
         99,
         Some(u_g1_digest),
@@ -644,7 +646,10 @@ fn p10_self_expansion_hardening() {
     let nc04 = nc(
         SelfExpansionNegativeControl::UnboundStructureEvidence,
         "p10:nc04:unbound-witness-evidence",
-        &[unbound_witness.structural_digest(), unbound_generation.digest()],
+        &[
+            unbound_witness.structural_digest(),
+            unbound_generation.digest(),
+        ],
     );
 
     let unscoped_nogood = ExpansionActivationRecord::new(
@@ -704,12 +709,7 @@ fn p10_self_expansion_hardening() {
         vec![metaprimitive_scope],
     );
     assert_eq!(
-        authorize_expansion_v1(
-            &base_authorization,
-            &ungated_metaprimitive,
-            &u_g,
-            None
-        ),
+        authorize_expansion_v1(&base_authorization, &ungated_metaprimitive, &u_g, None),
         Err(ExpansionPolicyFailure::MetaprimitiveGateRequired)
     );
     let nc08 = nc(
@@ -881,10 +881,7 @@ fn p10_self_expansion_hardening() {
         PromotionClassRegistryV1::digest().as_str()
     );
     println!("P10_LAMBDA_G={}", lambda_g.structural_digest().as_str());
-    println!(
-        "P10_LAMBDA_G1={}",
-        lambda_g1.structural_digest().as_str()
-    );
+    println!("P10_LAMBDA_G1={}", lambda_g1.structural_digest().as_str());
     println!("P10_UNLOCKED_CAPABILITY={}", field_cap.as_str());
     println!(
         "P10_NEGATIVE_CONTROLS={}",
