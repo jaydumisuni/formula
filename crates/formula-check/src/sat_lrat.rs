@@ -1,7 +1,5 @@
 use formula_core::{
-    artifacts::StructuralIdentity,
-    canonical::CanonicalValue,
-    digest::ArtifactDigest,
+    artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest,
 };
 use num_bigint::BigInt;
 use std::collections::{BTreeMap, BTreeSet};
@@ -142,10 +140,7 @@ impl StructuralIdentity for SatCnf {
             .collect();
 
         CanonicalValue::Object(BTreeMap::from([
-            (
-                "kind".into(),
-                CanonicalValue::String("SatCnf".into()),
-            ),
+            ("kind".into(), CanonicalValue::String("SatCnf".into())),
             (
                 "schema".into(),
                 CanonicalValue::String(SAT_CNF_SCHEMA_V1.into()),
@@ -202,7 +197,11 @@ pub fn check_lrat_rup_unsat(cnf: &SatCnf, proof_text: &str) -> Result<LratProof,
 
         let values: Vec<i64> = trimmed
             .split_whitespace()
-            .map(|token| token.parse::<i64>().map_err(|_| LratCheckError::MalformedLrat))
+            .map(|token| {
+                token
+                    .parse::<i64>()
+                    .map_err(|_| LratCheckError::MalformedLrat)
+            })
             .collect::<Result<_, _>>()?;
         if values.len() < 3 {
             return Err(LratCheckError::MalformedLrat);
@@ -264,9 +263,8 @@ pub fn check_lrat_rup_unsat(cnf: &SatCnf, proof_text: &str) -> Result<LratProof,
 
     let empty_clause_id = empty_clause_id.ok_or(LratCheckError::MissingEmptyClause)?;
     let cnf_digest = cnf.structural_digest();
-    let evidence_digest = ArtifactDigest::of_bytes(
-        format!("{}\n{}", cnf_digest.as_str(), proof_text).as_bytes(),
-    );
+    let evidence_digest =
+        ArtifactDigest::of_bytes(format!("{}\n{}", cnf_digest.as_str(), proof_text).as_bytes());
     Ok(LratProof {
         cnf_digest,
         evidence_digest,
@@ -281,11 +279,7 @@ fn validate_literal(literal: i32, variable_count: u32) -> Result<(), LratCheckEr
     Ok(())
 }
 
-fn rup_holds(
-    new_clause: &[i32],
-    hints: &[u64],
-    clauses: &BTreeMap<u64, Vec<i32>>,
-) -> bool {
+fn rup_holds(new_clause: &[i32], hints: &[u64], clauses: &BTreeMap<u64, Vec<i32>>) -> bool {
     let mut assignment: BTreeMap<u32, bool> = BTreeMap::new();
 
     for literal in new_clause {
