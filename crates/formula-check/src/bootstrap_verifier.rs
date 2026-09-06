@@ -333,11 +333,9 @@ pub fn verify_bootstrap_proof_manifest(
     )
     .map_err(|_| BootstrapProofFailure::IndependentValidationFailed)?;
 
-    let stage2_generator = generator_from_admitted_artifact(
-        &replay.program_source,
-        &replay.stage1_artifact,
-    )
-    .ok_or(BootstrapProofFailure::Stage2SelfRebuildNotProved)?;
+    let stage2_generator =
+        generator_from_admitted_artifact(&replay.program_source, &replay.stage1_artifact)
+            .ok_or(BootstrapProofFailure::Stage2SelfRebuildNotProved)?;
     if replay.stage2.generator_identity() != stage2_generator.structural_digest() {
         return Err(BootstrapProofFailure::Stage2SelfRebuildNotProved);
     }

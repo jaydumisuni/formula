@@ -13,9 +13,9 @@ use formula_core::{
     bootstrap::{
         BOOTSTRAP_CORE_SCHEMA_V1, BootstrapBytecode, BootstrapEquivalenceLevel,
         BootstrapGenerationId, BootstrapGeneratorImage, BootstrapInstruction,
-        BootstrapNegativeControl, BootstrapNegativeControlEvidence, BootstrapNegativeControlManifest,
-        BootstrapProgramSource, BootstrapProofManifest, BootstrapRebuildManifest, BootstrapRole,
-        BootstrapSeedManifest, BootstrapValidationState,
+        BootstrapNegativeControl, BootstrapNegativeControlEvidence,
+        BootstrapNegativeControlManifest, BootstrapProgramSource, BootstrapProofManifest,
+        BootstrapRebuildManifest, BootstrapRole, BootstrapSeedManifest, BootstrapValidationState,
     },
     digest::ArtifactDigest,
 };
@@ -293,9 +293,7 @@ fn t_stage_mismatch_fails_closed() {
 #[test]
 fn candidate_artifact_mismatch_fails_closed() {
     let (manifest, mut replay) = fixture();
-    replay.set_stage2_artifact_for_test(BootstrapBytecode::new(
-        b"FBC1\x01\x02\x03\xff".to_vec(),
-    ));
+    replay.set_stage2_artifact_for_test(BootstrapBytecode::new(b"FBC1\x01\x02\x03\xff".to_vec()));
     assert_eq!(
         verify_bootstrap_proof_manifest(&manifest, &replay),
         Err(BootstrapProofFailure::ArtifactMismatch)
