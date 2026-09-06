@@ -1,0 +1,124 @@
+name: P10 canonical proof
+
+on:
+  push:
+    branches:
+      - implementation/p10-self-expansion-hardening
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p10-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+
+      - name: P10 gate — identity and toolchain
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "P10_SOURCE_SHA=${GITHUB_SHA}"
+          rustc -Vv
+          cargo -V
+
+      - name: P10 gate — locked offline metadata
+        run: cargo metadata --locked --offline --format-version 1 --no-deps
+
+      - name: P10 gate — canonical one-clean-state self-expansion proof
+        run: |
+          set -euxo pipefail
+          CARGO_NET_OFFLINE=true cargo test -p formula-first-light --test p10_self_expansion_hardening --locked --offline -- --nocapture
+
+      - name: P10 gate — independent final verifier
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test p10_self_expansion_verifier --locked --offline
+
+      - name: P10 gate — P9 predecessor canonical proof
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-p9-canonical --test canonical_contract --locked --offline
+
+      - name: P10 gate — predecessor architecture firewalls
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-archtest --all-targets --locked --offline
+
+      - name: P10 gate — formula-core
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-core --all-targets --locked --offline
+
+      - name: P10 gate — formula-check
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --all-targets --locked --offline
+
+      - name: P10 gate — formula-store
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-store --all-targets --locked --offline
+
+      - name: P10 gate — formula-realize
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-realize --all-targets --locked --offline
+
+      - name: P10 gate — formula-packages
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-packages --all-targets --locked --offline
+
+      - name: P10 gate — formula-engine
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-engine --all-targets --locked --offline
+
+      - name: P10 gate — formula-first-light
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-first-light --all-targets --locked --offline
+
+      - name: P10 gate — workspace tests
+        run: CARGO_NET_OFFLINE=true cargo test --workspace --all-targets --locked --offline
+
+      - name: P10 gate — workspace build
+        run: CARGO_NET_OFFLINE=true cargo build --workspace --all-targets --locked --offline
+
+      - name: P10 gate — rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: P10 gate — clippy warnings denied
+        run: CARGO_NET_OFFLINE=true cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+
+      - name: P10 gate — dependency trees
+        run: |
+          set -euxo pipefail
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-check --edges normal
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-store --edges normal
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-realize --edges normal
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-packages --edges normal
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-engine --edges normal
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-first-light --edges normal
+
+      - name: P10 gate — authority dependency firewall
+        run: |
+          set -euxo pipefail
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-check --edges normal | tee /tmp/p10-check-tree.txt
+          ! grep -Eq 'formula-engine|formula-store|formula-realize|formula-first-light' /tmp/p10-check-tree.txt
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-realize --edges normal | tee /tmp/p10-realize-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-first-light' /tmp/p10-realize-tree.txt
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-engine --edges normal | tee /tmp/p10-engine-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-realize|formula-first-light' /tmp/p10-engine-tree.txt
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-first-light --edges normal | tee /tmp/p10-first-light-tree.txt
+          ! grep -Eq 'formula-check|formula-store|formula-realize' /tmp/p10-first-light-tree.txt
+
+      - name: P10 gate — source authority firewall
+        run: |
+          set -euxo pipefail
+          if grep -R -n -E 'formula_check|formula_store|formula_first_light|formula::sealed|mod[[:space:]]+sealed' \
+            crates/formula-engine/src crates/formula-realize/src --include='*.rs'; then
+            echo 'P10 engine/realize source authority firewall violated' >&2
+            exit 1
+          fi
+
+      - name: P10 gate — clean worktree
+        run: |
+          set -euxo pipefail
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
