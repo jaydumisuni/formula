@@ -163,6 +163,7 @@ dependencies = [
  "formula-packages",
  "formula-realize",
  "formula-store",
+ "num-bigint",
  "tempfile",
 ]
 
