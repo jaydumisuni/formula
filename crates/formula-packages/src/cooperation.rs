@@ -64,12 +64,12 @@ pub fn certify_federation_fact(
         return Err(CooperationError::EvidenceMismatch);
     }
 
-    let checker_route = request
-        .checker_route()
-        .ok_or(CooperationError::Adapter(FederationError::CheckerRouteMismatch))?;
-    let translation = request
-        .translation()
-        .ok_or(CooperationError::Adapter(FederationError::TranslationMismatch))?;
+    let checker_route = request.checker_route().ok_or(CooperationError::Adapter(
+        FederationError::CheckerRouteMismatch,
+    ))?;
+    let translation = request.translation().ok_or(CooperationError::Adapter(
+        FederationError::TranslationMismatch,
+    ))?;
 
     Ok(CertifiedFederationFact::new(
         fact,
