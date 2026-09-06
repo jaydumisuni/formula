@@ -1,6 +1,7 @@
 pub mod activation;
 pub mod builtin;
 pub mod closure;
+pub mod cooperation;
 pub mod expansion;
 pub mod federation;
 pub mod grammar;
