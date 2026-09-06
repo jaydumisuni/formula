@@ -34,6 +34,9 @@ jobs:
       - name: P12 targeted core identities
         run: CARGO_NET_OFFLINE=true cargo test -p formula-core --test p12_bootstrap_identity --locked --offline
 
+      - name: P12 targeted workflow seed provenance
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-first-light --test p12_seed_provenance --locked --offline
+
       - name: P12 targeted generator
         run: CARGO_NET_OFFLINE=true cargo test -p formula-realize --test p12_bootstrap_generator --locked --offline
 
