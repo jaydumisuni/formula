@@ -1,6 +1,4 @@
-use crate::{
-    artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest,
-};
+use crate::{artifacts::StructuralIdentity, canonical::CanonicalValue, digest::ArtifactDigest};
 use std::collections::BTreeMap;
 
 const P11_PROOF_SCHEMA_V1: &str = "formula-federation-breadth-proof-v1";
