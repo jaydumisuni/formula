@@ -1,4 +1,7 @@
-use formula_check::bootstrap::validate_bootstrap_candidate;
+use formula_check::bootstrap::{
+    canonical_build_recipe_identity, canonical_normalization_rules_identity,
+    semantic_evidence_identity, validate_bootstrap_candidate,
+};
 use formula_core::{
     artifacts::StructuralIdentity,
     bootstrap::{
@@ -9,9 +12,7 @@ use formula_core::{
     digest::ArtifactDigest,
     generation::UniverseGeneration,
 };
-use formula_store::{
-    authority_store::AuthorityStore, bootstrap_store::BootstrapAuthorityStore,
-};
+use formula_store::{authority_store::AuthorityStore, bootstrap_store::BootstrapAuthorityStore};
 use tempfile::tempdir;
 
 fn d(label: &str) -> ArtifactDigest {
@@ -49,12 +50,12 @@ fn authorization(
         generator,
         d("independent-validator"),
         source.structural_digest(),
-        d("recipe"),
+        canonical_build_recipe_identity(),
         candidate.structural_digest(),
         candidate.structural_digest(),
-        d("normalization:none"),
+        canonical_normalization_rules_identity(),
         BootstrapEquivalenceLevel::ByteForByte,
-        d("semantic-evidence"),
+        semantic_evidence_identity(&source, &candidate),
         seed().structural_digest(),
         BootstrapValidationState::Candidate,
     );
@@ -105,25 +106,13 @@ fn bootstrap_root_and_successors_are_append_only_and_u_is_unchanged() {
     assert_eq!(bootstrap.active_bootstrap_generation().unwrap(), t2);
     assert_eq!(universe.active_generation().unwrap(), Some(u0_digest));
 
-    assert_eq!(
-        bootstrap.replay_bootstrap_generation(t0).unwrap().id(),
-        t0
-    );
-    assert_eq!(
-        bootstrap.replay_bootstrap_generation(t1).unwrap().id(),
-        t1
-    );
-    assert_eq!(
-        bootstrap.replay_bootstrap_generation(t2).unwrap().id(),
-        t2
-    );
+    assert_eq!(bootstrap.replay_bootstrap_generation(t0).unwrap().id(), t0);
+    assert_eq!(bootstrap.replay_bootstrap_generation(t1).unwrap().id(), t1);
+    assert_eq!(bootstrap.replay_bootstrap_generation(t2).unwrap().id(), t2);
 
     bootstrap.select_bootstrap_generation(t1).unwrap();
     assert_eq!(bootstrap.active_bootstrap_generation().unwrap(), t1);
-    assert_eq!(
-        bootstrap.replay_bootstrap_generation(t2).unwrap().id(),
-        t2
-    );
+    assert_eq!(bootstrap.replay_bootstrap_generation(t2).unwrap().id(), t2);
     assert_eq!(universe.active_generation().unwrap(), Some(u0_digest));
 }
 
