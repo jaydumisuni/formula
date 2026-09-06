@@ -32,6 +32,26 @@ impl FederationRequest {
             allow_side_effects,
         }
     }
+
+    pub fn result_class(&self) -> &str {
+        &self.result_class
+    }
+
+    pub fn requires_authority(&self) -> bool {
+        self.requires_authority
+    }
+
+    pub fn checker_route(&self) -> Option<ArtifactDigest> {
+        self.checker_route
+    }
+
+    pub fn translation(&self) -> Option<ArtifactDigest> {
+        self.translation
+    }
+
+    pub fn allow_side_effects(&self) -> bool {
+        self.allow_side_effects
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
