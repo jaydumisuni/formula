@@ -82,9 +82,9 @@ pub fn seed_manifest() -> BootstrapSeedManifest {
             Err(std::env::VarError::NotPresent),
             Err(std::env::VarError::NotPresent),
         ) => local_seed_manifest(),
-        _ => panic!(
-            "P12 workflow provenance must provide all three SHA-256 values together or none"
-        ),
+        _ => {
+            panic!("P12 workflow provenance must provide all three SHA-256 values together or none")
+        }
     }
 }
 
