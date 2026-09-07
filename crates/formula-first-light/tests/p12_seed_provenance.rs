@@ -22,8 +22,14 @@ fn workflow_sha256_values_are_bound_as_actual_digests_not_rehashed_text() {
     assert_eq!(seed.cargo_executable(), expected_cargo);
     assert_eq!(seed.rust_toolchain_file(), expected_toolchain);
 
-    assert_ne!(seed.rustc_executable(), ArtifactDigest::of_bytes(rustc.as_bytes()));
-    assert_ne!(seed.cargo_executable(), ArtifactDigest::of_bytes(cargo.as_bytes()));
+    assert_ne!(
+        seed.rustc_executable(),
+        ArtifactDigest::of_bytes(rustc.as_bytes())
+    );
+    assert_ne!(
+        seed.cargo_executable(),
+        ArtifactDigest::of_bytes(cargo.as_bytes())
+    );
     assert_ne!(
         seed.rust_toolchain_file(),
         ArtifactDigest::of_bytes(toolchain.as_bytes())
