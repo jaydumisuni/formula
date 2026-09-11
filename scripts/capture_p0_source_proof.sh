@@ -18,6 +18,9 @@ command -v sha256sum >/dev/null 2>&1 || fail "sha256sum is required"
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || fail "not inside a Git worktree"
 cd "$ROOT"
 
+git rev-parse --verify "$EXPECTED_ARCH^{commit}" >/dev/null 2>&1 || fail "frozen architecture commit unavailable: $EXPECTED_ARCH"
+git merge-base --is-ancestor "$EXPECTED_ARCH" HEAD || fail "captured HEAD does not descend from frozen architecture checkpoint $EXPECTED_ARCH"
+
 BRANCH="$(git branch --show-current)"
 [ "$BRANCH" = "$EXPECTED_BRANCH" ] || fail "expected branch $EXPECTED_BRANCH, found ${BRANCH:-DETACHED}"
 
