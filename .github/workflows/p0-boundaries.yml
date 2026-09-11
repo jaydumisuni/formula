@@ -1,0 +1,39 @@
+name: P0 Boundary Candidate Verification
+
+on:
+  push:
+    branches:
+      - impl/p0-first-light
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-boundaries:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt,clippy
+
+      - name: Verify static P0 authority boundaries
+        run: python tests/authority-boundary/check_p0_boundaries.py
+
+      - name: Verify formatting
+        run: cargo +1.98.0 fmt --all -- --check
+
+      - name: Verify workspace compiles with locked dependency resolution
+        run: cargo +1.98.0 check --workspace --locked
+
+      - name: Preserve authority boundary
+        run: |
+          echo "Candidate verification only."
+          echo "This workflow does not promote P0-01, P0, or Formula mathematical authority."
