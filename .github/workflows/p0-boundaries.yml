@@ -27,6 +27,15 @@ jobs:
       - name: Verify static P0 authority boundaries
         run: python tests/authority-boundary/check_p0_boundaries.py
 
+      - name: Verify P0 host-capture procedure syntax and safety markers
+        run: |
+          bash -n scripts/capture_p0_source_proof.sh
+          grep -Fq 'EXPECTED_BRANCH="impl/p0-first-light"' scripts/capture_p0_source_proof.sh
+          grep -Fq 'worktree is not clean' scripts/capture_p0_source_proof.sh
+          grep -Fq 'expected rustc 1.98.0' scripts/capture_p0_source_proof.sh
+          grep -Fq 'CANDIDATE_HOST_EVIDENCE_NOT_AUTHORITY' scripts/capture_p0_source_proof.sh
+          ! grep -Eq 'git (merge|push)|--force|promote|PROVEN' scripts/capture_p0_source_proof.sh
+
       - name: Verify formatting
         run: cargo +1.98.0 fmt --all -- --check
 
