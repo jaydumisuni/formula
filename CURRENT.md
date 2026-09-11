@@ -199,9 +199,29 @@ reasoning wake target: 1 hour
 daily review: exception-only
 ```
 
-The Cookpit profile lives in `jaydumisuni/cookpit` as `profiles/formula.json` once its change is merged.
+The Cookpit profile is merged on `jaydumisuni/cookpit` `main` as:
 
-A repo-side profile or PR is **not proof that KRATOS activation is complete**. Local activation requires verified worktrees, toolchain availability, generated/installed timers, and observed evidence runs on KRATOS.
+```text
+profiles/formula.json
+```
+
+The deterministic KRATOS activation package is also merged on Cookpit `main`:
+
+```text
+scripts/activate_formula_kratos.sh
+docs/FORMULA.md
+Cookpit merge commit: 3052f2dc598a82f68dd5505ee251b939c57939a7
+```
+
+On KRATOS the host activation entrypoint is:
+
+```bash
+bash scripts/activate_formula_kratos.sh
+```
+
+The package creates/verifies the frozen authority checkout and `impl/p0-first-light` construction worktree, validates the Formula profile, provisions/verifies Rust `1.98.0` through an existing `rustup`, generates/enables the 5-minute and 20-minute user timers, and runs the initial micro proof. It fails closed and writes Cookpit attention state if required host capabilities are missing.
+
+A merged repo-side activation package is **not proof that KRATOS activation has executed**. Local activation is complete only after verified worktrees, exact toolchain availability, active timers, and observed Cookpit evidence exist on KRATOS.
 
 ## Worker/proof reuse law
 
