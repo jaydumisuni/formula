@@ -24,9 +24,12 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             "rust-toolchain.toml": b'[toolchain]\nchannel = "1.98.0"\n',
             "Cargo.toml": b"[workspace]\nresolver = \"2\"\n",
             "Cargo.lock": b"version = 4\n",
+            "docs/implementation/P0_SOURCE_MANIFEST.md": b"# P0 Source and Toolchain Manifest\n",
         }
         for name, data in manifests.items():
-            (root / name).write_bytes(data)
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
 
         evidence = root / "evidence"
         evidence.mkdir()
@@ -81,6 +84,14 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             root = Path(td)
             evidence = self.make_bundle(root)
             (root / "Cargo.toml").write_text("[workspace]\nresolver = \"3\"\n")
+            with self.assertRaises(mod.ProofError):
+                mod.verify(root, evidence, require_live_checkout=False)
+
+    def test_p0_source_manifest_drift_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            (root / "docs/implementation/P0_SOURCE_MANIFEST.md").write_text("changed\n")
             with self.assertRaises(mod.ProofError):
                 mod.verify(root, evidence, require_live_checkout=False)
 
