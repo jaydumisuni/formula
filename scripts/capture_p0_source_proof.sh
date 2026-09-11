@@ -36,22 +36,30 @@ case "$RUSTC_VERSION" in
   *) fail "expected rustc 1.98.0, found $RUSTC_VERSION" ;;
 esac
 
+[ ! -e "$OUT_DIR" ] || fail "evidence destination already exists: $OUT_DIR"
+OUT_PARENT="$(dirname "$OUT_DIR")"
+mkdir -p "$OUT_PARENT"
+STAGE="$(mktemp -d "$OUT_PARENT/.p0-01.capture.XXXXXX")"
+cleanup() {
+  [ ! -d "$STAGE" ] || rm -rf "$STAGE"
+}
+trap cleanup EXIT
+
 HEAD="$(git rev-parse HEAD)"
-mkdir -p "$OUT_DIR"
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+rustc --version --verbose > "$STAGE/rustc-version.txt"
+cargo --version --verbose > "$STAGE/cargo-version.txt"
+sha256sum rust-toolchain.toml Cargo.toml Cargo.lock > "$STAGE/manifest-sha256.txt"
+cargo metadata --locked --format-version 1 > "$STAGE/cargo-metadata.json"
+(
+  cd "$STAGE"
+  sha256sum cargo-metadata.json > cargo-metadata.sha256
+)
+printf '%s\n' "$HEAD" > "$STAGE/git-head.txt"
+printf '%s\n' "$BRANCH" > "$STAGE/git-branch.txt"
+printf '%s\n' "$EXPECTED_ARCH" > "$STAGE/frozen-architecture.txt"
+printf 'clean\n' > "$STAGE/worktree-state.txt"
 
-rustc --version --verbose > "$TMP/rustc-version.txt"
-cargo --version --verbose > "$TMP/cargo-version.txt"
-sha256sum rust-toolchain.toml Cargo.toml Cargo.lock > "$TMP/manifest-sha256.txt"
-cargo metadata --locked --format-version 1 > "$TMP/cargo-metadata.json"
-sha256sum "$TMP/cargo-metadata.json" > "$TMP/cargo-metadata.sha256"
-printf '%s\n' "$HEAD" > "$TMP/git-head.txt"
-printf '%s\n' "$BRANCH" > "$TMP/git-branch.txt"
-printf '%s\n' "$EXPECTED_ARCH" > "$TMP/frozen-architecture.txt"
-printf 'clean\n' > "$TMP/worktree-state.txt"
-
-cat > "$TMP/record.json" <<JSON
+cat > "$STAGE/record.json" <<JSON
 {
   "schema": "formula.p0-01.source-proof.v1",
   "status": "CANDIDATE_HOST_EVIDENCE_NOT_AUTHORITY",
@@ -64,9 +72,21 @@ cat > "$TMP/record.json" <<JSON
 }
 JSON
 
-for file in "$TMP"/*; do
-  cp "$file" "$OUT_DIR/"
-done
+(
+  cd "$STAGE"
+  sha256sum \
+    record.json \
+    git-head.txt \
+    git-branch.txt \
+    frozen-architecture.txt \
+    worktree-state.txt \
+    rustc-version.txt \
+    cargo-version.txt \
+    manifest-sha256.txt \
+    cargo-metadata.json \
+    cargo-metadata.sha256 \
+    > evidence-files.sha256
+)
 
-sha256sum "$OUT_DIR"/* > "$OUT_DIR/evidence-files.sha256"
+mv "$STAGE" "$OUT_DIR"
 printf 'Captured candidate P0-01 host evidence for %s at %s\n' "$HEAD" "$OUT_DIR"
