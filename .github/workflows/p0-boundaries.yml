@@ -34,6 +34,7 @@ jobs:
           grep -Fq 'worktree is not clean' scripts/capture_p0_source_proof.sh
           grep -Fq 'expected rustc 1.98.0' scripts/capture_p0_source_proof.sh
           grep -Fq 'evidence destination already exists' scripts/capture_p0_source_proof.sh
+          grep -Fq 'git merge-base --is-ancestor "$EXPECTED_ARCH" HEAD' scripts/capture_p0_source_proof.sh
           grep -Fq 'CANDIDATE_HOST_EVIDENCE_NOT_AUTHORITY' scripts/capture_p0_source_proof.sh
           ! grep -Eq '(^|[;&|[:space:]])git[[:space:]]+(merge|push)([[:space:]]|$)|--force([[:space:]=]|$)' scripts/capture_p0_source_proof.sh
 
