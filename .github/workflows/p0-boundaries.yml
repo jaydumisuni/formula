@@ -33,8 +33,21 @@ jobs:
           grep -Fq 'EXPECTED_BRANCH="impl/p0-first-light"' scripts/capture_p0_source_proof.sh
           grep -Fq 'worktree is not clean' scripts/capture_p0_source_proof.sh
           grep -Fq 'expected rustc 1.98.0' scripts/capture_p0_source_proof.sh
+          grep -Fq 'evidence destination already exists' scripts/capture_p0_source_proof.sh
           grep -Fq 'CANDIDATE_HOST_EVIDENCE_NOT_AUTHORITY' scripts/capture_p0_source_proof.sh
           ! grep -Eq '(^|[;&|[:space:]])git[[:space:]]+(merge|push)([[:space:]]|$)|--force([[:space:]=]|$)' scripts/capture_p0_source_proof.sh
+
+      - name: Exercise atomic P0 host-capture bundle
+        run: |
+          git checkout -B impl/p0-first-light HEAD
+          EVIDENCE="$RUNNER_TEMP/formula-p0-01-evidence"
+          rm -rf "$EVIDENCE"
+          bash scripts/capture_p0_source_proof.sh "$EVIDENCE"
+          python scripts/verify_p0_source_proof.py --root . "$EVIDENCE"
+          if bash scripts/capture_p0_source_proof.sh "$EVIDENCE"; then
+            echo "capture unexpectedly overwrote an existing evidence bundle" >&2
+            exit 1
+          fi
 
       - name: Verify P0 source-proof verifier fails closed
         run: |
