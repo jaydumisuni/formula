@@ -139,7 +139,12 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
             raise ProofError(f"evidence file digest mismatch: {name}")
 
     manifest_hashes = _parse_sha256_file(evidence / "manifest-sha256.txt")
-    for name in ("rust-toolchain.toml", "Cargo.toml", "Cargo.lock"):
+    for name in (
+        "rust-toolchain.toml",
+        "Cargo.toml",
+        "Cargo.lock",
+        "docs/implementation/P0_SOURCE_MANIFEST.md",
+    ):
         expected = manifest_hashes.get(name)
         if expected is None:
             raise ProofError(f"manifest-sha256.txt missing {name}")
