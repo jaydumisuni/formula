@@ -51,7 +51,7 @@ trap cleanup EXIT
 HEAD="$(git rev-parse HEAD)"
 rustc --version --verbose > "$STAGE/rustc-version.txt"
 cargo --version --verbose > "$STAGE/cargo-version.txt"
-sha256sum rust-toolchain.toml Cargo.toml Cargo.lock > "$STAGE/manifest-sha256.txt"
+sha256sum rust-toolchain.toml Cargo.toml Cargo.lock docs/implementation/P0_SOURCE_MANIFEST.md > "$STAGE/manifest-sha256.txt"
 cargo metadata --locked --format-version 1 > "$STAGE/cargo-metadata.json"
 (
   cd "$STAGE"
