@@ -205,12 +205,12 @@ The Cookpit profile is merged on `jaydumisuni/cookpit` `main` as:
 profiles/formula.json
 ```
 
-The deterministic KRATOS activation package is also merged on Cookpit `main`:
+The deterministic KRATOS activation package and current control-checkout freshness guard are merged on Cookpit `main`:
 
 ```text
 scripts/activate_formula_kratos.sh
 docs/FORMULA.md
-Cookpit merge commit: 3052f2dc598a82f68dd5505ee251b939c57939a7
+Cookpit current merge commit: ec8ee98cebe3fcb5e06435527e9d0cc7a30f743c
 ```
 
 On KRATOS the host activation entrypoint is:
@@ -219,7 +219,7 @@ On KRATOS the host activation entrypoint is:
 bash scripts/activate_formula_kratos.sh
 ```
 
-The package creates/verifies the frozen authority checkout and `impl/p0-first-light` construction worktree, validates the Formula profile, provisions/verifies Rust `1.98.0` through an existing `rustup`, generates/enables the 5-minute and 20-minute user timers, and runs the initial micro proof. It fails closed and writes Cookpit attention state if required host capabilities are missing.
+The package creates/verifies the frozen authority checkout and `impl/p0-first-light` construction worktree, validates the Formula profile, provisions/verifies Rust `1.98.0` through an existing `rustup`, generates/enables the 5-minute and 20-minute user timers, and runs the initial micro proof. It fails closed and writes Cookpit attention state if required host capabilities are missing. The current freshness guard additionally requires the deployed Cookpit control checkout to be clean and exactly aligned with its refreshed `origin/main` before worker evidence can represent current Cookpit policy.
 
 A merged repo-side activation package is **not proof that KRATOS activation has executed**. Local activation is complete only after verified worktrees, exact toolchain availability, active timers, and observed Cookpit evidence exist on KRATOS.
 
