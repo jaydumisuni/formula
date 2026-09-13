@@ -47,8 +47,19 @@ def load_toml(path: Path) -> dict:
 def dependency_names(crate: str) -> set[str]:
     data = load_toml(ROOT / "crates" / crate / "Cargo.toml")
     names: set[str] = set()
-    for section in ("dependencies", "dev-dependencies", "build-dependencies"):
-        names.update((data.get(section) or {}).keys())
+
+    def add_dependencies(table: dict) -> None:
+        for section in ("dependencies", "dev-dependencies", "build-dependencies"):
+            for alias, spec in (table.get(section) or {}).items():
+                if isinstance(spec, dict):
+                    names.add(spec.get("package", alias))
+                else:
+                    names.add(alias)
+
+    add_dependencies(data)
+    for target in (data.get("target") or {}).values():
+        if isinstance(target, dict):
+            add_dependencies(target)
     return names
 
 
