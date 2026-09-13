@@ -16,6 +16,10 @@ class NetworkFreeRuntimeTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.previous_root = p0.ROOT
         p0.ROOT = self.root
+        (self.root / "Cargo.toml").write_text(
+            "[workspace]\nmembers = []\n",
+            encoding="utf-8",
+        )
         crate = self.root / "crates" / "formula-first-light"
         (crate / "src").mkdir(parents=True)
         (crate / "Cargo.toml").write_text(
