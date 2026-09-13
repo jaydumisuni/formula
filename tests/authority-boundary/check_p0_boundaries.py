@@ -37,8 +37,6 @@ EXPECTED_LOCK_PACKAGES = {
     "formula-first-light",
     "formula-cli",
 }
-FIXTURE = ROOT / "tests/authority-boundary/fixtures/p0-identity-v1.json"
-FIXTURE_SHA = ROOT / "tests/authority-boundary/fixtures/p0-identity-v1.sha256"
 
 
 def load_toml(path: Path) -> dict:
@@ -148,15 +146,23 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
 
 
 def check_fixture_identity() -> None:
-    raw = FIXTURE.read_bytes()
-    parsed = json.loads(raw)
-    canonical = json.dumps(parsed, sort_keys=True, separators=(",", ":")) + "\n"
-    if raw != canonical.encode("utf-8"):
-        fail("P0 fixture bytes are not canonical JSON")
-    expected = FIXTURE_SHA.read_text(encoding="ascii").strip().split()[0]
-    actual = hashlib.sha256(raw).hexdigest()
-    if actual != expected:
-        fail(f"P0 fixture identity changed: expected {expected}, got {actual}")
+    fixture_dir = ROOT / "tests/authority-boundary/fixtures"
+    fixtures = sorted(fixture_dir.glob("*.json"))
+    if not fixtures:
+        fail("P0 fixture set is empty")
+    for fixture in fixtures:
+        raw = fixture.read_bytes()
+        parsed = json.loads(raw)
+        canonical = json.dumps(parsed, sort_keys=True, separators=(",", ":")) + "\n"
+        if raw != canonical.encode("utf-8"):
+            fail(f"P0 fixture bytes are not canonical JSON: {fixture.name}")
+        digest_file = fixture.with_suffix(".sha256")
+        if not digest_file.is_file():
+            fail(f"P0 fixture digest sidecar missing: {fixture.name}")
+        expected = digest_file.read_text(encoding="ascii").strip().split()[0]
+        actual = hashlib.sha256(raw).hexdigest()
+        if actual != expected:
+            fail(f"P0 fixture identity changed for {fixture.name}: expected {expected}, got {actual}")
 
 
 def main() -> int:
