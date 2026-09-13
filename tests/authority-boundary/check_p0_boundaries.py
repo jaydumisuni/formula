@@ -52,7 +52,15 @@ def dependency_names(crate: str) -> set[str]:
         for section in ("dependencies", "dev-dependencies", "build-dependencies"):
             for alias, spec in (table.get(section) or {}).items():
                 if isinstance(spec, dict):
-                    names.add(spec.get("package", alias))
+                    if spec.get("workspace") is True:
+                        root = load_toml(ROOT / "Cargo.toml")
+                        inherited = (root.get("workspace", {}).get("dependencies", {}) or {}).get(alias)
+                        if isinstance(inherited, dict):
+                            names.add(inherited.get("package", alias))
+                        else:
+                            names.add(alias)
+                    else:
+                        names.add(spec.get("package", alias))
                 else:
                     names.add(alias)
 
