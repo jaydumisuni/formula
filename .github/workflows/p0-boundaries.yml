@@ -29,7 +29,7 @@ jobs:
       - name: Verify static P0 authority boundaries
         run: |
           python tests/authority-boundary/check_p0_boundaries.py
-          python -m unittest tests/authority-boundary/test_p0_checker_isolation.py
+          python -B -m unittest tests/authority-boundary/test_p0_checker_isolation.py
 
       - name: Verify P0 host-capture procedure syntax and safety markers
         run: |
