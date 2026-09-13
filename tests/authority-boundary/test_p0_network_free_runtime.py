@@ -44,6 +44,14 @@ class NetworkFreeRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "network"):
             p0.check_canonical_runtime_has_no_external_dependencies()
 
+    def test_rejects_network_use_in_nonleading_grouped_std_import(self):
+        self.source.write_text(
+            "use std::{io, net::TcpStream};\npub fn connect() { let _ = TcpStream::connect(\"127.0.0.1:9\"); let _ = io::empty(); }\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "network"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
 
 if __name__ == "__main__":
     unittest.main()
