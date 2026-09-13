@@ -71,6 +71,20 @@ def dependency_names(crate: str) -> set[str]:
     return names
 
 
+def workspace_dependency_closure(crate: str) -> set[str]:
+    seen: set[str] = set()
+    pending = [crate]
+    while pending:
+        current = pending.pop()
+        for dependency in dependency_names(current):
+            if dependency in seen:
+                continue
+            seen.add(dependency)
+            if (ROOT / "crates" / dependency / "Cargo.toml").exists():
+                pending.append(dependency)
+    return seen
+
+
 def fail(message: str) -> None:
     raise AssertionError(message)
 
@@ -91,9 +105,9 @@ def check_checker_isolation() -> None:
 
 def check_sealed_fixture_isolation() -> None:
     for crate in DISCOVERY_CRATES:
-        deps = dependency_names(crate)
+        deps = workspace_dependency_closure(crate)
         if "formula-first-light" in deps:
-            fail(f"{crate} depends on sealed First-Light crate")
+            fail(f"{crate} dependency graph reaches sealed formula-first-light crate")
         source_root = ROOT / "crates" / crate / "src"
         for path in source_root.rglob("*.rs"):
             text = path.read_text(encoding="utf-8")
