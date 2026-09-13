@@ -46,23 +46,24 @@ def load_toml(path: Path) -> dict:
 
 def dependency_names(crate: str) -> set[str]:
     data = load_toml(ROOT / "crates" / crate / "Cargo.toml")
+    workspace = load_toml(ROOT / "Cargo.toml").get("workspace", {})
+    workspace_dependencies = workspace.get("dependencies") or {}
     names: set[str] = set()
+
+    def resolved_name(alias: str, spec: object) -> str:
+        if isinstance(spec, dict) and spec.get("workspace") is True:
+            inherited = workspace_dependencies.get(alias)
+            if isinstance(inherited, dict):
+                return inherited.get("package", alias)
+            return alias
+        if isinstance(spec, dict):
+            return spec.get("package", alias)
+        return alias
 
     def add_dependencies(table: dict) -> None:
         for section in ("dependencies", "dev-dependencies", "build-dependencies"):
             for alias, spec in (table.get(section) or {}).items():
-                if isinstance(spec, dict):
-                    if spec.get("workspace") is True:
-                        root = load_toml(ROOT / "Cargo.toml")
-                        inherited = (root.get("workspace", {}).get("dependencies", {}) or {}).get(alias)
-                        if isinstance(inherited, dict):
-                            names.add(inherited.get("package", alias))
-                        else:
-                            names.add(alias)
-                    else:
-                        names.add(spec.get("package", alias))
-                else:
-                    names.add(alias)
+                names.add(resolved_name(alias, spec))
 
     add_dependencies(data)
     for target in (data.get("target") or {}).values():
