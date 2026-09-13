@@ -28,6 +28,13 @@ class FixtureIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "digest"):
             p0.check_fixture_identity()
 
+    def test_rejects_nested_fixture_without_digest_sidecar(self):
+        nested = self.fixtures / "cases"
+        nested.mkdir()
+        (nested / "extra.json").write_text("{\"value\":1}\n", encoding="utf-8")
+        with self.assertRaisesRegex(AssertionError, "digest"):
+            p0.check_fixture_identity()
+
 
 if __name__ == "__main__":
     unittest.main()

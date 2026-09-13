@@ -141,7 +141,7 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
 
 def check_fixture_identity() -> None:
     fixture_dir = ROOT / "tests/authority-boundary/fixtures"
-    fixtures = sorted(fixture_dir.glob("*.json"))
+    fixtures = sorted(fixture_dir.rglob("*.json"))
     if not fixtures:
         fail("P0 fixture set is empty")
     for fixture in fixtures:
