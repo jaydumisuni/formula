@@ -19,6 +19,10 @@ class CheckerIsolationTests(unittest.TestCase):
         self.manifest = crate / "Cargo.toml"
         self.previous_root = p0.ROOT
         p0.ROOT = self.root
+        (self.root / "Cargo.toml").write_text(
+            "[workspace]\nmembers = []\n",
+            encoding="utf-8",
+        )
 
     def tearDown(self):
         p0.ROOT = self.previous_root
