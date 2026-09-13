@@ -25,6 +25,8 @@ EXPECTED_WORKSPACE = {
 }
 DISCOVERY_CRATES = ("formula-engine", "formula-packages")
 FORBIDDEN_CHECK_DEPS = {"formula-engine", "formula-first-light"}
+CANONICAL_RUNTIME_ROOTS = ("formula-first-light",)
+NETWORK_SOURCE_MARKERS = ("std::net", "std::{net")
 EXPECTED_LOCK_PACKAGES = {
     "formula-core",
     "formula-store",
@@ -123,6 +125,19 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
     if external:
         fail(f"P0 canonical runtime acquired external dependencies: {sorted(external)}")
 
+    runtime_crates: set[str] = set()
+    for root in CANONICAL_RUNTIME_ROOTS:
+        runtime_crates.add(root)
+        runtime_crates.update(workspace_dependency_closure(root))
+    for crate in runtime_crates:
+        source_root = ROOT / "crates" / crate / "src"
+        if not source_root.exists():
+            continue
+        for path in source_root.rglob("*.rs"):
+            compact = "".join(path.read_text(encoding="utf-8").split())
+            if any(marker in compact for marker in NETWORK_SOURCE_MARKERS):
+                fail(f"P0 canonical runtime contains network source reference: {path.relative_to(ROOT)}")
+
 
 def check_fixture_identity() -> None:
     raw = FIXTURE.read_bytes()
@@ -140,7 +155,7 @@ def main() -> int:
     checks = (
         ("P0-02 checker/search isolation", check_checker_isolation),
         ("P0-03 sealed fixture isolation", check_sealed_fixture_isolation),
-        ("P0-04 canonical runtime external dependency boundary", check_canonical_runtime_has_no_external_dependencies),
+        ("P0-04 canonical First-Light runtime is network-free", check_canonical_runtime_has_no_external_dependencies),
         ("P0-05 deterministic fixture identity", check_fixture_identity),
         ("P0 workspace shape", check_workspace_shape),
     )
