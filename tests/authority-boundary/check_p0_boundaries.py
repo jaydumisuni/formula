@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 import tomllib
 from pathlib import Path
@@ -26,7 +27,6 @@ EXPECTED_WORKSPACE = {
 DISCOVERY_CRATES = ("formula-engine", "formula-packages")
 FORBIDDEN_CHECK_DEPS = {"formula-engine", "formula-first-light"}
 CANONICAL_RUNTIME_ROOTS = ("formula-first-light",)
-NETWORK_SOURCE_MARKERS = ("std::net", "std::{net")
 EXPECTED_LOCK_PACKAGES = {
     "formula-core",
     "formula-store",
@@ -135,7 +135,9 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
             continue
         for path in source_root.rglob("*.rs"):
             compact = "".join(path.read_text(encoding="utf-8").split())
-            if any(marker in compact for marker in NETWORK_SOURCE_MARKERS):
+            direct_network = "std::net" in compact
+            grouped_network = re.search(r"std::\{[^}]*\bnet(?:\b|::)", compact) is not None
+            if direct_network or grouped_network:
                 fail(f"P0 canonical runtime contains network source reference: {path.relative_to(ROOT)}")
 
 
