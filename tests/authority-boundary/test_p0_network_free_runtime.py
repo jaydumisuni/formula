@@ -52,6 +52,14 @@ class NetworkFreeRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "network"):
             p0.check_canonical_runtime_has_no_external_dependencies()
 
+    def test_rejects_network_use_through_std_root_alias(self):
+        self.source.write_text(
+            "use std as s;\npub fn connect() { let _ = s::net::TcpStream::connect(\"127.0.0.1:9\"); }\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "network"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
 
 if __name__ == "__main__":
     unittest.main()

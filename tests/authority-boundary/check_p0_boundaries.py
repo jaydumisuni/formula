@@ -137,7 +137,13 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
             compact = "".join(path.read_text(encoding="utf-8").split())
             direct_network = "std::net" in compact
             grouped_network = re.search(r"std::\{[^}]*\bnet(?:\b|::)", compact) is not None
-            if direct_network or grouped_network:
+            std_aliases = set(re.findall(r"usestdas([A-Za-z_][A-Za-z0-9_]*)[;{]", compact))
+            std_aliases.update(re.findall(r"externcratestdas([A-Za-z_][A-Za-z0-9_]*);", compact))
+            aliased_network = any(
+                re.search(rf"(?:^|[^A-Za-z0-9_]){re.escape(alias)}::net(?:\b|::)", compact) is not None
+                for alias in std_aliases
+            )
+            if direct_network or grouped_network or aliased_network:
                 fail(f"P0 canonical runtime contains network source reference: {path.relative_to(ROOT)}")
 
 
