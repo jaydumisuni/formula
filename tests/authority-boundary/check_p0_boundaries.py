@@ -46,29 +46,44 @@ def load_toml(path: Path) -> dict:
 
 def dependency_names(crate: str) -> set[str]:
     data = load_toml(ROOT / "crates" / crate / "Cargo.toml")
+    workspace = load_toml(ROOT / "Cargo.toml").get("workspace", {})
+    workspace_dependencies = workspace.get("dependencies") or {}
     names: set[str] = set()
+
+    def resolved_name(alias: str, spec: object) -> str:
+        if isinstance(spec, dict) and spec.get("workspace") is True:
+            inherited = workspace_dependencies.get(alias)
+            if isinstance(inherited, dict):
+                return inherited.get("package", alias)
+            return alias
+        if isinstance(spec, dict):
+            return spec.get("package", alias)
+        return alias
 
     def add_dependencies(table: dict) -> None:
         for section in ("dependencies", "dev-dependencies", "build-dependencies"):
             for alias, spec in (table.get(section) or {}).items():
-                if isinstance(spec, dict):
-                    if spec.get("workspace") is True:
-                        root = load_toml(ROOT / "Cargo.toml")
-                        inherited = (root.get("workspace", {}).get("dependencies", {}) or {}).get(alias)
-                        if isinstance(inherited, dict):
-                            names.add(inherited.get("package", alias))
-                        else:
-                            names.add(alias)
-                    else:
-                        names.add(spec.get("package", alias))
-                else:
-                    names.add(alias)
+                names.add(resolved_name(alias, spec))
 
     add_dependencies(data)
     for target in (data.get("target") or {}).values():
         if isinstance(target, dict):
             add_dependencies(target)
     return names
+
+
+def workspace_dependency_closure(crate: str) -> set[str]:
+    seen: set[str] = set()
+    pending = [crate]
+    while pending:
+        current = pending.pop()
+        for dependency in dependency_names(current):
+            if dependency in seen:
+                continue
+            seen.add(dependency)
+            if (ROOT / "crates" / dependency / "Cargo.toml").exists():
+                pending.append(dependency)
+    return seen
 
 
 def fail(message: str) -> None:
@@ -91,9 +106,9 @@ def check_checker_isolation() -> None:
 
 def check_sealed_fixture_isolation() -> None:
     for crate in DISCOVERY_CRATES:
-        deps = dependency_names(crate)
+        deps = workspace_dependency_closure(crate)
         if "formula-first-light" in deps:
-            fail(f"{crate} depends on sealed First-Light crate")
+            fail(f"{crate} dependency graph reaches sealed formula-first-light crate")
         source_root = ROOT / "crates" / crate / "src"
         for path in source_root.rglob("*.rs"):
             text = path.read_text(encoding="utf-8")
