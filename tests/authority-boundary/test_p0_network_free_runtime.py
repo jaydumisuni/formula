@@ -53,5 +53,21 @@ class NetworkFreeRuntimeTests(unittest.TestCase):
             p0.check_canonical_runtime_has_no_external_dependencies()
 
 
+    def test_rejects_network_use_after_nested_grouped_std_import(self):
+        self.source.write_text(
+            "use std::{io::{self}, net::TcpStream};\npub fn connect() { let _ = TcpStream::connect(\"127.0.0.1:9\"); let _ = io::empty(); }\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "network"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
+    def test_unrelated_net_modules_do_not_trip_std_network_guard(self):
+        self.source.write_text(
+            "use core::net::IpAddr;\nuse crate::net::Thing;\nuse my::net::Other;\n",
+            encoding="utf-8",
+        )
+        p0.check_canonical_runtime_has_no_external_dependencies()
+
+
 if __name__ == "__main__":
     unittest.main()

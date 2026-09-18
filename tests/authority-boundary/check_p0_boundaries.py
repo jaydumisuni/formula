@@ -44,11 +44,11 @@ def load_toml(path: Path) -> dict:
         return tomllib.load(handle)
 
 
-def dependency_names(crate: str) -> set[str]:
-    data = load_toml(ROOT / "crates" / crate / "Cargo.toml")
+def dependency_entries(manifest: Path) -> list[tuple[str, Path | None]]:
+    data = load_toml(manifest)
     workspace = load_toml(ROOT / "Cargo.toml").get("workspace", {})
     workspace_dependencies = workspace.get("dependencies") or {}
-    names: set[str] = set()
+    entries: list[tuple[str, Path | None]] = []
 
     def resolved_name(alias: str, spec: object) -> str:
         if isinstance(spec, dict) and spec.get("workspace") is True:
@@ -63,27 +63,37 @@ def dependency_names(crate: str) -> set[str]:
     def add_dependencies(table: dict) -> None:
         for section in ("dependencies", "dev-dependencies", "build-dependencies"):
             for alias, spec in (table.get(section) or {}).items():
-                names.add(resolved_name(alias, spec))
+                name = resolved_name(alias, spec)
+                effective = workspace_dependencies.get(alias) if isinstance(spec, dict) and spec.get("workspace") is True else spec
+                base = ROOT if isinstance(spec, dict) and spec.get("workspace") is True else manifest.parent
+                path = (base / effective["path"] / "Cargo.toml").resolve() if isinstance(effective, dict) and effective.get("path") else None
+                entries.append((name, path))
 
     add_dependencies(data)
     for target in (data.get("target") or {}).values():
         if isinstance(target, dict):
             add_dependencies(target)
-    return names
+    return entries
+
+
+def dependency_names(crate: str) -> set[str]:
+    return {name for name, _ in dependency_entries(ROOT / "crates" / crate / "Cargo.toml")}
 
 
 def workspace_dependency_closure(crate: str) -> set[str]:
-    seen: set[str] = set()
-    pending = [crate]
+    seen_names: set[str] = set()
+    seen_manifests: set[Path] = set()
+    pending = [(ROOT / "crates" / crate / "Cargo.toml").resolve()]
     while pending:
-        current = pending.pop()
-        for dependency in dependency_names(current):
-            if dependency in seen:
-                continue
-            seen.add(dependency)
-            if (ROOT / "crates" / dependency / "Cargo.toml").exists():
-                pending.append(dependency)
-    return seen
+        manifest = pending.pop()
+        if manifest in seen_manifests:
+            continue
+        seen_manifests.add(manifest)
+        for dependency, dependency_manifest in dependency_entries(manifest):
+            seen_names.add(dependency)
+            if dependency_manifest is not None and dependency_manifest.is_file():
+                pending.append(dependency_manifest)
+    return seen_names
 
 
 def fail(message: str) -> None:
@@ -134,7 +144,7 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
         for path in source_root.rglob("*.rs"):
             compact = "".join(path.read_text(encoding="utf-8").split())
             direct_network = "std::net" in compact
-            grouped_network = re.search(r"std::\{[^}]*\bnet(?:\b|::)", compact) is not None
+            grouped_network = re.search(r"std::\{[^;]*\bnet(?:\b|::)", compact) is not None
             if direct_network or grouped_network:
                 fail(f"P0 canonical runtime contains network source reference: {path.relative_to(ROOT)}")
 

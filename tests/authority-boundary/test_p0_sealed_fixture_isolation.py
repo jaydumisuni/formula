@@ -69,5 +69,18 @@ class SealedFixtureIsolationTests(unittest.TestCase):
             p0.check_sealed_fixture_isolation()
 
 
+    def test_rejects_transitive_dependency_when_directory_differs_from_package_name(self):
+        self.write_crate(
+            "formula-engine",
+            "[dependencies]\nrenamed = { package = \"formula-core\", path = \"../odd-directory\" }\n",
+        )
+        self.write_crate("odd-directory", "[dependencies]\nformula-first-light = { path = \"../formula-first-light\" }\n")
+        self.write_crate("formula-packages")
+        self.write_crate("formula-first-light")
+
+        with self.assertRaisesRegex(AssertionError, "formula-first-light"):
+            p0.check_sealed_fixture_isolation()
+
+
 if __name__ == "__main__":
     unittest.main()
