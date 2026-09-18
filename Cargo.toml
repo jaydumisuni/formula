@@ -1,0 +1,22 @@
+[workspace]
+members = [
+  "crates/formula-core",
+  "crates/formula-store",
+  "crates/formula-check",
+  "crates/formula-engine",
+  "crates/formula-packages",
+  "crates/formula-realize",
+  "crates/formula-first-light",
+  "crates/formula-cli",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[workspace.metadata.formula]
+architecture_checkpoint = "50c0beb021d8bf02d59a177049b9c2cf1783b26a"
+first_light_runtime = "local-cpu-model-free-network-free-gpu-free-ptah-free"
