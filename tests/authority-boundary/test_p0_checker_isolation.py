@@ -36,6 +36,18 @@ class CheckerIsolationTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "formula-engine"):
             p0.check_checker_isolation()
 
+    def test_rejects_workspace_inherited_aliased_formula_engine_dependency(self):
+        (self.root / "Cargo.toml").write_text(
+            "[workspace]\nmembers = [\"crates/formula-check\"]\n\n[workspace.dependencies]\nsearch-backend = { package = \"formula-engine\", path = \"crates/formula-engine\" }\n",
+            encoding="utf-8",
+        )
+        self.manifest.write_text(
+            "[dependencies]\nsearch-backend = { workspace = true }\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "formula-engine"):
+            p0.check_checker_isolation()
+
     def test_rejects_target_specific_formula_engine_dependency(self):
         self.manifest.write_text(
             "[target.\"cfg(unix)\".dependencies]\nformula-engine = { path = \"../formula-engine\" }\n",
