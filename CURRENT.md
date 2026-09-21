@@ -15,7 +15,7 @@ Recover repository evidence before reasoning.
 
 ## Exact current implementation state
 
-P12 Self-Hosting Bootstrap / Trust Reduction: SOURCE PROVED; documentation-head proof pending.
+P12 Self-Hosting Bootstrap / Trust Reduction: FINALLY FROZEN.
 
 Canonical branch: implementation/p12-self-hosting-bootstrap-trust-reduction
 
@@ -61,13 +61,17 @@ PASS BOOTSTRAP_TRUST_REDUCED
 
 Run 34080398624 / job 101614463057 passed exact identity/toolchain; B0 seed provenance; locked offline metadata; bootstrap identities; workflow seed parser; generator; independent validator; final replay; separate bootstrap store; T0->T1->T2 proof; frozen P11 predecessor; architecture firewalls; all crate/workspace tests; build; rustfmt; clippy -D warnings; dependency trees; authority/source firewalls; clean worktree.
 
-## Not yet proved
+## Final documentation proof
 
-P12 final documentation freeze is not yet proved. BOOTSTRAP_TRUST_REDUCED is source-proved only. P12 does not remove B0, self-host Rust, prove Ptah/distributed execution, or permit network/model proof authority.
+The unchanged canonical workflow proved documentation-bearing head 75e3cb55c9099200d1b0f36c09b35e23a7b0a482 in run 35667236695, job 106555600537, conclusion success. Only CURRENT.md and the P12 checkpoint differed from the source-proof head; the workflow blob remained e790944ab57e003c597aeacc33ff6a96e1abba8f.
 
-## Documentation-head freeze requirement
+## Not proved by P12
 
-Only CURRENT.md and docs/checkpoints/2026-09-07-p12-self-hosting-bootstrap-trust-reduction.md may change from the source-proof head. The canonical workflow blob must remain e790944ab57e003c597aeacc33ff6a96e1abba8f. The unchanged workflow must prove the exact documentation-bearing head.
+P12 does not remove B0, self-host Rust itself, prove Ptah/distributed execution, or permit network/model proof authority.
+
+## Frozen documentation boundary
+
+The exact finally frozen P12 documentation proof boundary is 75e3cb55c9099200d1b0f36c09b35e23a7b0a482. Post-proof recovery metadata may record that already-earned proof without moving the frozen boundary.
 
 ## Freeze state
 
@@ -77,7 +81,9 @@ P12 source proof: PROVED
 P12 source head: df9351f98d2f2a6633f6524ae24c59e9db92dcfa
 P12 source run/job: 34080398624 / 101614463057
 P12 canonical workflow: e790944ab57e003c597aeacc33ff6a96e1abba8f
-P12 documentation proof: PENDING
-P12 final freeze: PENDING
-BOOTSTRAP_TRUST_REDUCED: SOURCE-PROVED ONLY
-next operation: prove documentation-bearing head
+P12 documentation proof: PROVED
+P12 frozen docs head: 75e3cb55c9099200d1b0f36c09b35e23a7b0a482
+P12 docs run/job: 35667236695 / 106555600537
+P12 final freeze: FINALLY FROZEN
+BOOTSTRAP_TRUST_REDUCED: FINAL RECOVERY AUTHORITY
+next roadmap boundary: P13 remains explicitly deferred; additive capabilities may extend frozen P12 without rewriting it

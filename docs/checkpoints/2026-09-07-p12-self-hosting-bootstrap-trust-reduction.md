@@ -1,6 +1,6 @@
 # P12 Self-Hosting Bootstrap / Trust Reduction Checkpoint
 
-Status: SOURCE PROVED - DOCUMENTATION-HEAD PROOF PENDING
+Status: FINALLY FROZEN
 
 This checkpoint records the canonical P12 source proof earned by the permanent read-only workflow. It does not yet mark P12 finally frozen.
 
@@ -60,13 +60,17 @@ PASS BOOTSTRAP_TRUST_REDUCED
 
 B0 is provenance, not Formula authority. formula-realize may generate candidates but cannot admit them. formula-check validates independently. formula-store persists bootstrap generations separately from Universe authority. Final replay is independently checked.
 
-## Not proved by this source checkpoint
+## Final documentation proof
 
-Final P12 documentation freeze is pending. BOOTSTRAP_TRUST_REDUCED is not yet final cross-chat recovery authority. P12 does not remove B0, self-host Rust itself, prove Ptah/distributed execution, or create network/model proof authority.
+The unchanged canonical workflow proved exact documentation-bearing head 75e3cb55c9099200d1b0f36c09b35e23a7b0a482 in run 35667236695, job 106555600537, conclusion success. The source-to-docs delta contained only CURRENT.md and this checkpoint, and the canonical workflow blob remained e790944ab57e003c597aeacc33ff6a96e1abba8f.
 
-## Documentation-head proof requirement
+## Not proved by P12
 
-The documentation-bearing candidate may change only CURRENT.md and this checkpoint. The canonical workflow blob must remain e790944ab57e003c597aeacc33ff6a96e1abba8f. The unchanged workflow must prove that exact docs head.
+P12 does not remove B0, self-host Rust itself, prove Ptah/distributed execution, or create network/model proof authority.
+
+## Frozen documentation boundary
+
+Exact frozen P12 proof head: 75e3cb55c9099200d1b0f36c09b35e23a7b0a482. Exact docs run/job: 35667236695 / 106555600537. Later metadata-only recovery commits do not move this boundary.
 
 ## Freeze state
 
@@ -75,6 +79,9 @@ source head: df9351f98d2f2a6633f6524ae24c59e9db92dcfa
 source run/job: 34080398624 / 101614463057
 source conclusion: success
 canonical workflow blob: e790944ab57e003c597aeacc33ff6a96e1abba8f
-documentation proof: PENDING
-P12 final freeze: PENDING
-BOOTSTRAP_TRUST_REDUCED: SOURCE-PROVED ONLY
+documentation proof: PROVED
+frozen docs head: 75e3cb55c9099200d1b0f36c09b35e23a7b0a482
+docs run/job: 35667236695 / 106555600537
+docs conclusion: success
+P12 final freeze: FINALLY FROZEN
+BOOTSTRAP_TRUST_REDUCED: FINAL RECOVERY AUTHORITY
