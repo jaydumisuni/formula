@@ -193,3 +193,39 @@ The frozen verifier substrate now establishes exact Montgomery implementation eq
 
 Next integration boundary:
 bind these frozen Formula capabilities into TokenIt's evidence/planning layer as verifier capabilities. Do not add signing, private-key generation, or guessed authorization responses.
+
+
+## Verifier runtime CLI capability state
+
+Verifier Runtime CLI capability: SOURCE PROVED; documentation-head proof pending.
+
+Canonical branch:
+capability/verifier-runtime-cli
+
+Source proof:
+318546f536e810c62056c3ed35f79e0e969c07e1
+run/job: 35707043210 / 106678372162
+result: success
+
+Permanent workflow:
+.github/workflows/verifier-runtime-cli-proof.yml
+blob: d2059b937352492921b4c07aa53e121cb47de0cb
+
+Runtime process:
+formula-verifier-cli
+
+Protocol:
+formula-verifier-runtime-v1
+
+The process is an independent checker transport. Canonical formula-cli remains unchanged from the frozen verifier predecessor and does not link formula-check.
+
+Runtime commands:
+identity, powmod, rsa-public, montgomery, type1, rsa-type1
+
+Runtime identity reports signing, authorization generation, and private-key operations unsupported.
+
+Exact checkpoint:
+docs/checkpoints/2026-09-22-verifier-runtime-cli-capability.md
+
+Next exact operation:
+prove the documentation-bearing runtime-CLI head with the unchanged permanent workflow.
