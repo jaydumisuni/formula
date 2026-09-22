@@ -160,7 +160,7 @@ Montgomery/firmware implementation equivalence and encoded-message verifier sema
 
 ## Verifier equivalence capability state
 
-Verifier Equivalence capability: SOURCE PROVED; documentation-head proof pending.
+Verifier Equivalence capability: FINALLY FROZEN.
 
 Canonical branch:
 capability/verifier-equivalence
@@ -184,5 +184,12 @@ Xiaomi ginkgo is a proved donor workload for these generic semantics, not hard-c
 Exact checkpoint:
 docs/checkpoints/2026-09-22-verifier-equivalence-capability.md
 
-Next exact operation:
-prove the documentation-bearing verifier-equivalence head with the unchanged permanent workflow.
+Final documentation proof:
+944d7d5c6a0094b7dd623519b6c1ff3c899188b1
+run/job: 35697065225 / 106646164052
+result: success
+
+The frozen verifier substrate now establishes exact Montgomery implementation equivalence, strict Type-1 payload semantics, and integrated RSA-public exact-payload verification.
+
+Next integration boundary:
+bind these frozen Formula capabilities into TokenIt's evidence/planning layer as verifier capabilities. Do not add signing, private-key generation, or guessed authorization responses.

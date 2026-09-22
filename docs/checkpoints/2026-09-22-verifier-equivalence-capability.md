@@ -1,6 +1,6 @@
 # Verifier Equivalence Capability Checkpoint
 
-Status: SOURCE PROVED - DOCUMENTATION-HEAD PROOF PENDING
+Status: FINALLY FROZEN
 
 This capability is additive over the finally frozen RSA Public Representation, Modular Number Theory, and P12 authority boundaries.
 
@@ -143,18 +143,26 @@ Type-1 parsing is exact structure checking only.
 
 This capability does not generate private keys, signatures, authorization responses, vendor tokens, or device unlock transitions.
 
-## Documentation-head freeze requirement
+## Final documentation proof
 
-Only these source-to-docs changes are permitted:
+The unchanged permanent workflow proved exact documentation-bearing head:
 
-- CURRENT.md
-- docs/checkpoints/2026-09-22-verifier-equivalence-capability.md
+944d7d5c6a0094b7dd623519b6c1ff3c899188b1
 
-The permanent workflow blob must remain:
+Run:
+35697065225
+
+Job:
+106646164052
+
+Conclusion:
+success
+
+The source-to-docs delta contained only CURRENT.md and this checkpoint. The permanent workflow blob remained:
 
 35e2f3ad1d4c407cdc5367c5bde1fef23f84fabd
 
-The unchanged workflow must prove the exact documentation-bearing head before final freeze.
+This exact head is the finally frozen Verifier Equivalence capability boundary. Later metadata-only recovery commits do not move the proved boundary.
 
 ## Freeze state
 
@@ -163,5 +171,8 @@ verifier-equivalence source proof: PROVED
 verifier-equivalence source head: 20ee736cb1ec3db7222ae41d47f43ecffc42ca61
 verifier-equivalence source run/job: 35696735247 / 106645152306
 verifier-equivalence source conclusion: success
-verifier-equivalence documentation proof: PENDING
-verifier-equivalence final freeze: PENDING
+verifier-equivalence documentation proof: PROVED
+verifier-equivalence frozen docs head: 944d7d5c6a0094b7dd623519b6c1ff3c899188b1
+verifier-equivalence docs run/job: 35697065225 / 106646164052
+verifier-equivalence docs conclusion: success
+verifier-equivalence final freeze: FINALLY FROZEN
