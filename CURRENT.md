@@ -157,3 +157,32 @@ The frozen capability now provides exact fixed-width unsigned big-endian represe
 
 Next additive capability boundary:
 Montgomery/firmware implementation equivalence and encoded-message verifier semantics. These remain checking/equivalence layers and do not introduce private-key generation.
+
+## Verifier equivalence capability state
+
+Verifier Equivalence capability: SOURCE PROVED; documentation-head proof pending.
+
+Canonical branch:
+capability/verifier-equivalence
+
+Source proof:
+20ee736cb1ec3db7222ae41d47f43ecffc42ca61
+run/job: 35696735247 / 106645152306
+result: success
+
+Permanent workflow:
+.github/workflows/verifier-equivalence-proof.yml
+blob: 35e2f3ad1d4c407cdc5367c5bde1fef23f84fabd
+
+Capability semantics:
+- one-subtract-compatible Montgomery product equivalence;
+- exact Type-1 payload block checking;
+- integrated RSA-public plus exact-payload verification.
+
+Xiaomi ginkgo is a proved donor workload for these generic semantics, not hard-coded Formula policy.
+
+Exact checkpoint:
+docs/checkpoints/2026-09-22-verifier-equivalence-capability.md
+
+Next exact operation:
+prove the documentation-bearing verifier-equivalence head with the unchanged permanent workflow.
