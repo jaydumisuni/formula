@@ -130,9 +130,11 @@ dependencies = [
 name = "formula-cli"
 version = "0.0.1"
 dependencies = [
+ "formula-check",
  "formula-core",
  "formula-engine",
  "formula-first-light",
+ "num-bigint",
 ]
 
 [[package]]
