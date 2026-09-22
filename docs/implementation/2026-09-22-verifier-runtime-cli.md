@@ -7,9 +7,9 @@ Frozen predecessor:
 
 ## Purpose
 
-Expose the already-proved public verification semantics through Formula's existing formula-cli executable so external planners such as TokenIt can call the independent checker at runtime.
+Expose the already-proved public verification semantics through a dedicated formula-verifier-cli executable so external planners such as TokenIt can call the independent checker at runtime.
 
-The CLI is transport only. Mathematical and verifier authority remains in formula-check.
+The CLI is a separate checker process and transport only. Mathematical and verifier authority remains in formula-check. The canonical formula-cli dependency closure remains unchanged.
 
 ## Protocol
 

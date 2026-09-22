@@ -130,11 +130,9 @@ dependencies = [
 name = "formula-cli"
 version = "0.0.1"
 dependencies = [
- "formula-check",
  "formula-core",
  "formula-engine",
  "formula-first-light",
- "num-bigint",
 ]
 
 [[package]]
@@ -209,6 +207,14 @@ dependencies = [
  "formula-core",
  "rusqlite",
  "tempfile",
+]
+
+[[package]]
+name = "formula-verifier-cli"
+version = "0.0.1"
+dependencies = [
+ "formula-check",
+ "num-bigint",
 ]
 
 [[package]]

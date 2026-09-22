@@ -8,6 +8,7 @@ members = [
   "crates/formula-realize",
   "crates/formula-first-light",
   "crates/formula-cli",
+  "crates/formula-verifier-cli",
   "tests/authority-boundary",
   "tests/p9-canonical",
 ]

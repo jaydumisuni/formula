@@ -4,12 +4,12 @@ use std::process::{Command, Output, Stdio};
 use std::str::FromStr;
 
 fn run(input: &str) -> Output {
-    let mut child = Command::new(env!("CARGO_BIN_EXE_formula-cli"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_formula-verifier-cli"))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("spawn formula-cli");
+        .expect("spawn formula-verifier-cli");
     child
         .stdin
         .take()

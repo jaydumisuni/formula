@@ -7,7 +7,5 @@ publish = false
 
 [dependencies]
 formula-core = { path = "../formula-core" }
-formula-check = { path = "../formula-check" }
-num-bigint.workspace = true
 formula-engine = { path = "../formula-engine" }
 formula-first-light = { path = "../formula-first-light" }

@@ -44,7 +44,7 @@ jobs:
         run: CARGO_NET_OFFLINE=true cargo metadata --locked --offline --format-version 1 --no-deps
 
       - name: Runtime gate - formula-cli verifier protocol
-        run: CARGO_NET_OFFLINE=true cargo test -p formula-cli --test verifier_runtime --locked --offline
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-verifier-cli --test verifier_runtime --locked --offline
 
       - name: Runtime gate - frozen verifier equivalence
         run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test verifier_equivalence --locked --offline
@@ -58,7 +58,7 @@ jobs:
       - name: Runtime gate - identity output
         run: |
           set -euxo pipefail
-          printf 'command=identity\n' | CARGO_NET_OFFLINE=true cargo run -q -p formula-cli --locked --offline > /tmp/formula-verifier-identity.txt
+          printf 'command=identity\n' | CARGO_NET_OFFLINE=true cargo run -q -p formula-verifier-cli --locked --offline > /tmp/formula-verifier-identity.txt
           grep -Fx 'status=pass' /tmp/formula-verifier-identity.txt
           grep -Fx 'schema=formula-verifier-runtime-v1' /tmp/formula-verifier-identity.txt
           grep -Fx 'verifier_equivalence_frozen_head=944d7d5c6a0094b7dd623519b6c1ff3c899188b1' /tmp/formula-verifier-identity.txt
@@ -78,15 +78,22 @@ jobs:
       - name: Runtime gate - clippy warnings denied
         run: CARGO_NET_OFFLINE=true cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 
+      - name: Runtime gate - verifier process dependency isolation
+        run: |
+          set -euxo pipefail
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-verifier-cli --edges normal | tee /tmp/formula-verifier-cli-tree.txt
+          grep -F 'formula-check' /tmp/formula-verifier-cli-tree.txt
+          ! grep -Eq 'formula-engine|formula-realize|formula-first-light|formula-store' /tmp/formula-verifier-cli-tree.txt
+
       - name: Runtime gate - transport remains checker-backed
         run: |
           set -euxo pipefail
-          grep -F 'check_modular_integer_result' crates/formula-cli/src/main.rs
-          grep -F 'check_rsa_public_result' crates/formula-cli/src/main.rs
-          grep -F 'check_montgomery_product_result' crates/formula-cli/src/main.rs
-          grep -F 'check_type1_payload' crates/formula-cli/src/main.rs
-          grep -F 'check_rsa_type1_payload' crates/formula-cli/src/main.rs
-          ! grep -Eq 'modpow\(|modinv\(|private.?key|flash(ing)?|oem unlock|sign_signature' crates/formula-cli/src/main.rs
+          grep -F 'check_modular_integer_result' crates/formula-verifier-cli/src/main.rs
+          grep -F 'check_rsa_public_result' crates/formula-verifier-cli/src/main.rs
+          grep -F 'check_montgomery_product_result' crates/formula-verifier-cli/src/main.rs
+          grep -F 'check_type1_payload' crates/formula-verifier-cli/src/main.rs
+          grep -F 'check_rsa_type1_payload' crates/formula-verifier-cli/src/main.rs
+          ! grep -Eq 'modpow\(|modinv\(|flash(ing)?|oem unlock|sign_signature|sign_with|private_key_from|generate_private' crates/formula-verifier-cli/src/main.rs
 
       - name: Runtime gate - clean worktree
         run: |
