@@ -1,6 +1,6 @@
 # Modular Number Theory Capability Checkpoint
 
-Status: SOURCE PROVED - DOCUMENTATION-HEAD PROOF PENDING
+Status: FINALLY FROZEN
 
 This is an additive post-P12 Formula capability. It does not rewrite any frozen P11/P12 authority.
 
@@ -125,18 +125,26 @@ This capability does not yet define:
 
 Those remain higher layers over the now-proved modular arithmetic substrate.
 
-## Documentation-head freeze requirement
+## Final documentation proof
 
-Only these source-to-docs changes are permitted for recursive recovery proof:
+The unchanged permanent capability workflow proved exact documentation-bearing head:
 
-- CURRENT.md
-- docs/checkpoints/2026-09-22-modular-number-theory-capability.md
+79755993f0e2a7c5d369d90c3a369433ee22c4b9
 
-The workflow blob must remain:
+Run:
+35694603165
+
+Job:
+106638603955
+
+Conclusion:
+success
+
+The source-to-docs delta contained only CURRENT.md and this checkpoint. The permanent workflow blob remained:
 
 e0578cae28057c31c239c09050046b09231b31a0
 
-The unchanged permanent workflow must pass on the exact documentation-bearing head before this capability is finally frozen.
+This exact head is the finally frozen Modular Number Theory capability boundary. Later metadata-only recovery commits do not move the proved boundary.
 
 ## Freeze state
 
@@ -145,5 +153,8 @@ modular capability source proof: PROVED
 modular source head: 2d21574ede6f36d9cd15def3fdd8d13290649381
 modular source run/job: 35694199602 / 106637380012
 modular source conclusion: success
-modular documentation proof: PENDING
-modular capability final freeze: PENDING
+modular documentation proof: PROVED
+modular frozen docs head: 79755993f0e2a7c5d369d90c3a369433ee22c4b9
+modular docs run/job: 35694603165 / 106638603955
+modular docs conclusion: success
+modular capability final freeze: FINALLY FROZEN

@@ -90,7 +90,7 @@ next roadmap boundary: P13 remains explicitly deferred; additive capabilities ma
 
 ## Additive capability state
 
-Modular Number Theory capability: SOURCE PROVED; documentation-head proof pending.
+Modular Number Theory capability: FINALLY FROZEN.
 
 Canonical branch:
 capability/modular-number-theory
@@ -112,5 +112,12 @@ The capability is additive over frozen P12. It does not redefine P12, P11 exact 
 Exact checkpoint:
 docs/checkpoints/2026-09-22-modular-number-theory-capability.md
 
-Next exact operation:
-prove the documentation-bearing modular-capability head with the unchanged permanent capability workflow.
+Final documentation proof:
+79755993f0e2a7c5d369d90c3a369433ee22c4b9
+run/job: 35694603165 / 106638603955
+result: success
+
+The frozen capability now provides independently checked Mod, MulMod, PowMod, Gcd, ExtendedGcd, and ModInverse as generic Formula semantics.
+
+Next additive capability boundary:
+fixed-width integer/byte representation plus generic RSA public-operation semantics over the frozen modular substrate. Montgomery remains an implementation-equivalence target, not mathematical authority.
