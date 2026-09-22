@@ -18,5 +18,6 @@ pub mod self_expansion;
 pub mod self_expansion_verifier;
 pub mod u8;
 pub mod verdict;
+pub mod verifier_equivalence;
 
 pub const CRATE_ROLE: &str = "independent evidence checking boundary";

@@ -1,0 +1,138 @@
+name: Verifier equivalence capability proof
+
+on:
+  push:
+    branches:
+      - capability/verifier-equivalence
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verifier-equivalence-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+
+      - name: Capability gate - exact identity and frozen RSA authority
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          RSA_FROZEN=9f222f0ed40d6c654d282f3d4a337c34d2c62f4a
+          git merge-base --is-ancestor "$RSA_FROZEN" HEAD
+          echo "VERIFIER_EQUIVALENCE_SOURCE_SHA=$GITHUB_SHA"
+          echo "RSA_FROZEN_PROOF_HEAD=$RSA_FROZEN"
+          rustc -Vv
+          cargo -V
+
+      - name: Capability gate - locked offline metadata
+        run: CARGO_NET_OFFLINE=true cargo metadata --locked --offline --format-version 1 --no-deps
+
+      - name: Capability gate - verifier equivalence
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test verifier_equivalence --locked --offline
+
+      - name: Capability gate - frozen RSA public representation
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test rsa_public_representation --locked --offline
+
+      - name: Capability gate - frozen modular number theory
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test modular_number_theory --locked --offline
+
+      - name: Capability gate - formula-check
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --all-targets --locked --offline
+
+      - name: Capability gate - architecture firewalls
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-archtest --all-targets --locked --offline
+
+      - name: Capability gate - full workspace tests
+        run: CARGO_NET_OFFLINE=true cargo test --workspace --all-targets --locked --offline
+
+      - name: Capability gate - full workspace build
+        run: CARGO_NET_OFFLINE=true cargo build --workspace --all-targets --locked --offline
+
+      - name: Capability gate - rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: Capability gate - clippy warnings denied
+        run: CARGO_NET_OFFLINE=true cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+
+      - name: Capability gate - independent verifier controls
+        run: |
+          python3 - <<'PY'
+          import random
+
+          rng = random.Random(0x564552494659)
+
+          def egcd(a, b):
+              x0, y0, x1, y1 = 1, 0, 0, 1
+              while b:
+                  q, a, b = a // b, b, a % b
+                  x0, x1 = x1, x0 - q * x1
+                  y0, y1 = y1, y0 - q * y1
+              return a, x0, y0
+
+          for bits in (64, 128, 256, 512, 1024, 2048):
+              radix_bits = ((bits + 31) // 32) * 32
+              for _ in range(32):
+                  n = rng.getrandbits(bits) | 1 | (1 << (bits - 1))
+                  while (1 << radix_bits) <= n:
+                      radix_bits += 32
+                  r = 1 << radix_bits
+                  g, rinv, _ = egcd(r, n)
+                  assert g == 1
+                  rinv %= n
+                  a = rng.randrange(0, n)
+                  b = rng.randrange(0, n)
+                  expected = (a * b * rinv) % n
+                  assert 0 <= expected < n
+                  assert (expected * r - a * b) % n == 0
+
+          for width in (11, 12, 32, 256):
+              for payload_len in (0, min(1, width - 11), min(8, width - 11), width - 11):
+                  payload = bytes((i % 251) + 1 for i in range(payload_len))
+                  pad_len = width - payload_len - 3
+                  block = b"\x00\x01" + b"\xff" * pad_len + b"\x00" + payload
+                  assert len(block) == width
+                  assert pad_len >= 8
+                  assert block[:2] == b"\x00\x01"
+                  assert all(x == 0xff for x in block[2:2 + pad_len])
+                  assert block[2 + pad_len] == 0
+                  assert block[3 + pad_len:] == payload
+
+          print("PASS VERIFIER_EQUIVALENCE_INDEPENDENT_CONTROLS")
+          PY
+
+      - name: Capability gate - formula-check dependency firewall
+        run: |
+          set -euxo pipefail
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-check --edges normal | tee /tmp/verifier-check-tree.txt
+          ! grep -Eq 'formula-engine|formula-store|formula-realize|formula-first-light' /tmp/verifier-check-tree.txt
+
+      - name: Capability gate - source authority firewall
+        run: |
+          set -euxo pipefail
+          if grep -R -n -E 'formula_engine|formula_store|formula_realize|formula_first_light' \
+            crates/formula-check/src --include='*.rs'; then
+            echo 'formula-check source authority firewall violated' >&2
+            exit 1
+          fi
+
+      - name: Capability gate - clean worktree
+        run: |
+          set -euxo pipefail
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
