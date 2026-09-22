@@ -1,6 +1,6 @@
 # RSA Public Representation Capability Checkpoint
 
-Status: SOURCE PROVED - DOCUMENTATION-HEAD PROOF PENDING
+Status: FINALLY FROZEN
 
 This capability is additive over the finally frozen Modular Number Theory capability and frozen P12 authority.
 
@@ -130,18 +130,26 @@ This capability does not define:
 
 Those remain separate additive layers.
 
-## Documentation-head freeze requirement
+## Final documentation proof
 
-Only these source-to-docs changes are permitted:
+The unchanged permanent workflow proved exact documentation-bearing head:
 
-- CURRENT.md
-- docs/checkpoints/2026-09-22-rsa-public-representation-capability.md
+9f222f0ed40d6c654d282f3d4a337c34d2c62f4a
 
-The permanent workflow blob must remain:
+Run:
+35695582112
+
+Job:
+106641610762
+
+Conclusion:
+success
+
+The source-to-docs delta contained only CURRENT.md and this checkpoint. The permanent workflow blob remained:
 
 e5e1cac03e69cc178e0c148410ecacbcbe74894b
 
-The unchanged workflow must prove the exact documentation-bearing head before this capability is finally frozen.
+This exact head is the finally frozen RSA Public Representation capability boundary. Later metadata-only recovery commits do not move the proved boundary.
 
 ## Freeze state
 
@@ -150,5 +158,8 @@ RSA/representation source proof: PROVED
 RSA/representation source head: b379c3c340881b3a6ae4b196ff76c2a6b2f5135a
 RSA/representation source run/job: 35695302121 / 106640751390
 RSA/representation source conclusion: success
-RSA/representation documentation proof: PENDING
-RSA/representation final freeze: PENDING
+RSA/representation documentation proof: PROVED
+RSA/representation frozen docs head: 9f222f0ed40d6c654d282f3d4a337c34d2c62f4a
+RSA/representation docs run/job: 35695582112 / 106641610762
+RSA/representation docs conclusion: success
+RSA/representation final freeze: FINALLY FROZEN

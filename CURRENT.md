@@ -124,7 +124,7 @@ fixed-width integer/byte representation plus generic RSA public-operation semant
 
 ## RSA public representation capability state
 
-RSA Public Representation capability: SOURCE PROVED; documentation-head proof pending.
+RSA Public Representation capability: FINALLY FROZEN.
 
 Canonical branch:
 capability/rsa-public-representation
@@ -148,5 +148,12 @@ This capability is additive over the frozen modular substrate and does not defin
 Exact checkpoint:
 docs/checkpoints/2026-09-22-rsa-public-representation-capability.md
 
-Next exact operation:
-prove the documentation-bearing RSA/representation head with the unchanged permanent workflow.
+Final documentation proof:
+9f222f0ed40d6c654d282f3d4a337c34d2c62f4a
+run/job: 35695582112 / 106641610762
+result: success
+
+The frozen capability now provides exact fixed-width unsigned big-endian representation and generic RSA public-operation checking over the frozen modular substrate.
+
+Next additive capability boundary:
+Montgomery/firmware implementation equivalence and encoded-message verifier semantics. These remain checking/equivalence layers and do not introduce private-key generation.
