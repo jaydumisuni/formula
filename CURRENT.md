@@ -121,3 +121,32 @@ The frozen capability now provides independently checked Mod, MulMod, PowMod, Gc
 
 Next additive capability boundary:
 fixed-width integer/byte representation plus generic RSA public-operation semantics over the frozen modular substrate. Montgomery remains an implementation-equivalence target, not mathematical authority.
+
+## RSA public representation capability state
+
+RSA Public Representation capability: SOURCE PROVED; documentation-head proof pending.
+
+Canonical branch:
+capability/rsa-public-representation
+
+Source proof:
+b379c3c340881b3a6ae4b196ff76c2a6b2f5135a
+run/job: 35695302121 / 106640751390
+result: success
+
+Permanent workflow:
+.github/workflows/rsa-public-representation-proof.yml
+blob: e5e1cac03e69cc178e0c148410ecacbcbe74894b
+
+Capability semantics:
+- unsigned fixed-width big-endian integer/byte representation;
+- generic RSA public operation M = S^e mod N;
+- modulus-derived output width.
+
+This capability is additive over the frozen modular substrate and does not define padding, private-key operations, vendor authorization, or Montgomery authority.
+
+Exact checkpoint:
+docs/checkpoints/2026-09-22-rsa-public-representation-capability.md
+
+Next exact operation:
+prove the documentation-bearing RSA/representation head with the unchanged permanent workflow.
