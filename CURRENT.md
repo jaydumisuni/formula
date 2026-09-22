@@ -197,7 +197,7 @@ bind these frozen Formula capabilities into TokenIt's evidence/planning layer as
 
 ## Verifier runtime CLI capability state
 
-Verifier Runtime CLI capability: SOURCE PROVED; documentation-head proof pending.
+Verifier Runtime CLI capability: FINALLY FROZEN.
 
 Canonical branch:
 capability/verifier-runtime-cli
@@ -227,5 +227,12 @@ Runtime identity reports signing, authorization generation, and private-key oper
 Exact checkpoint:
 docs/checkpoints/2026-09-22-verifier-runtime-cli-capability.md
 
-Next exact operation:
-prove the documentation-bearing runtime-CLI head with the unchanged permanent workflow.
+Final documentation proof:
+1620b04402a891899912b2b1335b8e561cb7eceb
+run/job: 35707454549 / 106679709316
+result: success
+
+The frozen runtime process is formula-verifier-cli, an independent checker transport. Canonical formula-cli remains unchanged and does not link formula-check.
+
+Next integration boundary:
+build formula-verifier-cli from this frozen head, hash the binary, and let TokenIt trust only that exact artifact plus the runtime identity contract.

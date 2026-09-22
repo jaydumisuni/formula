@@ -1,6 +1,6 @@
 # Verifier Runtime CLI Capability Checkpoint
 
-Status: SOURCE PROVED - DOCUMENTATION-HEAD PROOF PENDING
+Status: FINALLY FROZEN
 
 This capability is additive over the finally frozen Verifier Equivalence, RSA Public Representation, Modular Number Theory, and P12 authority boundaries.
 
@@ -139,18 +139,26 @@ This capability does not:
 - choose or submit unlock commands;
 - alter device state.
 
-## Documentation-head freeze requirement
+## Final documentation proof
 
-Only these source-to-docs changes are permitted:
+The unchanged permanent workflow proved exact documentation-bearing head:
 
-- CURRENT.md
-- docs/checkpoints/2026-09-22-verifier-runtime-cli-capability.md
+1620b04402a891899912b2b1335b8e561cb7eceb
 
-The permanent workflow blob must remain:
+Run:
+35707454549
+
+Job:
+106679709316
+
+Conclusion:
+success
+
+The source-to-docs delta contained only CURRENT.md and this checkpoint. The permanent workflow blob remained:
 
 d2059b937352492921b4c07aa53e121cb47de0cb
 
-The unchanged workflow must prove the exact documentation-bearing head before this capability is finally frozen.
+This exact head is the finally frozen Verifier Runtime CLI capability boundary. Later metadata-only recovery commits do not move the proved boundary.
 
 ## Freeze state
 
@@ -159,5 +167,8 @@ Verifier Runtime CLI source proof: PROVED
 Verifier Runtime CLI source head: 318546f536e810c62056c3ed35f79e0e969c07e1
 Verifier Runtime CLI source run/job: 35707043210 / 106678372162
 Verifier Runtime CLI source conclusion: success
-Verifier Runtime CLI documentation proof: PENDING
-Verifier Runtime CLI final freeze: PENDING
+Verifier Runtime CLI documentation proof: PROVED
+Verifier Runtime CLI frozen docs head: 1620b04402a891899912b2b1335b8e561cb7eceb
+Verifier Runtime CLI docs run/job: 35707454549 / 106679709316
+Verifier Runtime CLI docs conclusion: success
+Verifier Runtime CLI final freeze: FINALLY FROZEN
