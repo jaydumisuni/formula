@@ -1,0 +1,148 @@
+name: Modular number theory capability proof
+
+on:
+  push:
+    branches:
+      - capability/modular-number-theory
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  modular-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+
+      - name: Capability gate - exact identity and frozen P12 authority
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          P12_FROZEN=75e3cb55c9099200d1b0f36c09b35e23a7b0a482
+          git merge-base --is-ancestor "$P12_FROZEN" HEAD
+          echo "MODULAR_CAPABILITY_SOURCE_SHA=$GITHUB_SHA"
+          echo "P12_FROZEN_PROOF_HEAD=$P12_FROZEN"
+          rustc -Vv
+          cargo -V
+
+      - name: Capability gate - locked offline metadata
+        run: CARGO_NET_OFFLINE=true cargo metadata --locked --offline --format-version 1 --no-deps
+
+      - name: Capability gate - modular number theory
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test modular_number_theory --locked --offline
+
+      - name: Capability gate - existing P11 exact arithmetic
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test p11_exact_arithmetic --locked --offline
+
+      - name: Capability gate - formula-check
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --all-targets --locked --offline
+
+      - name: Capability gate - architecture firewalls
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-archtest --all-targets --locked --offline
+
+      - name: Capability gate - full workspace tests
+        run: CARGO_NET_OFFLINE=true cargo test --workspace --all-targets --locked --offline
+
+      - name: Capability gate - full workspace build
+        run: CARGO_NET_OFFLINE=true cargo build --workspace --all-targets --locked --offline
+
+      - name: Capability gate - rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: Capability gate - clippy warnings denied
+        run: CARGO_NET_OFFLINE=true cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+
+      - name: Capability gate - independent deterministic arithmetic controls
+        run: |
+          python3 - <<'PY'
+          import math
+          import random
+
+          rng = random.Random(0x4D4F44554C4152)
+
+          def square_multiply(a, e, n):
+              if e < 0 or n <= 0:
+                  raise ValueError
+              a %= n
+              r = 1 % n
+              while e:
+                  if e & 1:
+                      r = (r * a) % n
+                  a = (a * a) % n
+                  e >>= 1
+              return r
+
+          def egcd(a, b):
+              x0, y0, x1, y1 = 1, 0, 0, 1
+              while b:
+                  q, a, b = a // b, b, a % b
+                  x0, x1 = x1, x0 - q * x1
+                  y0, y1 = y1, y0 - q * y1
+              if a < 0:
+                  return -a, -x0, -y0
+              return a, x0, y0
+
+          counts = {"powmod": 0, "mulmod": 0, "gcd": 0, "inverse": 0}
+          for bits in (32, 64, 128, 256, 512, 1024, 2048):
+              for i in range(40):
+                  n = rng.getrandbits(bits) | 1 | (1 << (bits - 1))
+                  a = rng.getrandbits(bits * 2) - rng.getrandbits(bits * 2)
+                  b = rng.getrandbits(bits * 2) - rng.getrandbits(bits * 2)
+                  e = 65537 if i % 3 == 0 else rng.randrange(0, 1 << 18)
+
+                  assert pow(a, e, n) == square_multiply(a, e, n)
+                  counts["powmod"] += 1
+
+                  assert (a * b) % n == ((a % n) * (b % n)) % n
+                  counts["mulmod"] += 1
+
+                  g = math.gcd(a, b)
+                  gg, x, y = egcd(a, b)
+                  assert g == gg
+                  assert a * x + b * y == g
+                  counts["gcd"] += 1
+
+                  if math.gcd(a, n) == 1 and n > 1:
+                      inv = pow(a, -1, n)
+                      assert 0 <= inv < n
+                      assert (a * inv) % n == 1
+                      counts["inverse"] += 1
+
+          print("PASS MODULAR_INDEPENDENT_CONTROLS", counts)
+          PY
+
+      - name: Capability gate - formula-check dependency firewall
+        run: |
+          set -euxo pipefail
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-check --edges normal | tee /tmp/modular-check-tree.txt
+          ! grep -Eq 'formula-engine|formula-store|formula-realize|formula-first-light' /tmp/modular-check-tree.txt
+
+      - name: Capability gate - source authority firewall
+        run: |
+          set -euxo pipefail
+          if grep -R -n -E 'formula_engine|formula_store|formula_realize|formula_first_light' \
+            crates/formula-check/src --include='*.rs'; then
+            echo 'formula-check source authority firewall violated' >&2
+            exit 1
+          fi
+
+      - name: Capability gate - clean worktree
+        run: |
+          set -euxo pipefail
+          git diff --exit-code
+          test -z "$(git status --porcelain)"

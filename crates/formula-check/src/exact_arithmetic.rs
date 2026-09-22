@@ -111,7 +111,7 @@ pub fn check_decimal_integer_result(
     })
 }
 
-fn parse_canonical_decimal(input: &str) -> Result<BigInt, ExactArithmeticError> {
+pub(crate) fn parse_canonical_decimal(input: &str) -> Result<BigInt, ExactArithmeticError> {
     if input.is_empty() || input.starts_with('+') {
         return Err(ExactArithmeticError::MalformedDecimal);
     }
