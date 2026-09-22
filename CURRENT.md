@@ -87,3 +87,30 @@ P12 docs run/job: 35667236695 / 106555600537
 P12 final freeze: FINALLY FROZEN
 BOOTSTRAP_TRUST_REDUCED: FINAL RECOVERY AUTHORITY
 next roadmap boundary: P13 remains explicitly deferred; additive capabilities may extend frozen P12 without rewriting it
+
+## Additive capability state
+
+Modular Number Theory capability: SOURCE PROVED; documentation-head proof pending.
+
+Canonical branch:
+capability/modular-number-theory
+
+Source proof:
+2d21574ede6f36d9cd15def3fdd8d13290649381
+run/job: 35694199602 / 106637380012
+result: success
+
+Permanent workflow:
+.github/workflows/modular-number-theory-proof.yml
+blob: e0578cae28057c31c239c09050046b09231b31a0
+
+Capability operations:
+Mod, MulMod, PowMod, Gcd, ExtendedGcd, ModInverse
+
+The capability is additive over frozen P12. It does not redefine P12, P11 exact arithmetic, Universe authority, bootstrap authority, or P13.
+
+Exact checkpoint:
+docs/checkpoints/2026-09-22-modular-number-theory-capability.md
+
+Next exact operation:
+prove the documentation-bearing modular-capability head with the unchanged permanent capability workflow.
