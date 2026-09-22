@@ -1,0 +1,130 @@
+name: RSA public representation capability proof
+
+on:
+  push:
+    branches:
+      - capability/rsa-public-representation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rsa-public-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - name: Prime locked dependency cache
+        run: cargo fetch --locked
+
+      - name: Capability gate - exact identity and frozen modular authority
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          MODULAR_FROZEN=79755993f0e2a7c5d369d90c3a369433ee22c4b9
+          git merge-base --is-ancestor "$MODULAR_FROZEN" HEAD
+          echo "RSA_PUBLIC_SOURCE_SHA=$GITHUB_SHA"
+          echo "MODULAR_FROZEN_PROOF_HEAD=$MODULAR_FROZEN"
+          rustc -Vv
+          cargo -V
+
+      - name: Capability gate - locked offline metadata
+        run: CARGO_NET_OFFLINE=true cargo metadata --locked --offline --format-version 1 --no-deps
+
+      - name: Capability gate - RSA public representation
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test rsa_public_representation --locked --offline
+
+      - name: Capability gate - frozen modular number theory
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --test modular_number_theory --locked --offline
+
+      - name: Capability gate - formula-check
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-check --all-targets --locked --offline
+
+      - name: Capability gate - architecture firewalls
+        run: CARGO_NET_OFFLINE=true cargo test -p formula-archtest --all-targets --locked --offline
+
+      - name: Capability gate - full workspace tests
+        run: CARGO_NET_OFFLINE=true cargo test --workspace --all-targets --locked --offline
+
+      - name: Capability gate - full workspace build
+        run: CARGO_NET_OFFLINE=true cargo build --workspace --all-targets --locked --offline
+
+      - name: Capability gate - rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: Capability gate - clippy warnings denied
+        run: CARGO_NET_OFFLINE=true cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+
+      - name: Capability gate - independent representation and RSA controls
+        run: |
+          python3 - <<'PY'
+          import random
+
+          rng = random.Random(0x525341505542)
+
+          def square_multiply(a, e, n):
+              a %= n
+              r = 1 % n
+              while e:
+                  if e & 1:
+                      r = (r * a) % n
+                  a = (a * a) % n
+                  e >>= 1
+              return r
+
+          for width in (1, 2, 4, 8, 16, 32, 64, 128, 256):
+              for _ in range(32):
+                  value = rng.randrange(0, 1 << (8 * width))
+                  encoded = value.to_bytes(width, "big")
+                  assert len(encoded) == width
+                  assert int.from_bytes(encoded, "big") == value
+                  assert len(encoded.hex()) == width * 2
+                  assert encoded.hex() == encoded.hex().lower()
+
+          for bits in (64, 128, 256, 512, 1024, 2048):
+              for i in range(24):
+                  modulus = rng.getrandbits(bits) | 1 | (1 << (bits - 1))
+                  representative = rng.randrange(0, modulus)
+                  exponent = 65537 if i % 2 == 0 else (rng.randrange(1, 1 << 18) | 1)
+                  expected = pow(representative, exponent, modulus)
+                  assert expected == square_multiply(representative, exponent, modulus)
+                  width = (modulus.bit_length() + 7) // 8
+                  encoded = expected.to_bytes(width, "big")
+                  assert len(encoded) == width
+                  assert int.from_bytes(encoded, "big") == expected
+
+          print("PASS RSA_PUBLIC_REPRESENTATION_INDEPENDENT_CONTROLS")
+          PY
+
+      - name: Capability gate - formula-check dependency firewall
+        run: |
+          set -euxo pipefail
+          CARGO_NET_OFFLINE=true cargo tree --locked --offline -p formula-check --edges normal | tee /tmp/rsa-check-tree.txt
+          ! grep -Eq 'formula-engine|formula-store|formula-realize|formula-first-light' /tmp/rsa-check-tree.txt
+
+      - name: Capability gate - source authority firewall
+        run: |
+          set -euxo pipefail
+          if grep -R -n -E 'formula_engine|formula_store|formula_realize|formula_first_light' \
+            crates/formula-check/src --include='*.rs'; then
+            echo 'formula-check source authority firewall violated' >&2
+            exit 1
+          fi
+
+      - name: Capability gate - clean worktree
+        run: |
+          set -euxo pipefail
+          git diff --exit-code
+          test -z "$(git status --porcelain)"

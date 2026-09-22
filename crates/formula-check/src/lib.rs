@@ -12,6 +12,7 @@ pub mod promotion;
 pub mod proof_evolution;
 pub mod realization;
 pub mod router;
+pub mod rsa_public;
 pub mod sat_lrat;
 pub mod self_expansion;
 pub mod self_expansion_verifier;
