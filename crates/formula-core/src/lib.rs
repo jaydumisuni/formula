@@ -4,6 +4,8 @@
 //! primitives plus the structural identity inputs for `Entity`. It does not
 //! publish authority, hash artifacts, or claim completion of Gate P1.
 
+use sha2::{Digest, Sha256};
+
 /// Canonical structural encoding version frozen for the first P1 implementation.
 pub const CANONICAL_ENCODING_V1: u16 = 1;
 
@@ -25,6 +27,26 @@ impl ArtifactDigest {
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.0
+    }
+
+    /// Compute a Formula structural digest from already-canonical bytes.
+    #[must_use]
+    pub fn sha256(canonical_bytes: &[u8]) -> Self {
+        let digest = Sha256::digest(canonical_bytes);
+        let mut bytes = [0_u8; 32];
+        bytes.copy_from_slice(&digest);
+        Self(bytes)
+    }
+
+    /// Lowercase hexadecimal form used by durable manifests and evidence.
+    #[must_use]
+    pub fn to_hex(self) -> String {
+        let mut out = String::with_capacity(64);
+        for byte in self.0 {
+            use core::fmt::Write as _;
+            write!(&mut out, "{byte:02x}").expect("writing to String cannot fail");
+        }
+        out
     }
 }
 
@@ -70,6 +92,12 @@ impl Entity {
         out.digest_list(&self.theory_context);
         out.finish()
     }
+
+    /// SHA-256 over the versioned canonical structural encoding.
+    #[must_use]
+    pub fn structural_digest(&self) -> ArtifactDigest {
+        ArtifactDigest::sha256(&self.canonical_bytes())
+    }
 }
 
 /// Durable structural identity inputs for a relation between entities.
@@ -97,6 +125,12 @@ impl Relation {
         out.bytes(self.kind.as_bytes());
         out.digest_list(&self.members);
         out.finish()
+    }
+
+    /// SHA-256 over the versioned canonical structural encoding.
+    #[must_use]
+    pub fn structural_digest(&self) -> ArtifactDigest {
+        ArtifactDigest::sha256(&self.canonical_bytes())
     }
 }
 
@@ -132,6 +166,12 @@ impl World {
         out.digest_list(&self.relations);
         out.digest_list(&self.theory_context);
         out.finish()
+    }
+
+    /// SHA-256 over the versioned canonical structural encoding.
+    #[must_use]
+    pub fn structural_digest(&self) -> ArtifactDigest {
+        ArtifactDigest::sha256(&self.canonical_bytes())
     }
 }
 
@@ -268,6 +308,51 @@ mod tests {
             relation_world.canonical_bytes(),
             theory_world.canonical_bytes()
         );
+    }
+
+    #[test]
+    fn sha256_wrapper_matches_standard_known_vector() {
+        assert_eq!(
+            ArtifactDigest::sha256(b"abc").to_hex(),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn independent_semantic_replay_produces_identical_structural_digest() {
+        let first = Entity::new(
+            "integer",
+            b"42".to_vec(),
+            vec![digest(1), digest(2)],
+            vec![digest(9)],
+        );
+        let replay = Entity::new(
+            "integer",
+            b"42".to_vec(),
+            vec![digest(1), digest(2)],
+            vec![digest(9)],
+        );
+
+        assert_eq!(first.structural_digest(), replay.structural_digest());
+    }
+
+    #[test]
+    fn semantic_change_changes_structural_digest() {
+        let left = Entity::new("integer", b"42".to_vec(), vec![], vec![]);
+        let right = Entity::new("integer", b"43".to_vec(), vec![], vec![]);
+
+        assert_ne!(left.structural_digest(), right.structural_digest());
+    }
+
+    #[test]
+    fn artifact_domains_remain_separate_at_digest_layer() {
+        let entity = Entity::new("application", b"".to_vec(), vec![digest(1)], vec![]);
+        let relation = Relation::new("application", vec![digest(1)]);
+        let world = World::new(vec![digest(1)], vec![], vec![]);
+
+        assert_ne!(entity.structural_digest(), relation.structural_digest());
+        assert_ne!(entity.structural_digest(), world.structural_digest());
+        assert_ne!(relation.structural_digest(), world.structural_digest());
     }
 
     #[test]
