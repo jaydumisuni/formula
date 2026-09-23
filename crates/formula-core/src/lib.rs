@@ -188,6 +188,51 @@ pub struct Judgement {
     dependencies: Vec<ArtifactDigest>,
 }
 
+/// Metadata describing evidence for a judgement without making the evidence
+/// itself part of the judgement's structural identity.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EvidenceEnvelopeMetadata {
+    schema_version: u16,
+    judgement: ArtifactDigest,
+    evidence_kind: String,
+    payload: ArtifactDigest,
+    checker: ArtifactDigest,
+}
+
+impl EvidenceEnvelopeMetadata {
+    #[must_use]
+    pub fn new(
+        judgement: ArtifactDigest,
+        evidence_kind: impl Into<String>,
+        payload: ArtifactDigest,
+        checker: ArtifactDigest,
+    ) -> Self {
+        Self {
+            schema_version: CANONICAL_ENCODING_V1,
+            judgement,
+            evidence_kind: evidence_kind.into(),
+            payload,
+            checker,
+        }
+    }
+
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = CanonicalWriter::new(b"formula.evidence-envelope-metadata");
+        out.u16(self.schema_version);
+        out.digest(self.judgement);
+        out.bytes(self.evidence_kind.as_bytes());
+        out.digest(self.payload);
+        out.digest(self.checker);
+        out.finish()
+    }
+
+    #[must_use]
+    pub fn structural_digest(&self) -> ArtifactDigest {
+        ArtifactDigest::sha256(&self.canonical_bytes())
+    }
+}
+
 impl Judgement {
     #[must_use]
     pub fn new(
@@ -420,5 +465,14 @@ mod tests {
         let other_world = Judgement::new(digest(3), "equals", b"x=x".to_vec(), vec![digest(2)]);
         assert_eq!(a.structural_digest(), same.structural_digest());
         assert_ne!(a.structural_digest(), other_world.structural_digest());
+    }
+    #[test]
+    fn evidence_metadata_is_bound_to_judgement_payload_and_checker() {
+        let base = EvidenceEnvelopeMetadata::new(digest(1), "proof", digest(2), digest(3));
+        let same = EvidenceEnvelopeMetadata::new(digest(1), "proof", digest(2), digest(3));
+        let other_payload = EvidenceEnvelopeMetadata::new(digest(1), "proof", digest(4), digest(3));
+
+        assert_eq!(base.structural_digest(), same.structural_digest());
+        assert_ne!(base.structural_digest(), other_payload.structural_digest());
     }
 }
