@@ -175,6 +175,53 @@ impl World {
     }
 }
 
+/// Durable structural identity inputs for a mathematical judgement.
+///
+/// Evidence, timestamps and execution metadata are intentionally excluded; a
+/// judgement identifies only the proposition asserted inside an exact world.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Judgement {
+    schema_version: u16,
+    world: ArtifactDigest,
+    kind: String,
+    proposition: Vec<u8>,
+    dependencies: Vec<ArtifactDigest>,
+}
+
+impl Judgement {
+    #[must_use]
+    pub fn new(
+        world: ArtifactDigest,
+        kind: impl Into<String>,
+        proposition: impl Into<Vec<u8>>,
+        dependencies: Vec<ArtifactDigest>,
+    ) -> Self {
+        Self {
+            schema_version: CANONICAL_ENCODING_V1,
+            world,
+            kind: kind.into(),
+            proposition: proposition.into(),
+            dependencies,
+        }
+    }
+
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = CanonicalWriter::new(b"formula.judgement");
+        out.u16(self.schema_version);
+        out.digest(self.world);
+        out.bytes(self.kind.as_bytes());
+        out.bytes(&self.proposition);
+        out.digest_list(&self.dependencies);
+        out.finish()
+    }
+
+    #[must_use]
+    pub fn structural_digest(&self) -> ArtifactDigest {
+        ArtifactDigest::sha256(&self.canonical_bytes())
+    }
+}
+
 struct CanonicalWriter {
     bytes: Vec<u8>,
 }
@@ -197,6 +244,10 @@ impl CanonicalWriter {
     fn bytes(&mut self, value: &[u8]) {
         self.u64(value.len() as u64);
         self.bytes.extend_from_slice(value);
+    }
+
+    fn digest(&mut self, value: ArtifactDigest) {
+        self.bytes.extend_from_slice(value.as_bytes());
     }
 
     fn digest_list(&mut self, values: &[ArtifactDigest]) {
@@ -361,5 +412,13 @@ mod tests {
         let right = Entity::new("a", b"bc".to_vec(), vec![], vec![]);
 
         assert_ne!(left.canonical_bytes(), right.canonical_bytes());
+    }
+    #[test]
+    fn judgement_identity_is_world_and_semantics_bound() {
+        let a = Judgement::new(digest(1), "equals", b"x=x".to_vec(), vec![digest(2)]);
+        let same = Judgement::new(digest(1), "equals", b"x=x".to_vec(), vec![digest(2)]);
+        let other_world = Judgement::new(digest(3), "equals", b"x=x".to_vec(), vec![digest(2)]);
+        assert_eq!(a.structural_digest(), same.structural_digest());
+        assert_ne!(a.structural_digest(), other_world.structural_digest());
     }
 }
