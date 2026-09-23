@@ -72,6 +72,69 @@ impl Entity {
     }
 }
 
+/// Durable structural identity inputs for a relation between entities.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Relation {
+    schema_version: u16,
+    kind: String,
+    members: Vec<ArtifactDigest>,
+}
+
+impl Relation {
+    #[must_use]
+    pub fn new(kind: impl Into<String>, members: Vec<ArtifactDigest>) -> Self {
+        Self {
+            schema_version: CANONICAL_ENCODING_V1,
+            kind: kind.into(),
+            members,
+        }
+    }
+
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = CanonicalWriter::new(b"formula.relation");
+        out.u16(self.schema_version);
+        out.bytes(self.kind.as_bytes());
+        out.digest_list(&self.members);
+        out.finish()
+    }
+}
+
+/// Durable structural identity inputs for a world of entities and relations.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct World {
+    schema_version: u16,
+    entities: Vec<ArtifactDigest>,
+    relations: Vec<ArtifactDigest>,
+    theory_context: Vec<ArtifactDigest>,
+}
+
+impl World {
+    #[must_use]
+    pub fn new(
+        entities: Vec<ArtifactDigest>,
+        relations: Vec<ArtifactDigest>,
+        theory_context: Vec<ArtifactDigest>,
+    ) -> Self {
+        Self {
+            schema_version: CANONICAL_ENCODING_V1,
+            entities,
+            relations,
+            theory_context,
+        }
+    }
+
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = CanonicalWriter::new(b"formula.world");
+        out.u16(self.schema_version);
+        out.digest_list(&self.entities);
+        out.digest_list(&self.relations);
+        out.digest_list(&self.theory_context);
+        out.finish()
+    }
+}
+
 struct CanonicalWriter {
     bytes: Vec<u8>,
 }
@@ -179,6 +242,32 @@ mod tests {
         let _scheduler_order = 17_u64;
 
         assert_eq!(before, entity.canonical_bytes());
+    }
+
+    #[test]
+    fn relation_member_order_is_structural() {
+        let left = Relation::new("application", vec![digest(1), digest(2)]);
+        let right = Relation::new("application", vec![digest(2), digest(1)]);
+        assert_ne!(left.canonical_bytes(), right.canonical_bytes());
+    }
+
+    #[test]
+    fn world_separates_entity_relation_and_theory_domains() {
+        let entity_world = World::new(vec![digest(1)], vec![], vec![]);
+        let relation_world = World::new(vec![], vec![digest(1)], vec![]);
+        let theory_world = World::new(vec![], vec![], vec![digest(1)]);
+        assert_ne!(
+            entity_world.canonical_bytes(),
+            relation_world.canonical_bytes()
+        );
+        assert_ne!(
+            entity_world.canonical_bytes(),
+            theory_world.canonical_bytes()
+        );
+        assert_ne!(
+            relation_world.canonical_bytes(),
+            theory_world.canonical_bytes()
+        );
     }
 
     #[test]
