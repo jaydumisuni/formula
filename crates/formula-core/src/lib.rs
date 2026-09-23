@@ -1,1 +1,191 @@
-//! Formula core types. P0 skeleton only; no mathematical authority is implemented here yet.
+//! Core durable identity types for Formula.
+//!
+//! P1 is implemented in bounded slices. This slice defines canonical encoding
+//! primitives plus the structural identity inputs for `Entity`. It does not
+//! publish authority, hash artifacts, or claim completion of Gate P1.
+
+/// Canonical structural encoding version frozen for the first P1 implementation.
+pub const CANONICAL_ENCODING_V1: u16 = 1;
+
+/// Exact 256-bit content/structural digest value.
+///
+/// Computing the digest is a later P1 slice; this type prevents semantic
+/// references from being represented as paths, timestamps, or cache keys.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ArtifactDigest([u8; 32]);
+
+impl ArtifactDigest {
+    /// Construct an exact digest from its canonical 32-byte representation.
+    #[must_use]
+    pub const fn from_bytes(bytes: [u8; 32]) -> Self {
+        Self(bytes)
+    }
+
+    /// Return the exact canonical digest bytes.
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+}
+
+/// Durable structural identity inputs for a mathematical Entity.
+///
+/// Machine-local paths, wall-clock timestamps, scheduler state, process IDs,
+/// cache keys and hardware timing are deliberately absent.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Entity {
+    schema_version: u16,
+    kind: String,
+    exact_structure: Vec<u8>,
+    referenced_entities: Vec<ArtifactDigest>,
+    theory_context: Vec<ArtifactDigest>,
+}
+
+impl Entity {
+    /// Build an Entity from semantic identity inputs only.
+    #[must_use]
+    pub fn new(
+        kind: impl Into<String>,
+        exact_structure: impl Into<Vec<u8>>,
+        referenced_entities: Vec<ArtifactDigest>,
+        theory_context: Vec<ArtifactDigest>,
+    ) -> Self {
+        Self {
+            schema_version: CANONICAL_ENCODING_V1,
+            kind: kind.into(),
+            exact_structure: exact_structure.into(),
+            referenced_entities,
+            theory_context,
+        }
+    }
+
+    /// Return the versioned canonical structural bytes used by the digest layer.
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = CanonicalWriter::new(b"formula.entity");
+        out.u16(self.schema_version);
+        out.bytes(self.kind.as_bytes());
+        out.bytes(&self.exact_structure);
+        out.digest_list(&self.referenced_entities);
+        out.digest_list(&self.theory_context);
+        out.finish()
+    }
+}
+
+struct CanonicalWriter {
+    bytes: Vec<u8>,
+}
+
+impl CanonicalWriter {
+    fn new(domain: &[u8]) -> Self {
+        let mut writer = Self { bytes: Vec::new() };
+        writer.bytes(domain);
+        writer
+    }
+
+    fn u16(&mut self, value: u16) {
+        self.bytes.extend_from_slice(&value.to_be_bytes());
+    }
+
+    fn u64(&mut self, value: u64) {
+        self.bytes.extend_from_slice(&value.to_be_bytes());
+    }
+
+    fn bytes(&mut self, value: &[u8]) {
+        self.u64(value.len() as u64);
+        self.bytes.extend_from_slice(value);
+    }
+
+    fn digest_list(&mut self, values: &[ArtifactDigest]) {
+        self.u64(values.len() as u64);
+        for value in values {
+            self.bytes.extend_from_slice(value.as_bytes());
+        }
+    }
+
+    fn finish(self) -> Vec<u8> {
+        self.bytes
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn digest(byte: u8) -> ArtifactDigest {
+        ArtifactDigest::from_bytes([byte; 32])
+    }
+
+    #[test]
+    fn same_semantic_entity_has_identical_canonical_encoding() {
+        let left = Entity::new(
+            "integer",
+            b"42".to_vec(),
+            vec![digest(1), digest(2)],
+            vec![digest(9)],
+        );
+        let right = Entity::new(
+            "integer",
+            b"42".to_vec(),
+            vec![digest(1), digest(2)],
+            vec![digest(9)],
+        );
+
+        assert_eq!(left.canonical_bytes(), right.canonical_bytes());
+    }
+
+    #[test]
+    fn semantic_structure_change_changes_canonical_encoding() {
+        let left = Entity::new("integer", b"42".to_vec(), vec![], vec![]);
+        let right = Entity::new("integer", b"43".to_vec(), vec![], vec![]);
+
+        assert_ne!(left.canonical_bytes(), right.canonical_bytes());
+    }
+
+    #[test]
+    fn referenced_entity_order_is_explicit_semantic_input() {
+        let left = Entity::new(
+            "application",
+            b"f(x,y)".to_vec(),
+            vec![digest(1), digest(2)],
+            vec![],
+        );
+        let right = Entity::new(
+            "application",
+            b"f(x,y)".to_vec(),
+            vec![digest(2), digest(1)],
+            vec![],
+        );
+
+        assert_ne!(left.canonical_bytes(), right.canonical_bytes());
+    }
+
+    #[test]
+    fn theory_context_is_part_of_structural_identity() {
+        let left = Entity::new("symbol", b"x".to_vec(), vec![], vec![digest(3)]);
+        let right = Entity::new("symbol", b"x".to_vec(), vec![], vec![digest(4)]);
+
+        assert_ne!(left.canonical_bytes(), right.canonical_bytes());
+    }
+
+    #[test]
+    fn machine_local_metadata_has_no_encoding_surface() {
+        let entity = Entity::new("integer", b"42".to_vec(), vec![], vec![]);
+        let before = entity.canonical_bytes();
+
+        let _temporary_path = "/tmp/formula-run-123";
+        let _wall_clock = "2026-09-23T02:00:00+02:00";
+        let _process_id = 4242_u32;
+        let _scheduler_order = 17_u64;
+
+        assert_eq!(before, entity.canonical_bytes());
+    }
+
+    #[test]
+    fn domain_and_length_prefixes_make_field_boundaries_unambiguous() {
+        let left = Entity::new("ab", b"c".to_vec(), vec![], vec![]);
+        let right = Entity::new("a", b"bc".to_vec(), vec![], vec![]);
+
+        assert_ne!(left.canonical_bytes(), right.canonical_bytes());
+    }
+}
