@@ -80,6 +80,9 @@ version = "0.0.1"
 [[package]]
 name = "formula-store"
 version = "0.0.1"
+dependencies = [
+ "formula-core",
+]
 
 [[package]]
 name = "generic-array"
