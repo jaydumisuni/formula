@@ -69,6 +69,16 @@ impl BlobStore {
         self.root.join("blobs").join(&hex[..2]).join(hex)
     }
 
+    /// Return whether an exact immutable blob is present and still valid.
+    pub fn contains(&self, digest: ArtifactDigest) -> io::Result<bool> {
+        let path = self.blob_path(digest);
+        if !path.exists() {
+            return Ok(false);
+        }
+        self.verify_existing(&path, digest)?;
+        Ok(true)
+    }
+
     fn verify_existing(&self, path: &Path, expected: ArtifactDigest) -> io::Result<()> {
         let bytes = fs::read(path)?;
         if ArtifactDigest::sha256(&bytes) != expected {
@@ -109,6 +119,20 @@ mod tests {
         let second = store.put(b"same bytes").unwrap();
         assert_eq!(first, second);
         assert_eq!(store.get(first).unwrap(), b"same bytes");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn contains_distinguishes_missing_valid_and_corrupt_blobs() {
+        let root = test_root("contains");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(&root);
+        let missing = ArtifactDigest::sha256(b"missing");
+        assert!(!store.contains(missing).unwrap());
+        let digest = store.put(b"present").unwrap();
+        assert!(store.contains(digest).unwrap());
+        fs::write(store.blob_path(digest), b"corrupt").unwrap();
+        assert_eq!(store.contains(digest).unwrap_err().kind(), io::ErrorKind::InvalidData);
         fs::remove_dir_all(root).unwrap();
     }
 
