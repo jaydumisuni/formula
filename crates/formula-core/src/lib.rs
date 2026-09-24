@@ -311,6 +311,61 @@ impl Judgement {
     }
 }
 
+/// Immutable manifest identity for one Formula universe generation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UniverseGeneration {
+    schema_version: u16,
+    generation: u64,
+    parent: Option<ArtifactDigest>,
+    world: ArtifactDigest,
+    authority_contract: ArtifactDigest,
+    evidence_roots: Vec<ArtifactDigest>,
+    realization_roots: Vec<ArtifactDigest>,
+}
+impl UniverseGeneration {
+    #[must_use]
+    pub fn new(
+        generation: u64,
+        parent: Option<ArtifactDigest>,
+        world: ArtifactDigest,
+        authority_contract: ArtifactDigest,
+        evidence_roots: Vec<ArtifactDigest>,
+        realization_roots: Vec<ArtifactDigest>,
+    ) -> Self {
+        Self {
+            schema_version: CANONICAL_ENCODING_V1,
+            generation,
+            parent,
+            world,
+            authority_contract,
+            evidence_roots,
+            realization_roots,
+        }
+    }
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = CanonicalWriter::new(b"formula.universe-generation");
+        out.u16(self.schema_version);
+        out.u64(self.generation);
+        match self.parent {
+            Some(parent) => {
+                out.u16(1);
+                out.digest(parent);
+            }
+            None => out.u16(0),
+        };
+        out.digest(self.world);
+        out.digest(self.authority_contract);
+        out.digest_list(&self.evidence_roots);
+        out.digest_list(&self.realization_roots);
+        out.finish()
+    }
+    #[must_use]
+    pub fn structural_digest(&self) -> ArtifactDigest {
+        ArtifactDigest::sha256(&self.canonical_bytes())
+    }
+}
+
 struct CanonicalWriter {
     bytes: Vec<u8>,
 }
@@ -531,5 +586,41 @@ mod tests {
             base.structural_digest(),
             other_implementation.structural_digest()
         );
+    }
+    #[test]
+    fn universe_generation_identity_binds_generation_parent_and_authority_roots() {
+        let base = UniverseGeneration::new(
+            1,
+            Some(digest(1)),
+            digest(2),
+            digest(3),
+            vec![digest(4)],
+            vec![digest(5)],
+        );
+        let same = UniverseGeneration::new(
+            1,
+            Some(digest(1)),
+            digest(2),
+            digest(3),
+            vec![digest(4)],
+            vec![digest(5)],
+        );
+        let other = UniverseGeneration::new(
+            2,
+            Some(digest(1)),
+            digest(2),
+            digest(3),
+            vec![digest(4)],
+            vec![digest(5)],
+        );
+        assert_eq!(base.structural_digest(), same.structural_digest());
+        assert_ne!(base.structural_digest(), other.structural_digest());
+    }
+    #[test]
+    fn universe_generation_distinguishes_genesis_from_parented_generation() {
+        let genesis = UniverseGeneration::new(0, None, digest(2), digest(3), vec![], vec![]);
+        let parented =
+            UniverseGeneration::new(0, Some(digest(0)), digest(2), digest(3), vec![], vec![]);
+        assert_ne!(genesis.canonical_bytes(), parented.canonical_bytes());
     }
 }
