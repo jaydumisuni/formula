@@ -233,6 +233,50 @@ impl EvidenceEnvelopeMetadata {
     }
 }
 
+/// Structural metadata binding an implementation to the admitted semantics it realizes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RealizationMetadata {
+    schema_version: u16,
+    semantic_target: ArtifactDigest,
+    observer: ArtifactDigest,
+    implementation: ArtifactDigest,
+    realization_evidence: ArtifactDigest,
+}
+
+impl RealizationMetadata {
+    #[must_use]
+    pub fn new(
+        semantic_target: ArtifactDigest,
+        observer: ArtifactDigest,
+        implementation: ArtifactDigest,
+        realization_evidence: ArtifactDigest,
+    ) -> Self {
+        Self {
+            schema_version: CANONICAL_ENCODING_V1,
+            semantic_target,
+            observer,
+            implementation,
+            realization_evidence,
+        }
+    }
+
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = CanonicalWriter::new(b"formula.realization-metadata");
+        out.u16(self.schema_version);
+        out.digest(self.semantic_target);
+        out.digest(self.observer);
+        out.digest(self.implementation);
+        out.digest(self.realization_evidence);
+        out.finish()
+    }
+
+    #[must_use]
+    pub fn structural_digest(&self) -> ArtifactDigest {
+        ArtifactDigest::sha256(&self.canonical_bytes())
+    }
+}
+
 impl Judgement {
     #[must_use]
     pub fn new(
@@ -474,5 +518,18 @@ mod tests {
 
         assert_eq!(base.structural_digest(), same.structural_digest());
         assert_ne!(base.structural_digest(), other_payload.structural_digest());
+    }
+    #[test]
+    fn realization_metadata_binds_semantics_observer_implementation_and_evidence() {
+        let base = RealizationMetadata::new(digest(1), digest(2), digest(3), digest(4));
+        let same = RealizationMetadata::new(digest(1), digest(2), digest(3), digest(4));
+        let other_implementation =
+            RealizationMetadata::new(digest(1), digest(2), digest(5), digest(4));
+
+        assert_eq!(base.structural_digest(), same.structural_digest());
+        assert_ne!(
+            base.structural_digest(),
+            other_implementation.structural_digest()
+        );
     }
 }
