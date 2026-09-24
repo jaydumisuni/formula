@@ -47,6 +47,7 @@ impl BlobStore {
             let _ = fs::remove_file(&temp);
             return Err(error);
         }
+        fs::File::open(path.parent().expect("blob path has parent"))?.sync_all()?;
         Ok(digest)
     }
 
