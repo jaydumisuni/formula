@@ -366,6 +366,80 @@ impl UniverseGeneration {
     }
 }
 
+
+/// Structural query-observation requirement.
+///
+/// The observer records only the semantic information a result must preserve;
+/// execution policy, resource limits, timestamps and machine-local state are
+/// deliberately outside this identity.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Observer {
+    schema_version: u16,
+    requirement: String,
+    parameters: Vec<ArtifactDigest>,
+}
+
+impl Observer {
+    #[must_use]
+    pub fn new(requirement: impl Into<String>, parameters: Vec<ArtifactDigest>) -> Self {
+        Self {
+            schema_version: CANONICAL_ENCODING_V1,
+            requirement: requirement.into(),
+            parameters,
+        }
+    }
+
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = CanonicalWriter::new(b"formula.observer");
+        out.u16(self.schema_version);
+        out.bytes(self.requirement.as_bytes());
+        out.digest_list(&self.parameters);
+        out.finish()
+    }
+
+    #[must_use]
+    pub fn structural_digest(&self) -> ArtifactDigest {
+        ArtifactDigest::sha256(&self.canonical_bytes())
+    }
+}
+
+/// Structural identity of the evidence classes admissible for a result.
+///
+/// Resource policy is intentionally absent: resource exhaustion must never
+/// silently weaken the evidence contract.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AuthorityContract {
+    schema_version: u16,
+    admissible_evidence_classes: Vec<String>,
+}
+
+impl AuthorityContract {
+    #[must_use]
+    pub fn new(admissible_evidence_classes: Vec<String>) -> Self {
+        Self {
+            schema_version: CANONICAL_ENCODING_V1,
+            admissible_evidence_classes,
+        }
+    }
+
+    #[must_use]
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = CanonicalWriter::new(b"formula.authority-contract");
+        out.u16(self.schema_version);
+        out.u64(self.admissible_evidence_classes.len() as u64);
+        for class in &self.admissible_evidence_classes {
+            out.bytes(class.as_bytes());
+        }
+        out.finish()
+    }
+
+    #[must_use]
+    pub fn structural_digest(&self) -> ArtifactDigest {
+        ArtifactDigest::sha256(&self.canonical_bytes())
+    }
+}
+
 struct CanonicalWriter {
     bytes: Vec<u8>,
 }
@@ -622,5 +696,23 @@ mod tests {
         let parented =
             UniverseGeneration::new(0, Some(digest(0)), digest(2), digest(3), vec![], vec![]);
         assert_ne!(genesis.canonical_bytes(), parented.canonical_bytes());
+    }
+
+    #[test]
+    fn observer_identity_binds_required_information_and_parameters() {
+        let witness = Observer::new("one-witness", vec![digest(1)]);
+        let same = Observer::new("one-witness", vec![digest(1)]);
+        let all = Observer::new("all-solutions", vec![digest(1)]);
+        assert_eq!(witness.structural_digest(), same.structural_digest());
+        assert_ne!(witness.structural_digest(), all.structural_digest());
+    }
+
+    #[test]
+    fn authority_contract_identity_binds_admissible_evidence_classes() {
+        let strict = AuthorityContract::new(vec!["independent-proof".into()]);
+        let same = AuthorityContract::new(vec!["independent-proof".into()]);
+        let weaker = AuthorityContract::new(vec!["heuristic".into()]);
+        assert_eq!(strict.structural_digest(), same.structural_digest());
+        assert_ne!(strict.structural_digest(), weaker.structural_digest());
     }
 }
