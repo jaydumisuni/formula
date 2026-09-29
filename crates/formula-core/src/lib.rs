@@ -35,6 +35,23 @@ impl ArtifactDigest {
         Self(Sha256::digest(canonical_bytes).into())
     }
 
+    /// Parse the exact lowercase hexadecimal representation used by durable manifests.
+    ///
+    /// Rejecting uppercase, wrong-length, or non-hex input keeps manifest replay
+    /// canonical instead of accepting multiple textual identities for one digest.
+    pub fn from_hex(value: &str) -> Result<Self, &'static str> {
+        if value.len() != 64 {
+            return Err("artifact digest must contain exactly 64 lowercase hex characters");
+        }
+        let mut bytes = [0_u8; 32];
+        for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
+            let high = decode_lower_hex(pair[0])?;
+            let low = decode_lower_hex(pair[1])?;
+            bytes[index] = (high << 4) | low;
+        }
+        Ok(Self(bytes))
+    }
+
     /// Lowercase hexadecimal form used by durable manifests and evidence.
     #[must_use]
     pub fn to_hex(self) -> String {
@@ -44,6 +61,14 @@ impl ArtifactDigest {
             write!(&mut out, "{byte:02x}").expect("writing to String cannot fail");
         }
         out
+    }
+}
+
+fn decode_lower_hex(byte: u8) -> Result<u8, &'static str> {
+    match byte {
+        b'0'..=b'9' => Ok(byte - b'0'),
+        b'a'..=b'f' => Ok(byte - b'a' + 10),
+        _ => Err("artifact digest must use lowercase hexadecimal"),
     }
 }
 
@@ -582,6 +607,18 @@ mod tests {
             ArtifactDigest::sha256(b"abc").to_hex(),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+
+    #[test]
+    fn digest_hex_roundtrip_is_canonical_and_fail_closed() {
+        let digest = ArtifactDigest::sha256(b"manifest-root");
+        let encoded = digest.to_hex();
+        assert_eq!(ArtifactDigest::from_hex(&encoded), Ok(digest));
+        assert!(ArtifactDigest::from_hex(&encoded.to_uppercase()).is_err());
+        assert!(ArtifactDigest::from_hex(&encoded[..63]).is_err());
+        let mut invalid = encoded.into_bytes();
+        invalid[0] = b'g';
+        assert!(ArtifactDigest::from_hex(std::str::from_utf8(&invalid).unwrap()).is_err());
     }
 
     #[test]
