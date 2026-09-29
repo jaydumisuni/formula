@@ -32,10 +32,7 @@ impl ArtifactDigest {
     /// Compute a Formula structural digest from already-canonical bytes.
     #[must_use]
     pub fn sha256(canonical_bytes: &[u8]) -> Self {
-        let digest = Sha256::digest(canonical_bytes);
-        let mut bytes = [0_u8; 32];
-        bytes.copy_from_slice(&digest);
-        Self(bytes)
+        Self(Sha256::digest(canonical_bytes).into())
     }
 
     /// Lowercase hexadecimal form used by durable manifests and evidence.
