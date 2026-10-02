@@ -3,7 +3,7 @@
 //! This slice stores exact bytes under their SHA-256 digest and verifies bytes
 //! again on read. It does not publish generations or grant mathematical authority.
 
-use formula_core::ArtifactDigest;
+use formula_core::{ArtifactDigest, UniverseGeneration};
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -49,6 +49,13 @@ impl BlobStore {
         }
         fs::File::open(path.parent().expect("blob path has parent"))?.sync_all()?;
         Ok(digest)
+    }
+
+    /// Persist one canonical universe-generation manifest as an immutable blob.
+    ///
+    /// This records manifest bytes only; it does not activate or publish the generation.
+    pub fn put_generation_manifest(&self, generation: &UniverseGeneration) -> io::Result<ArtifactDigest> {
+        self.put(&generation.canonical_bytes())
     }
 
     /// Read exact bytes only when their content still matches the requested digest.
@@ -108,6 +115,26 @@ mod tests {
         let digest = store.put(b"canonical artifact").unwrap();
         assert_eq!(digest, ArtifactDigest::sha256(b"canonical artifact"));
         assert_eq!(store.get(digest).unwrap(), b"canonical artifact");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn generation_manifest_roundtrips_as_canonical_immutable_bytes() {
+        let root = test_root("generation-manifest");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(&root);
+        let generation = UniverseGeneration::new(
+            7,
+            Some(ArtifactDigest::sha256(b"parent")),
+            ArtifactDigest::sha256(b"world"),
+            ArtifactDigest::sha256(b"authority"),
+            vec![ArtifactDigest::sha256(b"evidence")],
+            vec![ArtifactDigest::sha256(b"realization")],
+        );
+        let expected = generation.canonical_bytes();
+        let digest = store.put_generation_manifest(&generation).unwrap();
+        assert_eq!(digest, ArtifactDigest::sha256(&expected));
+        assert_eq!(store.get(digest).unwrap(), expected);
         fs::remove_dir_all(root).unwrap();
     }
 
