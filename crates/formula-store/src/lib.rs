@@ -54,7 +54,10 @@ impl BlobStore {
     /// Persist one canonical universe-generation manifest as an immutable blob.
     ///
     /// This records manifest bytes only; it does not activate or publish the generation.
-    pub fn put_generation_manifest(&self, generation: &UniverseGeneration) -> io::Result<ArtifactDigest> {
+    pub fn put_generation_manifest(
+        &self,
+        generation: &UniverseGeneration,
+    ) -> io::Result<ArtifactDigest> {
         self.put(&generation.canonical_bytes())
     }
 
@@ -96,6 +99,91 @@ impl BlobStore {
             ));
         }
         Ok(())
+    }
+}
+
+/// Local generation index with an atomically replaced active-generation pointer.
+///
+/// Publication requires the manifest blob to exist and verify first. Historical
+/// generation roots are append-only files; the active pointer is replaced only
+/// after that durable history entry is synced.
+#[derive(Debug)]
+pub struct GenerationIndex {
+    root: PathBuf,
+}
+
+impl GenerationIndex {
+    #[must_use]
+    pub fn new(root: impl Into<PathBuf>) -> Self {
+        Self { root: root.into() }
+    }
+
+    pub fn publish(
+        &self,
+        store: &BlobStore,
+        generation: u64,
+        manifest: ArtifactDigest,
+    ) -> io::Result<()> {
+        if !store.contains(manifest)? {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "generation manifest blob missing",
+            ));
+        }
+        let generations = self.root.join("generations");
+        fs::create_dir_all(&generations)?;
+        let history = generations.join(format!("{generation}.manifest"));
+        let manifest_hex = manifest.to_hex();
+        if history.exists() {
+            if fs::read_to_string(&history)? != manifest_hex {
+                return Err(io::Error::new(
+                    io::ErrorKind::AlreadyExists,
+                    "generation already bound to another manifest",
+                ));
+            }
+        } else {
+            let mut file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&history)?;
+            file.write_all(manifest_hex.as_bytes())?;
+            file.sync_all()?;
+            fs::File::open(&generations)?.sync_all()?;
+        }
+
+        let active = self.root.join("active-generation");
+        let temp = self
+            .root
+            .join(format!("active-generation.tmp-{}", std::process::id()));
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp)?;
+        if let Err(error) = (|| -> io::Result<()> {
+            write!(file, "{generation}\n{manifest_hex}")?;
+            file.sync_all()?;
+            fs::rename(&temp, &active)?;
+            fs::File::open(&self.root)?.sync_all()?;
+            Ok(())
+        })() {
+            let _ = fs::remove_file(&temp);
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    pub fn historical_manifest(&self, generation: u64) -> io::Result<ArtifactDigest> {
+        let hex = fs::read_to_string(
+            self.root
+                .join("generations")
+                .join(format!("{generation}.manifest")),
+        )?;
+        ArtifactDigest::from_hex(hex.trim()).map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "invalid historical manifest digest",
+            )
+        })
     }
 }
 
@@ -160,7 +248,50 @@ mod tests {
         let digest = store.put(b"present").unwrap();
         assert!(store.contains(digest).unwrap());
         fs::write(store.blob_path(digest), b"corrupt").unwrap();
-        assert_eq!(store.contains(digest).unwrap_err().kind(), io::ErrorKind::InvalidData);
+        assert_eq!(
+            store.contains(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn generation_publication_requires_present_manifest_and_preserves_history() {
+        let root = test_root("generation-index");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let missing = ArtifactDigest::sha256(b"missing");
+        assert_eq!(
+            index.publish(&store, 1, missing).unwrap_err().kind(),
+            io::ErrorKind::NotFound
+        );
+        assert!(!root.join("index/active-generation").exists());
+
+        let manifest = store.put(b"generation-one").unwrap();
+        index.publish(&store, 1, manifest).unwrap();
+        assert_eq!(index.historical_manifest(1).unwrap(), manifest);
+        assert_eq!(
+            fs::read_to_string(root.join("index/active-generation")).unwrap(),
+            format!("1\n{}", manifest.to_hex())
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn generation_history_cannot_be_rebound() {
+        let root = test_root("generation-rebind");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let first = store.put(b"first").unwrap();
+        let second = store.put(b"second").unwrap();
+        index.publish(&store, 4, first).unwrap();
+        assert_eq!(
+            index.publish(&store, 4, second).unwrap_err().kind(),
+            io::ErrorKind::AlreadyExists
+        );
+        assert_eq!(index.historical_manifest(4).unwrap(), first);
         fs::remove_dir_all(root).unwrap();
     }
 
