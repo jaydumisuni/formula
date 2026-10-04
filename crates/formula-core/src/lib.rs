@@ -388,7 +388,6 @@ impl UniverseGeneration {
     }
 }
 
-
 /// Structural query-observation requirement.
 ///
 /// The observer records only the semantic information a result must preserve;
