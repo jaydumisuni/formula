@@ -127,16 +127,18 @@ def check_sealed_fixture_isolation() -> None:
 
 
 def check_canonical_runtime_has_no_external_dependencies() -> None:
-    lock = load_toml(ROOT / "Cargo.lock")
-    packages = {entry["name"] for entry in lock.get("package", [])}
-    external = packages - EXPECTED_LOCK_PACKAGES
-    if external:
-        fail(f"P0 canonical runtime acquired external dependencies: {sorted(external)}")
-
+    # P0-04 is scoped to the canonical First-Light runtime path, not every
+    # package admitted elsewhere in the workspace by later implementation
+    # stages. Traverse the declared runtime dependency closure and reject any
+    # external package reachable from that path.
     runtime_crates: set[str] = set()
     for root in CANONICAL_RUNTIME_ROOTS:
         runtime_crates.add(root)
         runtime_crates.update(workspace_dependency_closure(root))
+
+    external = runtime_crates - EXPECTED_LOCK_PACKAGES
+    if external:
+        fail(f"P0 canonical runtime acquired external dependencies: {sorted(external)}")
     for crate in runtime_crates:
         source_root = ROOT / "crates" / crate / "src"
         if not source_root.exists():
