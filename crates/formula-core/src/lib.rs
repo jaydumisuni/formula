@@ -647,6 +647,17 @@ mod tests {
     }
 
     #[test]
+    fn structural_digest_does_not_claim_semantic_equivalence() {
+        // D2-P03: structural/content identity and mathematical equivalence are
+        // distinct authority questions. Equivalent expressions may therefore
+        // have different structural digests; equivalence requires separate evidence.
+        let expanded = Entity::new("expression", b"x+x".to_vec(), vec![], vec![]);
+        let multiplied = Entity::new("expression", b"2*x".to_vec(), vec![], vec![]);
+
+        assert_ne!(expanded.structural_digest(), multiplied.structural_digest());
+    }
+
+    #[test]
     fn artifact_domains_remain_separate_at_digest_layer() {
         let entity = Entity::new("application", b"".to_vec(), vec![digest(1)], vec![]);
         let relation = Relation::new("application", vec![digest(1)]);
