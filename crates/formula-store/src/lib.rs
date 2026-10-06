@@ -185,6 +185,33 @@ impl GenerationIndex {
             )
         })
     }
+
+    /// Recover the exact active generation and manifest digest from durable state.
+    ///
+    /// Replay fails closed on malformed or non-canonical pointer contents instead
+    /// of guessing a generation or accepting an ambiguous digest identity.
+    pub fn active_generation(&self) -> io::Result<(u64, ArtifactDigest)> {
+        let pointer = fs::read_to_string(self.root.join("active-generation"))?;
+        let mut lines = pointer.lines();
+        let generation = lines
+            .next()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "active generation missing"))?
+            .parse::<u64>()
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid active generation"))?;
+        let manifest = lines
+            .next()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "active manifest missing"))?;
+        if lines.next().is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "active generation pointer has trailing data",
+            ));
+        }
+        let digest = ArtifactDigest::from_hex(manifest).map_err(|_| {
+            io::Error::new(io::ErrorKind::InvalidData, "invalid active manifest digest")
+        })?;
+        Ok((generation, digest))
+    }
 }
 
 #[cfg(test)]
@@ -274,6 +301,29 @@ mod tests {
         assert_eq!(
             fs::read_to_string(root.join("index/active-generation")).unwrap(),
             format!("1\n{}", manifest.to_hex())
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn active_generation_replays_exact_published_pointer() {
+        let root = test_root("active-replay");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let manifest = store.put(b"generation-seven").unwrap();
+        index.publish(&store, 7, manifest).unwrap();
+
+        assert_eq!(index.active_generation().unwrap(), (7, manifest));
+
+        fs::write(
+            root.join("index/active-generation"),
+            format!("7\n{}\ntrailing", manifest.to_hex()),
+        )
+        .unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(root).unwrap();
     }
