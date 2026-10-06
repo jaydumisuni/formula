@@ -388,7 +388,6 @@ impl UniverseGeneration {
     }
 }
 
-
 /// Structural query-observation requirement.
 ///
 /// The observer records only the semantic information a result must preserve;
@@ -645,6 +644,17 @@ mod tests {
         let right = Entity::new("integer", b"43".to_vec(), vec![], vec![]);
 
         assert_ne!(left.structural_digest(), right.structural_digest());
+    }
+
+    #[test]
+    fn structural_digest_does_not_claim_semantic_equivalence() {
+        // D2-P03: structural/content identity and mathematical equivalence are
+        // distinct authority questions. Equivalent expressions may therefore
+        // have different structural digests; equivalence requires separate evidence.
+        let expanded = Entity::new("expression", b"x+x".to_vec(), vec![], vec![]);
+        let multiplied = Entity::new("expression", b"2*x".to_vec(), vec![], vec![]);
+
+        assert_ne!(expanded.structural_digest(), multiplied.structural_digest());
     }
 
     #[test]
