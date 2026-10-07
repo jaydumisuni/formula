@@ -342,6 +342,7 @@ mod tests {
             io::ErrorKind::AlreadyExists
         );
         assert_eq!(index.historical_manifest(4).unwrap(), first);
+        assert_eq!(index.active_generation().unwrap(), (4, first));
         fs::remove_dir_all(root).unwrap();
     }
 
