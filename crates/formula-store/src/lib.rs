@@ -178,12 +178,19 @@ impl GenerationIndex {
                 .join("generations")
                 .join(format!("{generation}.manifest")),
         )?;
-        ArtifactDigest::from_hex(hex.trim()).map_err(|_| {
+        let digest = ArtifactDigest::from_hex(hex.trim()).map_err(|_| {
             io::Error::new(
                 io::ErrorKind::InvalidData,
                 "invalid historical manifest digest",
             )
-        })
+        })?;
+        if hex != digest.to_hex() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "non-canonical historical manifest digest",
+            ));
+        }
+        Ok(digest)
     }
 
     /// Recover the exact active generation and manifest digest from durable state.
@@ -210,6 +217,18 @@ impl GenerationIndex {
         let digest = ArtifactDigest::from_hex(manifest).map_err(|_| {
             io::Error::new(io::ErrorKind::InvalidData, "invalid active manifest digest")
         })?;
+        if pointer != format!("{generation}\n{}", digest.to_hex()) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "non-canonical active generation pointer",
+            ));
+        }
+        if self.historical_manifest(generation)? != digest {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "active manifest differs from generation history",
+            ));
+        }
         Ok((generation, digest))
     }
 }
@@ -325,6 +344,42 @@ mod tests {
             index.active_generation().unwrap_err().kind(),
             io::ErrorKind::InvalidData
         );
+        fs::write(
+            root.join("index/active-generation"),
+            format!("07\n{}", manifest.to_hex()),
+        )
+        .unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        let unrelated = store.put(b"unrelated-generation").unwrap();
+        fs::write(
+            root.join("index/active-generation"),
+            format!("7\n{}", unrelated.to_hex()),
+        )
+        .unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        fs::write(
+            root.join("index/active-generation"),
+            format!("7\n{}", manifest.to_hex()),
+        )
+        .unwrap();
+        fs::write(
+            root.join("index/generations/7.manifest"),
+            format!("{}\n", manifest.to_hex()),
+        )
+        .unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+
         fs::remove_dir_all(root).unwrap();
     }
 
