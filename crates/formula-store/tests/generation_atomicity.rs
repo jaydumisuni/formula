@@ -31,3 +31,24 @@ fn interrupted_pointer_update_preserves_active_generation() {
     assert_eq!(index.historical_manifest(1).unwrap(), old);
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn corrupt_historical_manifest_cannot_activate_new_generation() {
+    let root = std::env::temp_dir().join(format!("formula-corrupt-history-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let second = store.put(b"second").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    let history = root.join("index/generations/2.manifest");
+    fs::write(&history, format!("{}\n", second.to_hex())).unwrap();
+    assert_eq!(
+        index.publish(&store, 2, second).unwrap_err().kind(),
+        io::ErrorKind::AlreadyExists
+    );
+    assert_eq!(index.active_generation().unwrap(), (1, first));
+
+    fs::remove_dir_all(root).unwrap();
+}
