@@ -130,6 +130,16 @@ impl GenerationIndex {
                 "generation manifest blob missing",
             ));
         }
+        let active = self.root.join("active-generation");
+        if active.exists() {
+            let (current, _) = self.active_generation()?;
+            if generation < current {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "generation publication cannot roll back active generation",
+                ));
+            }
+        }
         let generations = self.root.join("generations");
         fs::create_dir_all(&generations)?;
         let history = generations.join(format!("{generation}.manifest"));
@@ -151,7 +161,6 @@ impl GenerationIndex {
             fs::File::open(&generations)?.sync_all()?;
         }
 
-        let active = self.root.join("active-generation");
         let temp = self
             .root
             .join(format!("active-generation.tmp-{}", std::process::id()));
