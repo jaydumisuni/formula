@@ -131,7 +131,12 @@ impl GenerationIndex {
             ));
         }
         let active = self.root.join("active-generation");
-        if active.exists() {
+        let active_present = match fs::symlink_metadata(&active) {
+            Ok(_) => true,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => false,
+            Err(error) => return Err(error),
+        };
+        if active_present {
             let (current, _) = self.active_generation()?;
             if generation < current {
                 return Err(io::Error::new(
