@@ -134,3 +134,29 @@ fn symlinked_active_pointer_cannot_publish_or_replay() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn nonregular_history_entry_rejected() {
+    let root = std::env::temp_dir().join(format!("formula-history-dir-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let digest = store.put(b"manifest").unwrap();
+    index.publish(&store, 1, digest).unwrap();
+    let history = root.join("index/generations/1.manifest");
+    fs::remove_file(&history).unwrap();
+    fs::create_dir(&history).unwrap();
+    assert_eq!(
+        index.historical_manifest(1).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 1, digest).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    fs::remove_dir_all(root).unwrap();
+}

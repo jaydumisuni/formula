@@ -155,7 +155,20 @@ impl GenerationIndex {
         fs::create_dir_all(&generations)?;
         let history = generations.join(format!("{generation}.manifest"));
         let manifest_hex = manifest.to_hex();
-        if history.exists() {
+        let history_present = match fs::symlink_metadata(&history) {
+            Ok(metadata) => {
+                if !metadata.file_type().is_file() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "generation history entry must be a regular file",
+                    ));
+                }
+                true
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => false,
+            Err(error) => return Err(error),
+        };
+        if history_present {
             if fs::read_to_string(&history)? != manifest_hex {
                 return Err(io::Error::new(
                     io::ErrorKind::AlreadyExists,
@@ -193,11 +206,17 @@ impl GenerationIndex {
     }
 
     pub fn historical_manifest(&self, generation: u64) -> io::Result<ArtifactDigest> {
-        let hex = fs::read_to_string(
-            self.root
-                .join("generations")
-                .join(format!("{generation}.manifest")),
-        )?;
+        let history = self
+            .root
+            .join("generations")
+            .join(format!("{generation}.manifest"));
+        if !fs::symlink_metadata(&history)?.file_type().is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "generation history entry must be a regular file",
+            ));
+        }
+        let hex = fs::read_to_string(&history)?;
         let digest = ArtifactDigest::from_hex(hex.trim()).map_err(|_| {
             io::Error::new(
                 io::ErrorKind::InvalidData,
