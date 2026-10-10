@@ -100,3 +100,37 @@ fn corrupt_active_pointer_blocks_new_publication() {
     assert!(!root.join("index/generations/6.manifest").exists());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(unix)]
+#[test]
+fn symlinked_active_pointer_cannot_publish_or_replay() {
+    use std::os::unix::fs::symlink;
+
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-symlink-active-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let current = store.put(b"current").unwrap();
+    let next = store.put(b"next").unwrap();
+    index.publish(&store, 5, current).unwrap();
+
+    let pointer = root.join("index/active-generation");
+    let external = root.join("external-pointer");
+    fs::write(&external, format!("5\n{}", current.to_hex())).unwrap();
+    fs::remove_file(&pointer).unwrap();
+    symlink(&external, &pointer).unwrap();
+
+    assert_eq!(
+        index.publish(&store, 6, next).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("index/generations/6.manifest").exists());
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    fs::remove_dir_all(root).unwrap();
+}

@@ -137,6 +137,12 @@ impl GenerationIndex {
             Err(error) => return Err(error),
         };
         if active_present {
+            if !fs::symlink_metadata(&active)?.file_type().is_file() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "active generation pointer must be a regular file",
+                ));
+            }
             let (current, _) = self.active_generation()?;
             if generation < current {
                 return Err(io::Error::new(
@@ -212,7 +218,14 @@ impl GenerationIndex {
     /// Replay fails closed on malformed or non-canonical pointer contents instead
     /// of guessing a generation or accepting an ambiguous digest identity.
     pub fn active_generation(&self) -> io::Result<(u64, ArtifactDigest)> {
-        let pointer = fs::read_to_string(self.root.join("active-generation"))?;
+        let active = self.root.join("active-generation");
+        if !fs::symlink_metadata(&active)?.file_type().is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "active generation pointer must be a regular file",
+            ));
+        }
+        let pointer = fs::read_to_string(active)?;
         let mut lines = pointer.lines();
         let generation = lines
             .next()
