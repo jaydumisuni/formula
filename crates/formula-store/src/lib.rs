@@ -163,6 +163,12 @@ impl GenerationIndex {
         }
         let generations = self.root.join("generations");
         fs::create_dir_all(&generations)?;
+        if !fs::symlink_metadata(&generations)?.file_type().is_dir() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "generation history directory must be a real directory",
+            ));
+        }
         let history = generations.join(format!("{generation}.manifest"));
         let manifest_hex = manifest.to_hex();
         let history_present = match fs::symlink_metadata(&history) {
@@ -216,6 +222,13 @@ impl GenerationIndex {
     }
 
     pub fn historical_manifest(&self, generation: u64) -> io::Result<ArtifactDigest> {
+        let generations = self.root.join("generations");
+        if !fs::symlink_metadata(&generations)?.file_type().is_dir() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "generation history directory must be a real directory",
+            ));
+        }
         let history = self
             .root
             .join("generations")
