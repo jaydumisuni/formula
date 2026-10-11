@@ -26,7 +26,7 @@ impl BlobStore {
     pub fn put(&self, bytes: &[u8]) -> io::Result<ArtifactDigest> {
         let digest = ArtifactDigest::sha256(bytes);
         let path = self.blob_path(digest);
-        fs::create_dir_all(path.parent().expect("blob path has parent"))?;
+        self.ensure_blob_directories(digest)?;
 
         match fs::symlink_metadata(&path) {
             Ok(_) => {
@@ -68,6 +68,7 @@ impl BlobStore {
     /// Read exact bytes only when their content still matches the requested digest.
     pub fn get(&self, digest: ArtifactDigest) -> io::Result<Vec<u8>> {
         let path = self.blob_path(digest);
+        self.check_blob_directories(digest)?;
         self.read_verified(&path, digest)
     }
 
@@ -80,6 +81,11 @@ impl BlobStore {
     /// Return whether an exact immutable blob is present and still valid.
     pub fn contains(&self, digest: ArtifactDigest) -> io::Result<bool> {
         let path = self.blob_path(digest);
+        match self.check_blob_directories(digest) {
+            Ok(()) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
+            Err(error) => return Err(error),
+        }
         match fs::symlink_metadata(&path) {
             Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
             Err(error) => Err(error),
@@ -88,6 +94,38 @@ impl BlobStore {
                 Ok(true)
             }
         }
+    }
+
+    fn require_real_directory(path: &Path) -> io::Result<()> {
+        if !fs::symlink_metadata(path)?.file_type().is_dir() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "immutable blob ancestor must be a real directory",
+            ));
+        }
+        Ok(())
+    }
+
+    fn check_blob_directories(&self, digest: ArtifactDigest) -> io::Result<()> {
+        let blobs = self.root.join("blobs");
+        let hex = digest.to_hex();
+        let shard = blobs.join(&hex[..2]);
+        for directory in [&self.root, &blobs, &shard] {
+            Self::require_real_directory(directory)?;
+        }
+        Ok(())
+    }
+
+    fn ensure_blob_directories(&self, digest: ArtifactDigest) -> io::Result<()> {
+        fs::create_dir_all(&self.root)?;
+        Self::require_real_directory(&self.root)?;
+        let blobs = self.root.join("blobs");
+        fs::create_dir_all(&blobs)?;
+        Self::require_real_directory(&blobs)?;
+        let hex = digest.to_hex();
+        let shard = blobs.join(&hex[..2]);
+        fs::create_dir_all(&shard)?;
+        Self::require_real_directory(&shard)
     }
 
     fn verify_existing(&self, path: &Path, expected: ArtifactDigest) -> io::Result<()> {
@@ -526,6 +564,63 @@ mod tests {
             io::ErrorKind::InvalidData
         );
         assert!(leaf.is_dir());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_blob_directory_cannot_redirect_immutable_storage() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("symlink-blob-directory");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("outside")).unwrap();
+        fs::create_dir_all(root.join("store")).unwrap();
+        symlink(root.join("outside"), root.join("store/blobs")).unwrap();
+
+        let store = BlobStore::new(root.join("store"));
+        let bytes = b"no-external-blob-write";
+        let digest = ArtifactDigest::sha256(bytes);
+        assert_eq!(
+            store.put(bytes).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(!root.join("outside").join(&digest.to_hex()[..2]).exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_blob_shard_cannot_redirect_reads_or_writes() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("symlink-blob-shard");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("outside")).unwrap();
+        fs::create_dir_all(root.join("store/blobs")).unwrap();
+
+        let bytes = b"no-external-shard-write";
+        let digest = ArtifactDigest::sha256(bytes);
+        symlink(
+            root.join("outside"),
+            root.join("store/blobs").join(&digest.to_hex()[..2]),
+        )
+        .unwrap();
+
+        let store = BlobStore::new(root.join("store"));
+        assert_eq!(
+            store.put(bytes).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.get(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.contains(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(!root.join("outside").join(digest.to_hex()).exists());
         fs::remove_dir_all(root).unwrap();
     }
 
