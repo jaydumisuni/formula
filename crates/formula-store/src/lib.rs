@@ -28,9 +28,13 @@ impl BlobStore {
         let path = self.blob_path(digest);
         fs::create_dir_all(path.parent().expect("blob path has parent"))?;
 
-        if path.exists() {
-            self.verify_existing(&path, digest)?;
-            return Ok(digest);
+        match fs::symlink_metadata(&path) {
+            Ok(_) => {
+                self.verify_existing(&path, digest)?;
+                return Ok(digest);
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error),
         }
 
         let temp = path.with_extension(format!("tmp-{}", std::process::id()));
@@ -64,14 +68,7 @@ impl BlobStore {
     /// Read exact bytes only when their content still matches the requested digest.
     pub fn get(&self, digest: ArtifactDigest) -> io::Result<Vec<u8>> {
         let path = self.blob_path(digest);
-        let bytes = fs::read(path)?;
-        if ArtifactDigest::sha256(&bytes) != digest {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "blob digest mismatch",
-            ));
-        }
-        Ok(bytes)
+        self.read_verified(&path, digest)
     }
 
     #[must_use]
@@ -83,14 +80,27 @@ impl BlobStore {
     /// Return whether an exact immutable blob is present and still valid.
     pub fn contains(&self, digest: ArtifactDigest) -> io::Result<bool> {
         let path = self.blob_path(digest);
-        if !path.exists() {
-            return Ok(false);
+        match fs::symlink_metadata(&path) {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+            Err(error) => Err(error),
+            Ok(_) => {
+                self.verify_existing(&path, digest)?;
+                Ok(true)
+            }
         }
-        self.verify_existing(&path, digest)?;
-        Ok(true)
     }
 
     fn verify_existing(&self, path: &Path, expected: ArtifactDigest) -> io::Result<()> {
+        self.read_verified(path, expected).map(|_| ())
+    }
+
+    fn read_verified(&self, path: &Path, expected: ArtifactDigest) -> io::Result<Vec<u8>> {
+        if !fs::symlink_metadata(path)?.file_type().is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "immutable blob leaf must be a regular file",
+            ));
+        }
         let bytes = fs::read(path)?;
         if ArtifactDigest::sha256(&bytes) != expected {
             return Err(io::Error::new(
@@ -98,7 +108,7 @@ impl BlobStore {
                 "existing blob digest mismatch",
             ));
         }
-        Ok(())
+        Ok(bytes)
     }
 }
 
@@ -444,6 +454,65 @@ mod tests {
         );
         assert_eq!(index.historical_manifest(4).unwrap(), first);
         assert_eq!(index.active_generation().unwrap(), (4, first));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_blob_leaf_cannot_impersonate_matching_content() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("symlink-leaf");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let outside = root.join("outside");
+        let bytes = b"matching-external-content";
+        fs::write(&outside, bytes).unwrap();
+        let store = BlobStore::new(root.join("store"));
+        let digest = ArtifactDigest::sha256(bytes);
+        let leaf = store.blob_path(digest);
+        fs::create_dir_all(leaf.parent().unwrap()).unwrap();
+        symlink(&outside, &leaf).unwrap();
+
+        assert_eq!(
+            store.get(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.contains(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.put(bytes).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(fs::read(&outside).unwrap(), bytes);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn directory_blob_leaf_is_rejected_without_modification() {
+        let root = test_root("directory-leaf");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(&root);
+        let bytes = b"directory-cannot-be-a-blob";
+        let digest = ArtifactDigest::sha256(bytes);
+        let leaf = store.blob_path(digest);
+        fs::create_dir_all(&leaf).unwrap();
+
+        assert_eq!(
+            store.get(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.contains(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.put(bytes).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(leaf.is_dir());
         fs::remove_dir_all(root).unwrap();
     }
 
