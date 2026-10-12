@@ -133,10 +133,18 @@ impl BlobStore {
     }
 
     fn read_verified(&self, path: &Path, expected: ArtifactDigest) -> io::Result<Vec<u8>> {
-        if !fs::symlink_metadata(path)?.file_type().is_file() {
+        let metadata = fs::symlink_metadata(path)?;
+        if !metadata.file_type().is_file() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "immutable blob leaf must be a regular file",
+            ));
+        }
+        #[cfg(unix)]
+        if std::os::unix::fs::MetadataExt::nlink(&metadata) != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "immutable blob leaf must not have hardlink aliases",
             ));
         }
         let bytes = fs::read(path)?;
@@ -538,6 +546,37 @@ mod tests {
         let leaf = store.blob_path(digest);
         fs::create_dir_all(leaf.parent().unwrap()).unwrap();
         symlink(&outside, &leaf).unwrap();
+
+        assert_eq!(
+            store.get(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.contains(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.put(bytes).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(fs::read(&outside).unwrap(), bytes);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn hardlinked_blob_leaf_cannot_impersonate_immutable_content() {
+        let root = test_root("hardlink-leaf");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let outside = root.join("outside");
+        let bytes = b"matching-hardlinked-content";
+        fs::write(&outside, bytes).unwrap();
+        let store = BlobStore::new(root.join("store"));
+        let digest = ArtifactDigest::sha256(bytes);
+        let leaf = store.blob_path(digest);
+        fs::create_dir_all(leaf.parent().unwrap()).unwrap();
+        fs::hard_link(&outside, &leaf).unwrap();
 
         assert_eq!(
             store.get(digest).unwrap_err().kind(),
