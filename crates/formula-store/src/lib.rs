@@ -237,6 +237,13 @@ impl GenerationIndex {
                         "generation history entry must be a regular file",
                     ));
                 }
+                #[cfg(unix)]
+                if std::os::unix::fs::MetadataExt::nlink(&metadata) != 1 {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "generation history entry must not have hardlink aliases",
+                    ));
+                }
                 true
             }
             Err(error) if error.kind() == io::ErrorKind::NotFound => false,
@@ -292,10 +299,18 @@ impl GenerationIndex {
             .root
             .join("generations")
             .join(format!("{generation}.manifest"));
-        if !fs::symlink_metadata(&history)?.file_type().is_file() {
+        let metadata = fs::symlink_metadata(&history)?;
+        if !metadata.file_type().is_file() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "generation history entry must be a regular file",
+            ));
+        }
+        #[cfg(unix)]
+        if std::os::unix::fs::MetadataExt::nlink(&metadata) != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "generation history entry must not have hardlink aliases",
             ));
         }
         let hex = fs::read_to_string(&history)?;
