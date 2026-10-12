@@ -336,10 +336,18 @@ impl GenerationIndex {
     pub fn active_generation(&self) -> io::Result<(u64, ArtifactDigest)> {
         self.require_real_root()?;
         let active = self.root.join("active-generation");
-        if !fs::symlink_metadata(&active)?.file_type().is_file() {
+        let metadata = fs::symlink_metadata(&active)?;
+        if !metadata.file_type().is_file() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "active generation pointer must be a regular file",
+            ));
+        }
+        #[cfg(unix)]
+        if std::os::unix::fs::MetadataExt::nlink(&metadata) != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "active generation pointer must not have hardlink aliases",
             ));
         }
         let pointer = fs::read_to_string(active)?;

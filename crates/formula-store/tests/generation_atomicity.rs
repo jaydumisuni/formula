@@ -313,3 +313,37 @@ fn hardlinked_history_entry_cannot_publish_or_replay() {
     assert_eq!(fs::read_to_string(external).unwrap(), first.to_hex());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(unix)]
+#[test]
+fn hardlinked_active_pointer_cannot_publish_or_replay() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-hardlink-active-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let second = store.put(b"second").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    let pointer = root.join("index/active-generation");
+    let external = root.join("external-active");
+    fs::hard_link(&pointer, &external).unwrap();
+
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 2, second).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("index/generations/2.manifest").exists());
+    assert_eq!(
+        fs::read_to_string(external).unwrap(),
+        format!("1\n{}", first.to_hex())
+    );
+    fs::remove_dir_all(root).unwrap();
+}
