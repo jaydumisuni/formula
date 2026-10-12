@@ -197,6 +197,49 @@ fn nonregular_history_entry_rejected() {
 
 #[cfg(unix)]
 #[test]
+fn symlinked_generation_index_root_cannot_publish_or_replay() {
+    use std::os::unix::fs::symlink;
+
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-symlink-root-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("outside/generations")).unwrap();
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let current = store.put(b"current").unwrap();
+    let next = store.put(b"next").unwrap();
+    fs::write(
+        root.join("outside/generations/1.manifest"),
+        current.to_hex(),
+    )
+    .unwrap();
+    fs::write(
+        root.join("outside/active-generation"),
+        format!("1\n{}", current.to_hex()),
+    )
+    .unwrap();
+    symlink(root.join("outside"), root.join("index")).unwrap();
+
+    assert_eq!(
+        index.historical_manifest(1).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 2, next).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("outside/generations/2.manifest").exists());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(unix)]
+#[test]
 fn symlinked_history_directory_cannot_publish_or_replay() {
     use std::os::unix::fs::symlink;
 

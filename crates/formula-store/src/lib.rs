@@ -166,12 +166,24 @@ impl GenerationIndex {
         Self { root: root.into() }
     }
 
+    fn require_real_root(&self) -> io::Result<()> {
+        if !fs::symlink_metadata(&self.root)?.file_type().is_dir() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "generation index root must be a real directory",
+            ));
+        }
+        Ok(())
+    }
+
     pub fn publish(
         &self,
         store: &BlobStore,
         generation: u64,
         manifest: ArtifactDigest,
     ) -> io::Result<()> {
+        fs::create_dir_all(&self.root)?;
+        self.require_real_root()?;
         if !store.contains(manifest)? {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
@@ -260,6 +272,7 @@ impl GenerationIndex {
     }
 
     pub fn historical_manifest(&self, generation: u64) -> io::Result<ArtifactDigest> {
+        self.require_real_root()?;
         let generations = self.root.join("generations");
         if !fs::symlink_metadata(&generations)?.file_type().is_dir() {
             return Err(io::Error::new(
@@ -298,6 +311,7 @@ impl GenerationIndex {
     /// Replay fails closed on malformed or non-canonical pointer contents instead
     /// of guessing a generation or accepting an ambiguous digest identity.
     pub fn active_generation(&self) -> io::Result<(u64, ArtifactDigest)> {
+        self.require_real_root()?;
         let active = self.root.join("active-generation");
         if !fs::symlink_metadata(&active)?.file_type().is_file() {
             return Err(io::Error::new(
