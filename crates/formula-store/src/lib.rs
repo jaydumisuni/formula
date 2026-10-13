@@ -266,13 +266,31 @@ impl GenerationIndex {
             fs::File::open(&generations)?.sync_all()?;
         }
 
-        let temp = self
-            .root
-            .join(format!("active-generation.tmp-{}", std::process::id()));
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&temp)?;
+        // An interrupted publication can leave its temporary pointer behind.
+        // Never overwrite it or let it permanently prevent a later publication.
+        let (temp, mut file) = {
+            let mut opened = None;
+            for suffix in 0..32 {
+                let temp = self.root.join(format!(
+                    "active-generation.tmp-{}-{suffix}",
+                    std::process::id()
+                ));
+                match OpenOptions::new().write(true).create_new(true).open(&temp) {
+                    Ok(file) => {
+                        opened = Some((temp, file));
+                        break;
+                    }
+                    Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+                    Err(error) => return Err(error),
+                }
+            }
+            opened.ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::AlreadyExists,
+                    "generation pointer temp slots exhausted",
+                )
+            })?
+        };
         if let Err(error) = (|| -> io::Result<()> {
             write!(file, "{generation}\n{manifest_hex}")?;
             file.sync_all()?;
