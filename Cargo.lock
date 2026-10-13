@@ -82,6 +82,7 @@ name = "formula-store"
 version = "0.0.1"
 dependencies = [
  "formula-core",
+ "libc",
 ]
 
 [[package]]

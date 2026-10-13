@@ -56,17 +56,66 @@ impl BlobStore {
                 io::Error::new(io::ErrorKind::AlreadyExists, "blob temp slots exhausted")
             })?
         };
-        if let Err(error) = (|| -> io::Result<()> {
+        let installation = (|| -> io::Result<bool> {
             file.write_all(bytes)?;
             file.sync_all()?;
-            fs::rename(&temp, &path)?;
-            Ok(())
-        })() {
-            let _ = fs::remove_file(&temp);
-            return Err(error);
+            match Self::install_no_replace(&temp, &path) {
+                Ok(()) => Ok(true),
+                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+                    self.verify_existing(&path, digest)?;
+                    Ok(false)
+                }
+                Err(error) => Err(error),
+            }
+        })();
+        match installation {
+            Ok(true) => {}
+            Ok(false) => fs::remove_file(&temp)?,
+            Err(error) => {
+                let _ = fs::remove_file(&temp);
+                return Err(error);
+            }
         }
         fs::File::open(path.parent().expect("blob path has parent"))?.sync_all()?;
         Ok(digest)
+    }
+
+    // Linux renameat2 installs the fully synced temp file atomically, without
+    // replacing a destination created by a concurrent writer. A hard-link
+    // fallback is deliberately excluded: it would transiently violate the
+    // single-link invariant enforced by read_verified().
+    #[cfg(target_os = "linux")]
+    fn install_no_replace(temp: &Path, path: &Path) -> io::Result<()> {
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+
+        let source = CString::new(temp.as_os_str().as_bytes())
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "NUL in blob temp path"))?;
+        let target = CString::new(path.as_os_str().as_bytes())
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "NUL in blob target path"))?;
+        // SAFETY: both CStrings are NUL-terminated and remain live for this call.
+        let result = unsafe {
+            libc::renameat2(
+                libc::AT_FDCWD,
+                source.as_ptr(),
+                libc::AT_FDCWD,
+                target.as_ptr(),
+                libc::RENAME_NOREPLACE,
+            )
+        };
+        if result == 0 {
+            Ok(())
+        } else {
+            Err(io::Error::last_os_error())
+        }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn install_no_replace(_temp: &Path, _path: &Path) -> io::Result<()> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "atomic no-replace blob publication requires a qualified platform backend",
+        ))
     }
 
     /// Persist one canonical universe-generation manifest as an immutable blob.
