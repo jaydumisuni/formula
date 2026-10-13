@@ -37,11 +37,25 @@ impl BlobStore {
             Err(error) => return Err(error),
         }
 
-        let temp = path.with_extension(format!("tmp-{}", std::process::id()));
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&temp)?;
+        // Interrupted writes can leave temporary blobs behind. Choose an unused
+        // slot without overwriting or deleting an earlier writer's evidence.
+        let (temp, mut file) = {
+            let mut opened = None;
+            for suffix in 0..32 {
+                let temp = path.with_extension(format!("tmp-{}-{suffix}", std::process::id()));
+                match OpenOptions::new().write(true).create_new(true).open(&temp) {
+                    Ok(file) => {
+                        opened = Some((temp, file));
+                        break;
+                    }
+                    Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+                    Err(error) => return Err(error),
+                }
+            }
+            opened.ok_or_else(|| {
+                io::Error::new(io::ErrorKind::AlreadyExists, "blob temp slots exhausted")
+            })?
+        };
         if let Err(error) = (|| -> io::Result<()> {
             file.write_all(bytes)?;
             file.sync_all()?;
