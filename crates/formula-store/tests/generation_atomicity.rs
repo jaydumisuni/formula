@@ -344,3 +344,68 @@ fn hardlinked_active_pointer_cannot_publish_or_replay() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn stale_history_temp_does_not_publish_partial_digest() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-history-temp-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let second = store.put(b"second").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    let pending = root
+        .join("index/generations")
+        .join(format!("2.manifest.tmp-{}-0", std::process::id()));
+    fs::write(&pending, b"interrupted partial history").unwrap();
+    assert!(!root.join("index/generations/2.manifest").exists());
+
+    index.publish(&store, 2, second).unwrap();
+    assert_eq!(fs::read(&pending).unwrap(), b"interrupted partial history");
+    assert_eq!(index.historical_manifest(2).unwrap(), second);
+    assert_eq!(index.active_generation().unwrap(), (2, second));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn concurrent_identical_history_publication_preserves_one_binding() {
+    use std::sync::{Arc, Barrier};
+    use std::thread;
+
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-history-concurrent-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = Arc::new(BlobStore::new(root.join("store")));
+    let index = Arc::new(GenerationIndex::new(root.join("index")));
+    let digest = store.put(b"concurrent manifest").unwrap();
+    let barrier = Arc::new(Barrier::new(2));
+
+    let workers: Vec<_> = (0..2)
+        .map(|_| {
+            let store = Arc::clone(&store);
+            let index = Arc::clone(&index);
+            let barrier = Arc::clone(&barrier);
+            thread::spawn(move || {
+                barrier.wait();
+                index.publish(&store, 1, digest)
+            })
+        })
+        .collect();
+    for worker in workers {
+        worker.join().unwrap().unwrap();
+    }
+
+    assert_eq!(index.historical_manifest(1).unwrap(), digest);
+    assert_eq!(index.active_generation().unwrap(), (1, digest));
+    assert_eq!(
+        fs::read_to_string(root.join("index/generations/1.manifest")).unwrap(),
+        digest.to_hex()
+    );
+    fs::remove_dir_all(root).unwrap();
+}

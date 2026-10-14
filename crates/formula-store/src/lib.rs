@@ -320,12 +320,45 @@ impl GenerationIndex {
                 ));
             }
         } else {
-            let mut file = OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&history)?;
+            // A history entry must never become visible before its complete
+            // digest is durable. Retain interrupted temp slots for inspection.
+            let (temp, mut file) = {
+                let mut opened = None;
+                for suffix in 0..32 {
+                    let temp = generations.join(format!(
+                        "{generation}.manifest.tmp-{}-{suffix}",
+                        std::process::id()
+                    ));
+                    match OpenOptions::new().write(true).create_new(true).open(&temp) {
+                        Ok(file) => {
+                            opened = Some((temp, file));
+                            break;
+                        }
+                        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+                        Err(error) => return Err(error),
+                    }
+                }
+                opened.ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::AlreadyExists, "history temp slots exhausted")
+                })?
+            };
             file.write_all(manifest_hex.as_bytes())?;
             file.sync_all()?;
+            match BlobStore::install_no_replace(&temp, &history) {
+                Ok(()) => {}
+                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+                    // A competing publisher won the race. Only the same exact
+                    // canonical digest is acceptable for this generation.
+                    if self.historical_manifest(generation)? != manifest {
+                        return Err(io::Error::new(
+                            io::ErrorKind::AlreadyExists,
+                            "generation already bound to another manifest",
+                        ));
+                    }
+                    fs::remove_file(&temp)?;
+                }
+                Err(error) => return Err(error),
+            }
             fs::File::open(&generations)?.sync_all()?;
         }
 
