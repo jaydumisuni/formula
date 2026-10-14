@@ -409,3 +409,56 @@ fn concurrent_identical_history_publication_preserves_one_binding() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn concurrent_conflicting_history_publication_cannot_rebind_generation() {
+    use std::sync::{Arc, Barrier};
+    use std::thread;
+
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-history-conflict-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = Arc::new(BlobStore::new(root.join("store")));
+    let index = Arc::new(GenerationIndex::new(root.join("index")));
+    let first = store.put(b"first candidate").unwrap();
+    let second = store.put(b"second candidate").unwrap();
+    let barrier = Arc::new(Barrier::new(2));
+
+    let workers: Vec<_> = [first, second]
+        .into_iter()
+        .map(|digest| {
+            let store = Arc::clone(&store);
+            let index = Arc::clone(&index);
+            let barrier = Arc::clone(&barrier);
+            thread::spawn(move || {
+                barrier.wait();
+                index.publish(&store, 1, digest)
+            })
+        })
+        .collect();
+    let results: Vec<_> = workers
+        .into_iter()
+        .map(|worker| worker.join().unwrap())
+        .collect();
+
+    assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+    assert_eq!(
+        results
+            .iter()
+            .filter(|result| result
+                .as_ref()
+                .is_err_and(|error| error.kind() == io::ErrorKind::AlreadyExists))
+            .count(),
+        1
+    );
+    let bound = index.historical_manifest(1).unwrap();
+    assert!(bound == first || bound == second);
+    assert_eq!(index.active_generation().unwrap(), (1, bound));
+    assert_eq!(
+        fs::read_to_string(root.join("index/generations/1.manifest")).unwrap(),
+        bound.to_hex()
+    );
+    fs::remove_dir_all(root).unwrap();
+}
