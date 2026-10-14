@@ -290,6 +290,34 @@ impl GenerationIndex {
                 "generation history directory must be a real directory",
             ));
         }
+        // The active pointer may be absent after an interrupted publication.
+        // Durable history is still a high-water authority boundary: never
+        // activate an older generation when a newer history entry exists.
+        for entry in fs::read_dir(&generations)? {
+            let entry = entry?;
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if let Some(number) = name.strip_suffix(".manifest") {
+                let recorded = number.parse::<u64>().map_err(|_| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "invalid generation history name",
+                    )
+                })?;
+                if recorded.to_string() != number {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "non-canonical generation history name",
+                    ));
+                }
+                if recorded > generation {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "generation publication cannot roll back durable history",
+                    ));
+                }
+            }
+        }
         let history = generations.join(format!("{generation}.manifest"));
         let manifest_hex = manifest.to_hex();
         let history_present = match fs::symlink_metadata(&history) {
@@ -664,6 +692,27 @@ mod tests {
         );
         assert_eq!(index.historical_manifest(4).unwrap(), first);
         assert_eq!(index.active_generation().unwrap(), (4, first));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn missing_active_pointer_cannot_roll_back_persisted_generation_history() {
+        let root = test_root("history-high-water");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let older = store.put(b"generation-eight").unwrap();
+        let newer = store.put(b"generation-nine").unwrap();
+        index.publish(&store, 9, newer).unwrap();
+        fs::remove_file(root.join("index/active-generation")).unwrap();
+
+        assert_eq!(
+            index.publish(&store, 8, older).unwrap_err().kind(),
+            io::ErrorKind::InvalidInput
+        );
+        assert_eq!(index.historical_manifest(9).unwrap(), newer);
+        assert!(!root.join("index/generations/8.manifest").exists());
+        assert!(!root.join("index/active-generation").exists());
         fs::remove_dir_all(root).unwrap();
     }
 
