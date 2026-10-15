@@ -274,7 +274,7 @@ impl GenerationIndex {
                     "active generation pointer must be a regular file",
                 ));
             }
-            let (current, _) = self.active_generation()?;
+            let (current, _) = self.active_generation_pointer()?;
             if generation < current {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
@@ -475,7 +475,7 @@ impl GenerationIndex {
     ///
     /// Replay fails closed on malformed or non-canonical pointer contents instead
     /// of guessing a generation or accepting an ambiguous digest identity.
-    pub fn active_generation(&self) -> io::Result<(u64, ArtifactDigest)> {
+    fn active_generation_pointer(&self) -> io::Result<(u64, ArtifactDigest)> {
         self.require_real_root()?;
         let active = self.root.join("active-generation");
         let metadata = fs::symlink_metadata(&active)?;
@@ -522,6 +522,32 @@ impl GenerationIndex {
                 io::ErrorKind::InvalidData,
                 "active manifest differs from generation history",
             ));
+        }
+        Ok((generation, digest))
+    }
+
+    /// Replay must reject an active pointer older than durable history.
+    pub fn active_generation(&self) -> io::Result<(u64, ArtifactDigest)> {
+        let (generation, digest) = self.active_generation_pointer()?;
+        for entry in fs::read_dir(self.root.join("generations"))? {
+            let name = entry?.file_name();
+            let name = name.to_string_lossy();
+            if let Some(number) = name.strip_suffix(".manifest") {
+                let recorded = number.parse::<u64>().map_err(|_| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "invalid generation history name",
+                    )
+                })?;
+                if recorded.to_string() != number
+                    || (recorded > generation && self.historical_manifest(recorded).is_ok())
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "active generation trails or conflicts with durable history",
+                    ));
+                }
+            }
         }
         Ok((generation, digest))
     }
@@ -713,6 +739,32 @@ mod tests {
         assert_eq!(index.historical_manifest(9).unwrap(), newer);
         assert!(!root.join("index/generations/8.manifest").exists());
         assert!(!root.join("index/active-generation").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn stale_active_pointer_cannot_hide_newer_generation_history() {
+        let root = test_root("stale-active-high-water");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let older = store.put(b"generation-eight").unwrap();
+        let newer = store.put(b"generation-nine").unwrap();
+        index.publish(&store, 8, older).unwrap();
+        index.publish(&store, 9, newer).unwrap();
+        fs::write(
+            root.join("index/active-generation"),
+            format!("8\n{}", older.to_hex()),
+        )
+        .unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        index
+            .publish(&store, 10, store.put(b"generation-ten").unwrap())
+            .unwrap();
+        assert_eq!(index.active_generation().unwrap().0, 10);
         fs::remove_dir_all(root).unwrap();
     }
 
