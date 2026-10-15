@@ -316,6 +316,11 @@ impl GenerationIndex {
                         "generation publication cannot roll back durable history",
                     ));
                 }
+                // Even an older immutable history leaf is part of the durable
+                // generation chain; corruption must block new publication.
+                if recorded < generation {
+                    self.historical_manifest(recorded)?;
+                }
             }
         }
         let history = generations.join(format!("{generation}.manifest"));
@@ -545,6 +550,9 @@ impl GenerationIndex {
                         "active generation trails or conflicts with durable history",
                     ));
                 }
+                // A valid active pointer cannot mask corruption in older
+                // append-only history entries.
+                self.historical_manifest(recorded)?;
             }
         }
         Ok((generation, digest))
