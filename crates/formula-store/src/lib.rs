@@ -319,7 +319,13 @@ impl GenerationIndex {
                 // Even an older immutable history leaf is part of the durable
                 // generation chain; corruption must block new publication.
                 if recorded < generation {
-                    self.historical_manifest(recorded)?;
+                    let historical = self.historical_manifest(recorded)?;
+                    if !store.contains(historical)? {
+                        return Err(io::Error::new(
+                            io::ErrorKind::NotFound,
+                            "historical generation manifest blob missing",
+                        ));
+                    }
                 }
             }
         }
