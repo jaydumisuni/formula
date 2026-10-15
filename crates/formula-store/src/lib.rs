@@ -539,9 +539,7 @@ impl GenerationIndex {
                         "invalid generation history name",
                     )
                 })?;
-                if recorded.to_string() != number
-                    || (recorded > generation && self.historical_manifest(recorded).is_ok())
-                {
+                if recorded.to_string() != number || recorded > generation {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
                         "active generation trails or conflicts with durable history",

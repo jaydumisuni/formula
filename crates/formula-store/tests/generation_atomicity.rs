@@ -45,7 +45,10 @@ fn corrupt_historical_manifest_cannot_activate_new_generation() {
         index.publish(&store, 2, second).unwrap_err().kind(),
         io::ErrorKind::AlreadyExists
     );
-    assert_eq!(index.active_generation().unwrap(), (1, first));
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
 
     fs::remove_dir_all(root).unwrap();
 }
@@ -368,6 +371,33 @@ fn stale_history_temp_does_not_publish_partial_digest() {
     assert_eq!(fs::read(&pending).unwrap(), b"interrupted partial history");
     assert_eq!(index.historical_manifest(2).unwrap(), second);
     assert_eq!(index.active_generation().unwrap(), (2, second));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn corrupt_future_history_cannot_mask_stale_active_generation() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-future-corrupt-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    // Atomic history publication cannot produce this leaf. Treat an injected
+    // malformed higher generation as an integrity failure, not permission to
+    // replay an older active pointer.
+    fs::write(root.join("index/generations/2.manifest"), b"corrupt").unwrap();
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 1, first).unwrap_err().kind(),
+        io::ErrorKind::InvalidInput
+    );
     fs::remove_dir_all(root).unwrap();
 }
 
