@@ -17,11 +17,11 @@ fn unhex_nibble(value: u8) -> Result<u8, &'static str> {
 }
 
 fn decode_bounded_hex(hex: &str) -> Result<Vec<u8>, &'static str> {
-    if hex.len() % 2 != 0 || hex.len() > MAX_STRUCTURE_BYTES * 2 {
+    if !hex.len().is_multiple_of(2) || hex.len() > MAX_STRUCTURE_BYTES * 2 {
         return Err("structure must contain even lowercase hex, at most 32768 bytes");
     }
     let mut out = Vec::with_capacity(hex.len() / 2);
-    for pair in hex.as_bytes().chunks_exact(2) {
+    for pair in hex.as_bytes().as_chunks::<2>().0 {
         out.push((unhex_nibble(pair[0])? << 4) | unhex_nibble(pair[1])?);
     }
     Ok(out)
