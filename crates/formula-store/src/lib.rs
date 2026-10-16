@@ -563,6 +563,42 @@ impl GenerationIndex {
         }
         Ok((generation, digest))
     }
+
+    /// Replay an active generation only after verifying every referenced
+    /// immutable manifest blob, including the historical chain.
+    pub fn verified_active_generation(
+        &self,
+        store: &BlobStore,
+    ) -> io::Result<(u64, ArtifactDigest)> {
+        let active = self.active_generation()?;
+        for entry in fs::read_dir(self.root.join("generations"))? {
+            let entry = entry?;
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if let Some(number) = name.strip_suffix(".manifest") {
+                let generation = number.parse::<u64>().map_err(|_| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "invalid generation history name",
+                    )
+                })?;
+                let digest = self.historical_manifest(generation)?;
+                if !store.contains(digest)? {
+                    return Err(io::Error::new(
+                        io::ErrorKind::NotFound,
+                        "historical generation manifest blob missing",
+                    ));
+                }
+            }
+        }
+        if !store.contains(active.1)? {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "active generation manifest blob missing",
+            ));
+        }
+        Ok(active)
+    }
 }
 
 #[cfg(test)]
