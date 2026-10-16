@@ -34,7 +34,9 @@ fn canonical_entity_digest(kind: &str, hex: &str) -> Result<String, &'static str
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || b"_:-./".contains(&byte))
     {
-        return Err("kind must be 1-128 ASCII letters, digits, underscore, colon, dash, dot or slash");
+        return Err(
+            "kind must be 1-128 ASCII letters, digits, underscore, colon, dash, dot or slash",
+        );
     }
     let structure = decode_bounded_hex(hex)?;
     Ok(Entity::new(kind, structure, Vec::new(), Vec::new())
@@ -66,7 +68,9 @@ fn run(args: &[String]) -> Result<(), &'static str> {
         [action, kind, structure, digest] if action == "verify-entity-digest" => {
             let actual = canonical_entity_digest(kind, structure)?;
             if digest.len() != 64
-                || !digest.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                || !digest
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
             {
                 return Err("expected digest must have exactly 64 lowercase hex digits");
             }
@@ -143,13 +147,23 @@ mod tests {
     #[test]
     fn digest_verification_rejects_substitution() {
         let good = canonical_entity_digest("ttg.re:artifact", "aa").unwrap();
-        assert!(run(&[
-            "verify-entity-digest".into(), "ttg.re:artifact".into(),
-            "aa".into(), good
-        ]).is_ok());
-        assert!(run(&[
-            "verify-entity-digest".into(), "ttg.re:artifact".into(),
-            "ab".into(), "0".repeat(64)
-        ]).is_err());
+        assert!(
+            run(&[
+                "verify-entity-digest".into(),
+                "ttg.re:artifact".into(),
+                "aa".into(),
+                good
+            ])
+            .is_ok()
+        );
+        assert!(
+            run(&[
+                "verify-entity-digest".into(),
+                "ttg.re:artifact".into(),
+                "ab".into(),
+                "0".repeat(64)
+            ])
+            .is_err()
+        );
     }
 }
