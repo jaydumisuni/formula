@@ -53,6 +53,9 @@ version = "0.0.1"
 [[package]]
 name = "formula-cli"
 version = "0.0.1"
+dependencies = [
+ "formula-core",
+]
 
 [[package]]
 name = "formula-core"
