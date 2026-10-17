@@ -269,6 +269,45 @@ impl GenerationIndex {
         Ok(())
     }
 
+    /// Read an index leaf from the same inode whose type and link count were checked.
+    /// A concurrent pathname replacement must not redirect a validated read.
+    fn read_index_leaf(path: &Path, description: &str) -> io::Result<String> {
+        let mut options = OpenOptions::new();
+        options.read(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+        }
+        let mut file = options.open(path).map_err(|error| {
+            #[cfg(unix)]
+            if error.raw_os_error() == Some(libc::ELOOP) {
+                return io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("{description} must not be a symlink"),
+                );
+            }
+            error
+        })?;
+        let metadata = file.metadata()?;
+        if !metadata.file_type().is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{description} must be a regular file"),
+            ));
+        }
+        #[cfg(unix)]
+        if std::os::unix::fs::MetadataExt::nlink(&metadata) != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{description} must not have hardlink aliases"),
+            ));
+        }
+        let mut content = String::new();
+        file.read_to_string(&mut content)?;
+        Ok(content)
+    }
+
     pub fn publish(
         &self,
         store: &BlobStore,
@@ -374,7 +413,7 @@ impl GenerationIndex {
             Err(error) => return Err(error),
         };
         if history_present {
-            if fs::read_to_string(&history)? != manifest_hex {
+            if Self::read_index_leaf(&history, "generation history entry")? != manifest_hex {
                 return Err(io::Error::new(
                     io::ErrorKind::AlreadyExists,
                     "generation already bound to another manifest",
@@ -488,7 +527,7 @@ impl GenerationIndex {
                 "generation history entry must not have hardlink aliases",
             ));
         }
-        let hex = fs::read_to_string(&history)?;
+        let hex = Self::read_index_leaf(&history, "generation history entry")?;
         let digest = ArtifactDigest::from_hex(hex.trim()).map_err(|_| {
             io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -525,7 +564,7 @@ impl GenerationIndex {
                 "active generation pointer must not have hardlink aliases",
             ));
         }
-        let pointer = fs::read_to_string(active)?;
+        let pointer = Self::read_index_leaf(&active, "active generation pointer")?;
         let mut lines = pointer.lines();
         let generation = lines
             .next()
