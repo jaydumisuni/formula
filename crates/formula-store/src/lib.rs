@@ -5,7 +5,7 @@
 
 use formula_core::{ArtifactDigest, UniverseGeneration};
 use std::fs::{self, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -196,7 +196,28 @@ impl BlobStore {
     }
 
     fn read_verified(&self, path: &Path, expected: ArtifactDigest) -> io::Result<Vec<u8>> {
-        let metadata = fs::symlink_metadata(path)?;
+        // Bind validation and reading to one opened inode. A pathname can be
+        // swapped between symlink_metadata() and fs::read(); O_NOFOLLOW also
+        // prevents a replacement symlink from redirecting the open itself.
+        let mut options = OpenOptions::new();
+        options.read(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            // Nonblocking open prevents a swapped-in FIFO from hanging a reader.
+            options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+        }
+        let mut file = options.open(path).map_err(|error| {
+            #[cfg(unix)]
+            if error.raw_os_error() == Some(libc::ELOOP) {
+                return io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "immutable blob leaf must not be a symlink",
+                );
+            }
+            error
+        })?;
+        let metadata = file.metadata()?;
         if !metadata.file_type().is_file() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -210,7 +231,8 @@ impl BlobStore {
                 "immutable blob leaf must not have hardlink aliases",
             ));
         }
-        let bytes = fs::read(path)?;
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)?;
         if ArtifactDigest::sha256(&bytes) != expected {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
