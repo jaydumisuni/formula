@@ -326,6 +326,13 @@ impl GenerationIndex {
                 format!("{description} must not have hardlink aliases"),
             ));
         }
+        #[cfg(unix)]
+        if std::os::unix::fs::PermissionsExt::mode(&metadata.permissions()) & 0o022 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{description} must not be group- or world-writable"),
+            ));
+        }
         // Generation history leaves contain one digest; the active pointer adds
         // only a decimal generation and separator. Bound both metadata and
         // actual bytes read so concurrent growth cannot exhaust memory.
@@ -470,7 +477,17 @@ impl GenerationIndex {
                         "{generation}.manifest.tmp-{}-{suffix}",
                         std::process::id()
                     ));
-                    match OpenOptions::new().write(true).create_new(true).open(&temp) {
+                    let open_result = {
+                        let mut opts = OpenOptions::new();
+                        opts.write(true).create_new(true);
+                        #[cfg(unix)]
+                        {
+                            use std::os::unix::fs::OpenOptionsExt;
+                            opts.mode(0o600);
+                        }
+                        opts.open(&temp)
+                    };
+                    match open_result {
                         Ok(file) => {
                             opened = Some((temp, file));
                             break;
@@ -512,7 +529,17 @@ impl GenerationIndex {
                     "active-generation.tmp-{}-{suffix}",
                     std::process::id()
                 ));
-                match OpenOptions::new().write(true).create_new(true).open(&temp) {
+                let open_result = {
+                    let mut opts = OpenOptions::new();
+                    opts.write(true).create_new(true);
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::OpenOptionsExt;
+                        opts.mode(0o600);
+                    }
+                    opts.open(&temp)
+                };
+                match open_result {
                     Ok(file) => {
                         opened = Some((temp, file));
                         break;
@@ -729,6 +756,34 @@ mod tests {
                 .unwrap()
                 .len(),
             128
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn shared_writable_index_leaves_cannot_claim_generation_authority() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("writable-index-leaves");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let manifest = store.put(b"writable-index-evidence").unwrap();
+        index.publish(&store, 0, manifest).unwrap();
+
+        let active = root.join("index/active-generation");
+        let history = root.join("index/generations/0.manifest");
+        fs::set_permissions(&active, fs::Permissions::from_mode(0o666)).unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::set_permissions(&active, fs::Permissions::from_mode(0o600)).unwrap();
+        fs::set_permissions(&history, fs::Permissions::from_mode(0o666)).unwrap();
+        assert_eq!(
+            index.historical_manifest(0).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(root).unwrap();
     }
