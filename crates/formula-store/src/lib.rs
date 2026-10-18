@@ -169,7 +169,27 @@ impl BlobStore {
         Ok(())
     }
 
+    // A real store root is insufficient if a parent redirects it through a
+    // symlink. Check existing ancestors before creating any directories.
+    fn require_real_ancestors(path: &Path) -> io::Result<()> {
+        for ancestor in path.ancestors() {
+            match fs::symlink_metadata(ancestor) {
+                Ok(metadata) if metadata.file_type().is_dir() => {}
+                Ok(_) => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "immutable blob ancestor must be a real directory",
+                    ));
+                }
+                Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(())
+    }
+
     fn check_blob_directories(&self, digest: ArtifactDigest) -> io::Result<()> {
+        Self::require_real_ancestors(&self.root)?;
         let blobs = self.root.join("blobs");
         let hex = digest.to_hex();
         let shard = blobs.join(&hex[..2]);
@@ -180,7 +200,9 @@ impl BlobStore {
     }
 
     fn ensure_blob_directories(&self, digest: ArtifactDigest) -> io::Result<()> {
+        Self::require_real_ancestors(&self.root)?;
         fs::create_dir_all(&self.root)?;
+        Self::require_real_ancestors(&self.root)?;
         Self::require_real_directory(&self.root)?;
         let blobs = self.root.join("blobs");
         fs::create_dir_all(&blobs)?;
@@ -705,6 +727,32 @@ mod tests {
                 .unwrap()
                 .len(),
             128
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_store_parent_cannot_redirect_immutable_blob_io() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("symlink-parent");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("outside")).unwrap();
+        symlink(root.join("outside"), root.join("alias")).unwrap();
+
+        let redirected = BlobStore::new(root.join("alias/store"));
+        assert_eq!(
+            redirected.put(b"must-not-redirect").unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(!root.join("outside/store").exists());
+
+        let legitimate = BlobStore::new(root.join("outside/store"));
+        let digest = legitimate.put(b"existing").unwrap();
+        assert_eq!(
+            redirected.get(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(root).unwrap();
     }
