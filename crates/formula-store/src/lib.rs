@@ -282,6 +282,7 @@ impl GenerationIndex {
     }
 
     fn require_real_root(&self) -> io::Result<()> {
+        BlobStore::require_real_ancestors(&self.root)?;
         if !fs::symlink_metadata(&self.root)?.file_type().is_dir() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -353,6 +354,7 @@ impl GenerationIndex {
         generation: u64,
         manifest: ArtifactDigest,
     ) -> io::Result<()> {
+        BlobStore::require_real_ancestors(&self.root)?;
         fs::create_dir_all(&self.root)?;
         self.require_real_root()?;
         if !store.contains(manifest)? {
@@ -752,6 +754,34 @@ mod tests {
         let digest = legitimate.put(b"existing").unwrap();
         assert_eq!(
             redirected.get(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_generation_index_parent_cannot_redirect_publication_or_replay() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("symlink-index-parent");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("outside")).unwrap();
+        symlink(root.join("outside"), root.join("alias")).unwrap();
+
+        let store = BlobStore::new(root.join("store"));
+        let manifest = store.put(b"index-parent-manifest").unwrap();
+        let redirected = GenerationIndex::new(root.join("alias/index"));
+        assert_eq!(
+            redirected.publish(&store, 1, manifest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(!root.join("outside/index").exists());
+
+        let legitimate = GenerationIndex::new(root.join("outside/index"));
+        legitimate.publish(&store, 1, manifest).unwrap();
+        assert_eq!(
+            redirected.active_generation().unwrap_err().kind(),
             io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(root).unwrap();
