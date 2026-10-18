@@ -43,7 +43,14 @@ impl BlobStore {
             let mut opened = None;
             for suffix in 0..32 {
                 let temp = path.with_extension(format!("tmp-{}-{suffix}", std::process::id()));
-                match OpenOptions::new().write(true).create_new(true).open(&temp) {
+                let mut options = OpenOptions::new();
+                options.write(true).create_new(true);
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::OpenOptionsExt;
+                    options.mode(0o600);
+                }
+                match options.open(&temp) {
                     Ok(file) => {
                         opened = Some((temp, file));
                         break;
@@ -251,6 +258,13 @@ impl BlobStore {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "immutable blob leaf must not have hardlink aliases",
+            ));
+        }
+        #[cfg(unix)]
+        if std::os::unix::fs::PermissionsExt::mode(&metadata.permissions()) & 0o022 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "immutable blob leaf must not be group- or world-writable",
             ));
         }
         let mut bytes = Vec::new();
@@ -757,6 +771,39 @@ mod tests {
                 .len(),
             128
         );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn shared_writable_blob_leaf_cannot_claim_immutable_authority() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("writable-blob-leaf");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let bytes = b"immutable-blob-permissions";
+        let digest = store.put(bytes).unwrap();
+        let leaf = store.blob_path(digest);
+        let original = fs::metadata(&leaf).unwrap().permissions();
+        assert_eq!(original.mode() & 0o077, 0);
+
+        fs::set_permissions(&leaf, fs::Permissions::from_mode(0o666)).unwrap();
+        assert_eq!(
+            store.get(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.contains(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.put(bytes).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        fs::set_permissions(&leaf, original).unwrap();
+        assert_eq!(store.get(digest).unwrap(), bytes);
         fs::remove_dir_all(root).unwrap();
     }
 
