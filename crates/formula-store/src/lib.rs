@@ -279,7 +279,7 @@ impl GenerationIndex {
             use std::os::unix::fs::OpenOptionsExt;
             options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
         }
-        let mut file = options.open(path).map_err(|error| {
+        let file = options.open(path).map_err(|error| {
             #[cfg(unix)]
             if error.raw_os_error() == Some(libc::ELOOP) {
                 return io::Error::new(
@@ -303,8 +303,25 @@ impl GenerationIndex {
                 format!("{description} must not have hardlink aliases"),
             ));
         }
+        // Generation history leaves contain one digest; the active pointer adds
+        // only a decimal generation and separator. Bound both metadata and
+        // actual bytes read so concurrent growth cannot exhaust memory.
+        const MAX_INDEX_LEAF_BYTES: u64 = 128;
+        if metadata.len() > MAX_INDEX_LEAF_BYTES {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{description} exceeds the maximum index leaf size"),
+            ));
+        }
         let mut content = String::new();
-        file.read_to_string(&mut content)?;
+        file.take(MAX_INDEX_LEAF_BYTES + 1)
+            .read_to_string(&mut content)?;
+        if content.len() as u64 > MAX_INDEX_LEAF_BYTES {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{description} exceeds the maximum index leaf size"),
+            ));
+        }
         Ok(content)
     }
 
@@ -668,6 +685,28 @@ mod tests {
 
     fn test_root(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
+    }
+
+    #[test]
+    fn index_leaf_read_is_bounded() {
+        let root = test_root("index-leaf-bound");
+        fs::create_dir_all(&root).unwrap();
+        let leaf = root.join("oversized.manifest");
+        fs::write(&leaf, vec![b'a'; 129]).unwrap();
+        assert_eq!(
+            GenerationIndex::read_index_leaf(&leaf, "test index leaf")
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::write(&leaf, vec![b'a'; 128]).unwrap();
+        assert_eq!(
+            GenerationIndex::read_index_leaf(&leaf, "test index leaf")
+                .unwrap()
+                .len(),
+            128
+        );
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
