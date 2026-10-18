@@ -492,3 +492,67 @@ fn concurrent_conflicting_history_publication_cannot_rebind_generation() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn oversized_history_leaf_blocks_public_replay_and_publication() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-oversized-history-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let next = store.put(b"next").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    let history = root.join("index/generations/1.manifest");
+    let oversized = vec![b'a'; 129];
+    fs::write(&history, &oversized).unwrap();
+
+    assert_eq!(
+        index.historical_manifest(1).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 2, next).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("index/generations/2.manifest").exists());
+    assert_eq!(fs::read(history).unwrap(), oversized);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn oversized_active_pointer_blocks_public_replay_and_publication() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-oversized-active-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let next = store.put(b"next").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    let pointer = root.join("index/active-generation");
+    let oversized = vec![b'a'; 129];
+    fs::write(&pointer, &oversized).unwrap();
+
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 2, next).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("index/generations/2.manifest").exists());
+    assert_eq!(fs::read(pointer).unwrap(), oversized);
+    fs::remove_dir_all(root).unwrap();
+}
