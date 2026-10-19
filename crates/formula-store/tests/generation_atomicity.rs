@@ -41,6 +41,11 @@ fn corrupt_historical_manifest_cannot_activate_new_generation() {
 
     let history = root.join("index/generations/2.manifest");
     fs::write(&history, format!("{}\n", second.to_hex())).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&history, fs::Permissions::from_mode(0o600)).unwrap();
+    }
     assert_eq!(
         index.publish(&store, 2, second).unwrap_err().kind(),
         io::ErrorKind::AlreadyExists
