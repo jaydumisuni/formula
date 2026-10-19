@@ -758,6 +758,11 @@ mod tests {
         fs::create_dir_all(&root).unwrap();
         let leaf = root.join("oversized.manifest");
         fs::write(&leaf, vec![b'a'; 129]).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&leaf, fs::Permissions::from_mode(0o600)).unwrap();
+        }
         assert_eq!(
             GenerationIndex::read_index_leaf(&leaf, "test index leaf")
                 .unwrap_err()
