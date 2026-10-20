@@ -137,3 +137,37 @@ fn noncanonical_history_alias_cannot_be_replayed_or_published() {
     assert!(!root.join("index/generations/3.manifest").exists());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn noncanonical_active_pointer_spellings_fail_closed() {
+    let root = std::env::temp_dir().join(format!("formula-active-spelling-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let current = store.put(b"current manifest").unwrap();
+    let next = store.put(b"next manifest").unwrap();
+    index.publish(&store, 1, current).unwrap();
+
+    let pointer = root.join("index/active-generation");
+    let canonical = format!("1\n{}", current.to_hex());
+    let alternatives = [
+        format!("01\n{}", current.to_hex()),
+        format!("+1\n{}", current.to_hex()),
+        format!("1 \n{}", current.to_hex()),
+        format!("{canonical}\n"),
+    ];
+    for alternative in alternatives {
+        fs::write(&pointer, &alternative).unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 2, next).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(fs::read_to_string(&pointer).unwrap(), alternative);
+        assert!(!root.join("index/generations/2.manifest").exists());
+    }
+    fs::remove_dir_all(root).unwrap();
+}
