@@ -306,6 +306,29 @@ impl GenerationIndex {
         Ok(())
     }
 
+    /// Reject malformed or newer history entries during the second verified scan.
+    fn verified_history_entry_number(
+        name: &str,
+        active_generation: u64,
+    ) -> io::Result<Option<u64>> {
+        let Some(number) = name.strip_suffix(".manifest") else {
+            return Ok(None);
+        };
+        let recorded = number.parse::<u64>().map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "invalid generation history name",
+            )
+        })?;
+        if recorded.to_string() != number || recorded > active_generation {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "verified generation history is noncanonical or newer than active",
+            ));
+        }
+        Ok(Some(recorded))
+    }
+
     /// Read an index leaf from the same inode whose type and link count were checked.
     /// A concurrent pathname replacement must not redirect a validated read.
     fn read_index_leaf(path: &Path, description: &str) -> io::Result<String> {
@@ -718,13 +741,7 @@ impl GenerationIndex {
             let entry = entry?;
             let name = entry.file_name();
             let name = name.to_string_lossy();
-            if let Some(number) = name.strip_suffix(".manifest") {
-                let generation = number.parse::<u64>().map_err(|_| {
-                    io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "invalid generation history name",
-                    )
-                })?;
+            if let Some(generation) = Self::verified_history_entry_number(&name, active.0)? {
                 let digest = self.historical_manifest(generation)?;
                 if !store.contains(digest)? {
                     return Err(io::Error::new(
@@ -750,6 +767,31 @@ mod tests {
 
     fn test_root(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
+    }
+
+    #[test]
+    fn verified_history_rescan_rejects_noncanonical_or_newer_entries() {
+        assert_eq!(
+            GenerationIndex::verified_history_entry_number("1.manifest", 1).unwrap(),
+            Some(1)
+        );
+        assert_eq!(
+            GenerationIndex::verified_history_entry_number("stale.tmp", 1).unwrap(),
+            None
+        );
+        for invalid in [
+            "01.manifest",
+            "2.manifest",
+            "-1.manifest",
+            "18446744073709551616.manifest",
+        ] {
+            assert_eq!(
+                GenerationIndex::verified_history_entry_number(invalid, 1)
+                    .unwrap_err()
+                    .kind(),
+                io::ErrorKind::InvalidData
+            );
+        }
     }
 
     #[test]
