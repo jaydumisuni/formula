@@ -108,3 +108,32 @@ fn verified_replay_rejects_missing_active_manifest_blob() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn noncanonical_history_alias_cannot_be_replayed_or_published() {
+    let root = std::env::temp_dir().join(format!("formula-history-alias-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let current = store.put(b"current manifest").unwrap();
+    let next = store.put(b"next manifest").unwrap();
+    index.publish(&store, 2, current).unwrap();
+
+    // A second spelling of the same generation is an ambiguous authority
+    // identity even when its digest bytes match the canonical entry.
+    fs::write(root.join("index/generations/02.manifest"), current.to_hex()).unwrap();
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 3, next).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("index/generations/3.manifest").exists());
+    fs::remove_dir_all(root).unwrap();
+}
