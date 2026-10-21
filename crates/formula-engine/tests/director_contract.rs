@@ -129,3 +129,23 @@ fn director_rejects_unavailable_side_effect_privileges() {
         DirectorError::UnauthorizedSideEffects
     );
 }
+
+#[test]
+fn reuse_cannot_bypass_director_side_effect_policy() {
+    let primitive = d(77);
+    let q = query().with_targets(vec![TargetRequest::new(d(3), RequestedResultClass::Count)]);
+    let snapshot = CompilerAuthoritySnapshot::new(
+        d(1),
+        d(2),
+        packages(),
+        vec![primitive],
+        vec![primitive],
+        vec![],
+    );
+    let unsafe_query = q.with_side_effect_policy(SideEffectPolicy::local_process_only());
+    let request = ReuseRequest::new(&unsafe_query, primitive);
+    assert_eq!(
+        FormulaMathematicalDirector::plan_reuse(&unsafe_query, &snapshot, inputs(), &request),
+        Err(DirectorError::UnauthorizedSideEffects)
+    );
+}

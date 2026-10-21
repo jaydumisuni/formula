@@ -61,3 +61,7 @@ P13 CANONICAL P9 LOCAL-VS-PTAH SEMANTIC EQUIVALENCE: PASS. The representative sa
 Control's physical receipt currently says sent_unconfirmed and acknowledges completion; ATHENA's durable journal independently records exit/output digest. The Ptah TLS Ack is not an independently signed effect witness and does not carry arbitrary candidate bytes. The output digest was corroborated via physical Node journal readback. General E03 candidate artifact transfer, arbitrary multi-work-cell distributed scheduling, every interrupted recovery path, and natural-language-to-QueryIR are not qualified by this case.
 
 Keep the original P13 workplan above as history. Integrate on the post-P12 integration branch only after exact-head CI passes. Do not merge to frozen P12 or modify active P1.
+
+### Post-review P1 corrections
+
+- The Formula Director enforces SideEffectPolicy::deny_all on BOTH normal planning and exact-capability reuse. An unsafe reuse query fails before CompilerV1::compile_reuse and is covered by a negative regression test.

@@ -90,6 +90,9 @@ impl FormulaMathematicalDirector {
         inputs: CompilerInputs,
         request: &ReuseRequest,
     ) -> Result<CompiledReuseCampaign, DirectorError> {
+        if query.side_effect_policy() != SideEffectPolicy::deny_all() {
+            return Err(DirectorError::UnauthorizedSideEffects);
+        }
         CompilerV1::compile_reuse(query, snapshot, inputs, request).map_err(DirectorError::Compiler)
     }
 
