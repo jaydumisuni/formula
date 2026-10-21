@@ -20,7 +20,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Install pinned Formula Rust components
-        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt clippy
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal
+          rustup component add --toolchain 1.98.0 rustfmt clippy
       - name: Format
         run: cargo fmt --all -- --check
       - name: Compile/test native Formula engine
