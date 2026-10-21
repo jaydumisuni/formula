@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'crates/formula-engine/**'
+      - 'crates/formula-check/**'
+      - 'crates/formula-first-light/**'
       - 'docs/integration/**'
       - '.github/workflows/formula-director-integration.yml'
   workflow_dispatch:
@@ -27,5 +29,7 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Compile/test native Formula engine
         run: cargo test --locked -p formula-engine
+      - name: Independently check Ptah-observed P9 mathematical result
+        run: cargo test --locked -p formula-first-light --test p13_ptah_count_acceptance
       - name: Strict Formula engine lint
-        run: cargo clippy --locked -p formula-engine --tests -- -D warnings
+        run: cargo clippy --locked -p formula-engine -p formula-check -p formula-first-light --tests -- -D warnings

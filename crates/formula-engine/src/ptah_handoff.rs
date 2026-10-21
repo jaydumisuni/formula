@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 pub enum PtahContractError {
     WorkCellNotFound,
     CorruptManifest,
+    CorruptQuery,
     CorruptWorkCell,
     MismatchedManifest,
     MismatchedWorkCell,
@@ -22,6 +23,8 @@ pub enum PtahContractError {
 pub struct PtahHandoff {
     manifest_digest: ArtifactDigest,
     manifest_bytes: Vec<u8>,
+    query_digest: ArtifactDigest,
+    query_bytes: Vec<u8>,
     work_cell_digest: ArtifactDigest,
     work_cell_bytes: Vec<u8>,
     obligation_digest: ArtifactDigest,
@@ -42,6 +45,8 @@ impl PtahHandoff {
         let handoff = Self {
             manifest_digest: plan.manifest_digest(),
             manifest_bytes: plan.manifest_bytes().to_vec(),
+            query_digest: plan.query_digest(),
+            query_bytes: plan.query_bytes().to_vec(),
             work_cell_digest,
             work_cell_bytes: work.canonical_bytes().to_vec(),
             obligation_digest: work.obligation_digest(),
@@ -56,6 +61,12 @@ impl PtahHandoff {
     }
     pub fn manifest_bytes(&self) -> &[u8] {
         &self.manifest_bytes
+    }
+    pub fn query_digest(&self) -> ArtifactDigest {
+        self.query_digest
+    }
+    pub fn query_bytes(&self) -> &[u8] {
+        &self.query_bytes
     }
     pub fn work_cell_digest(&self) -> ArtifactDigest {
         self.work_cell_digest
@@ -75,6 +86,8 @@ impl PtahHandoff {
     pub fn wire_bytes(&self) -> Vec<u8> {
         let manifest_text = String::from_utf8(self.manifest_bytes.clone())
             .expect("canonical Formula manifest must be UTF-8 JSON");
+        let query_text =
+            String::from_utf8(self.query_bytes.clone()).expect("canonical QueryIR must be UTF-8");
         let work_cell_text = String::from_utf8(self.work_cell_bytes.clone())
             .expect("canonical Formula work cell must be UTF-8 JSON");
         CanonicalValue::Object(BTreeMap::from([
@@ -86,6 +99,11 @@ impl PtahHandoff {
                 "manifest_json".into(),
                 CanonicalValue::String(manifest_text),
             ),
+            (
+                "query_digest".into(),
+                CanonicalValue::Digest(self.query_digest),
+            ),
+            ("query_json".into(), CanonicalValue::String(query_text)),
             (
                 "obligation_digest".into(),
                 CanonicalValue::Digest(self.obligation_digest),
@@ -115,6 +133,9 @@ impl PtahHandoff {
     }
 
     pub fn validate(&self) -> Result<(), PtahContractError> {
+        if ArtifactDigest::of_bytes(&self.query_bytes) != self.query_digest {
+            return Err(PtahContractError::CorruptQuery);
+        }
         if ArtifactDigest::of_bytes(&self.manifest_bytes) != self.manifest_digest {
             return Err(PtahContractError::CorruptManifest);
         }

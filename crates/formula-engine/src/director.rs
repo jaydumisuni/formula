@@ -55,6 +55,7 @@ impl DirectedWorkCell {
 pub struct DirectedCampaign {
     pub compiled: CompiledCampaign,
     query_digest: ArtifactDigest,
+    query_bytes: Vec<u8>,
     manifest_digest: ArtifactDigest,
     manifest_bytes: Vec<u8>,
     work: Vec<DirectedWorkCell>,
@@ -63,6 +64,9 @@ pub struct DirectedCampaign {
 impl DirectedCampaign {
     pub fn query_digest(&self) -> ArtifactDigest {
         self.query_digest
+    }
+    pub fn query_bytes(&self) -> &[u8] {
+        &self.query_bytes
     }
     pub fn manifest_digest(&self) -> ArtifactDigest {
         self.manifest_digest
@@ -169,6 +173,7 @@ impl FormulaMathematicalDirector {
         Ok(DirectedCampaign {
             compiled,
             query_digest: query.digest(),
+            query_bytes: query.canonical_bytes(),
             manifest_digest,
             manifest_bytes,
             work,
