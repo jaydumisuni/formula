@@ -6,6 +6,7 @@ pub mod federation_verifier;
 pub mod first_light;
 pub mod gf2;
 pub mod identity;
+pub mod p13;
 pub mod polynomial;
 pub mod promotion;
 pub mod proof_evolution;

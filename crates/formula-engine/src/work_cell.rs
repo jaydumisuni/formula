@@ -108,6 +108,10 @@ impl WorkCellPlan {
         self.required_authority
     }
 
+    pub fn resource_budget(&self) -> ResourceContract {
+        self.resource_budget
+    }
+
     pub fn side_effect_limits(&self) -> SideEffectPolicy {
         self.side_effect_limits
     }
