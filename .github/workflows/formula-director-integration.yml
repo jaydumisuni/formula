@@ -1,0 +1,29 @@
+name: Formula Mathematical Director integration
+on:
+  pull_request:
+    paths:
+      - 'crates/formula-engine/**'
+      - 'docs/integration/**'
+      - '.github/workflows/formula-director-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  director-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Formula Rust components
+        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt clippy
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Compile/test native Formula engine
+        run: cargo test --locked -p formula-engine
+      - name: Strict Formula engine lint
+        run: cargo clippy --locked -p formula-engine --tests -- -D warnings
