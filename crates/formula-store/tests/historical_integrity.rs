@@ -155,6 +155,8 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("+1\n{}", current.to_hex()),
         format!("1 \n{}", current.to_hex()),
         format!("{canonical}\n"),
+        format!("1\r\n{}", current.to_hex()),
+        format!("1\n{}\r", current.to_hex()),
     ];
     for alternative in alternatives {
         fs::write(&pointer, &alternative).unwrap();
