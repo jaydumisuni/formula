@@ -312,6 +312,10 @@ impl QueryIR {
         self.resource_contract
     }
 
+    pub fn side_effect_policy(&self) -> SideEffectPolicy {
+        self.side_effect_policy
+    }
+
     pub fn activated_packages(&self) -> &ActivatedPackageBinding {
         &self.activated_packages
     }
