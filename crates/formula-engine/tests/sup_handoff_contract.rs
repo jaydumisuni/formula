@@ -1,4 +1,5 @@
 use formula_core::digest::ArtifactDigest;
+use formula_engine::director::FormulaMathematicalDirector;
 use formula_engine::sup_handoff::{
     SupHandoffError, SupLearningRequest, SupNeuralIntent, UntrustedSupAdvice,
 };
@@ -24,7 +25,7 @@ fn intent<'a>(
 fn request() -> SupLearningRequest {
     let a = ["independent Formula math checker remains mandatory".into()];
     let r = ["never grant promotion or execution authority to SUP".into()];
-    SupLearningRequest::optional_neural(
+    FormulaMathematicalDirector::request_neural_specialist(
         true,
         &generation(),
         &intent(

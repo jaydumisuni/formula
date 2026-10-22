@@ -100,3 +100,12 @@ operation/lease recovery, autonomous remote scheduling, and grounded
 English-to-QueryIR. Such broader Ptah facilities need their own real
 native-transport verification when the actual workload needs them.
 Do not treat this scoped additional interface as universal P13 proof.
+
+### Formula Director public entry points (2026-10-22)
+
+The product-owned FormulaMathematicalDirector now exposes
+request_neural_specialist and ptah_candidate_collection, delegating
+directly to the existing SUP G4 request and Ptah candidate-batch
+contracts. The Director does not select a new neural training engine,
+transport, scheduler, verifier or approval layer. Ordinary local
+mathematical execution remains usable with both specialists absent.

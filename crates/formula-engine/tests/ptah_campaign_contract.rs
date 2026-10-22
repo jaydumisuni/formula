@@ -46,7 +46,7 @@ fn build() -> PtahCampaignBatch {
             .unwrap(),
         );
     }
-    PtahCampaignBatch::from_directors(&plans).unwrap()
+    FormulaMathematicalDirector::ptah_candidate_collection(&plans).unwrap()
 }
 fn candidate(manifest: ArtifactDigest, cell: ArtifactDigest, bytes: &[u8]) -> PtahCandidateReceipt {
     PtahCandidateReceipt {
