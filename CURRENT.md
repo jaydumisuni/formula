@@ -7,6 +7,22 @@
 
 Recover repository evidence before reasoning. Do not reconstruct project state from chat memory when this file and the frozen design/roadmap are available.
 
+
+## Cross-branch implementation recovery — 2026-10-22
+
+**This main checkout preserves the architecture/design baseline; it is not Formula's latest implementation or the project-wide completion counter.** The earlier P0 next-step handoff describes the original frozen design checkpoint, not the present global status.
+
+- **P0–P9:** canonical First-Light proof and source authority are frozen on branch implementation/p9-canonical-first-light-proof. Final independent proof head b353365fa8b20a13b658c07b3027334b69eff108 emitted FIRST_LIGHT_COMPLETE with all fifteen canonical markers. See that branch's P9 checkpoint.
+- **P10–P12:** subsequently frozen implementation/proof stages. P12 documentation-proof boundary 75e3cb55c9099200d1b0f36c09b35e23a7b0a482 on implementation/p12-self-hosting-bootstrap-trust-reduction. P12 does not prove the removal of Stage-0 bootstrap seed or self-hosting all Rust tools.
+- **P13:** the Mathematical Director and Formula-to-Ptah integration branch integration/formula-mathematical-director-20261021 at 0fdf42ee18ac9898fbbfa53681fffbeae82299c2 passed Director CI run 39585998606. The physical canonical COUNT local-vs-Ptah semantic equivalence was independently checked in its stated scope. General multi-work-cell distributed campaigns, general E03 candidate artifact transport, interrupted recovery, and natural-language-to-QueryIR are not qualified by that case. See that branch's October 21 integration boundary document.
+- **Active KRATOS Cookpit Formula lane:** c3/p1-continuation-20261006 at 665ff225a95db05468a606577102487b4b394953 is a separate P1 hardening/regression branch. Its micro/heavy worker passes must not be mistaken for the complete Formula roadmap stage or mathematical proof authority.
+- **Frozen architecture checkout:** original 50c0beb021d8bf02d59a177049b9c2cf1783b26a remains unchanged.
+
+**What remains:** further qualify P13's general artifact transfer, recovery and distributed campaign obligations *if such general distributed execution is actually needed*, then publish independently verified P13 admission. This does not require GPU, planned future hardware, or tying KRATOS and ATHENA together for ordinary builds.
+
+The historical status sections below are retained as freeze-time context, not current project-wide status.
+
+
 ## Exact current state
 
 The architecture/research campaign is complete enough for implementation.
@@ -46,13 +62,13 @@ That handoff is superseded by the later D1–D5 architecture normalization and f
 
 Do **not** restart Formula from B01 merely because an older handoff or chat says so.
 
-## Current executable milestone
+## Historical executable milestone at the original architecture freeze
 
-**P0 — Repository and reproducible build skeleton.**
+**P0 — Repository and reproducible build skeleton (original baseline, not current global stage).**
 
 At the canonical frozen checkpoint, no implementation code was claimed complete. Current `main` contains the design/research/roadmap authority but does not contain the planned P0 Rust workspace (`Cargo.toml`, `rust-toolchain.toml`, or the planned `crates/` implementation tree).
 
-Therefore P0 is the first unproven implementation milestone unless newer implementation evidence is present in a construction branch/worktree when this file is recovered.
+At the original architecture freeze P0 was unproven. Later implementation branches have since proved P0–P12; use the cross-branch recovery index above before selecting work.
 
 ### P0 required workspace
 
