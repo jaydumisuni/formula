@@ -7,6 +7,7 @@ pub mod director;
 pub mod discovery;
 pub mod obligation;
 pub mod observational;
+pub mod ptah_campaign;
 pub mod ptah_handoff;
 pub mod query;
 pub mod reduction;
@@ -18,6 +19,7 @@ pub mod reuse;
 pub mod route_space;
 pub mod search_policy;
 pub mod self_expansion;
+pub mod sup_handoff;
 pub mod theory_profile;
 pub mod work_cell;
 
