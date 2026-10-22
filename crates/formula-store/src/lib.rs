@@ -246,6 +246,16 @@ impl BlobStore {
             }
             error
         })?;
+        Self::read_verified_opened(&mut file, path, expected)
+    }
+
+    // Keep the opened inode and its pathname bound through verification. A
+    // digest match alone does not prove that the name still resolves to it.
+    fn read_verified_opened(
+        file: &mut fs::File,
+        path: &Path,
+        expected: ArtifactDigest,
+    ) -> io::Result<Vec<u8>> {
         let metadata = file.metadata()?;
         if !metadata.file_type().is_file() {
             return Err(io::Error::new(
@@ -274,6 +284,21 @@ impl BlobStore {
                 io::ErrorKind::InvalidData,
                 "existing blob digest mismatch",
             ));
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let after = file.metadata()?;
+            let named = fs::symlink_metadata(path)?;
+            if !GenerationIndex::index_leaf_metadata_stable(&metadata, &after)
+                || named.dev() != metadata.dev()
+                || named.ino() != metadata.ino()
+            {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "immutable blob leaf changed during verified read",
+                ));
+            }
         }
         Ok(bytes)
     }
@@ -903,6 +928,30 @@ mod tests {
                 .unwrap()
                 .len(),
             128
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn replaced_blob_pathname_cannot_validate_old_open_inode() {
+        let root = test_root("blob-replaced-during-read");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(&root);
+        let digest = store.put(b"original immutable bytes").unwrap();
+        let path = store.blob_path(digest);
+        let mut opened = OpenOptions::new().read(true).open(&path).unwrap();
+
+        // Even matching bytes at a new pathname inode cannot make the old
+        // opened inode authoritative for the current digest path.
+        let replacement = root.join("replacement");
+        fs::write(&replacement, b"original immutable bytes").unwrap();
+        fs::rename(&replacement, &path).unwrap();
+        assert_eq!(
+            BlobStore::read_verified_opened(&mut opened, &path, digest)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(root).unwrap();
     }
