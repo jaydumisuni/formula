@@ -65,3 +65,38 @@ Keep the original P13 workplan above as history. Integrate on the post-P12 integ
 ### Post-review P1 corrections
 
 - The Formula Director enforces SideEffectPolicy::deny_all on BOTH normal planning and exact-capability reuse. An unsafe reuse query fails before CompilerV1::compile_reuse and is covered by a negative regression test.
+
+
+## 2026-10-22: Optional SUP and multi-Director Ptah candidate collection
+
+- Formula's new sup_handoff library emits an optional request to SUP's
+  existing G4 Production Director only when neural help is genuinely
+  justified. Caller supplies an exact SUP generation, instruction,
+  measured baseline/evidence digest, acceptance criteria and forbidden
+  regressions. Formula's own mathematical discovery, truth, promotion and
+  second-use remain its own responsibility; there is no mandatory SUP
+  dependency or training authorization.
+- Live SUP G4 intake was exercised on KRATOS. With no externally qualified
+  Formula neural learning package, SUP correctly returned AWAIT_SOURCE,
+  training_executed=false, authority_granted=false. This is not an
+  assertion that a neural model was trained.
+- Formula's new ptah_campaign library collects actual Director-produced
+  WorkCell plans across multiple grounded campaigns. It binds exact
+  per-plan manifests and candidate byte digests, allows identical
+  evidence replay, and rejects conflicting retries, missing candidate
+  bytes or changed work identities. The stable observation is
+  caller-checkpoint metadata, not mathematical proof or authority.
+- Ptah continues as optional workstation/workspace and execution
+  substrate. Ordinary Formula CPU work remains local and available
+  if Ptah, SUP or another Node is offline.
+
+Verified with Formula Rust workspace tests, strict Clippy, format
+checks, negative tests and live SUP schema acceptance. The existing
+physical P13 COUNT equivalence evidence remains unchanged.
+
+Still unqualified by these additions: general physical E03 candidate
+artifact transfer, signed effect readback, arbitrary interrupted
+operation/lease recovery, autonomous remote scheduling, and grounded
+English-to-QueryIR. Such broader Ptah facilities need their own real
+native-transport verification when the actual workload needs them.
+Do not treat this scoped additional interface as universal P13 proof.
