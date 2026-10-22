@@ -401,6 +401,27 @@ impl GenerationIndex {
         BlobStore::require_real_ancestors(&self.root)?;
         fs::create_dir_all(&self.root)?;
         self.require_real_root()?;
+        // Hold the index directory inode's advisory lock across the complete
+        // high-water scan, immutable history installation, and active-pointer
+        // rename/fsync. A pathname lock file would itself be replaceable.
+        #[cfg(unix)]
+        let _publication_lock = {
+            use std::os::fd::AsRawFd;
+            use std::os::unix::fs::OpenOptionsExt;
+            let directory = OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+                .open(&self.root)?;
+            if unsafe { libc::flock(directory.as_raw_fd(), libc::LOCK_EX) } != 0 {
+                return Err(io::Error::last_os_error());
+            }
+            directory
+        };
+        #[cfg(not(unix))]
+        return Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "generation publication requires an exclusive directory lock",
+        ));
         if !store.contains(manifest)? {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,

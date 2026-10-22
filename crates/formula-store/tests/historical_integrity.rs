@@ -175,3 +175,57 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
     }
     fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(target_os = "linux")]
+#[test]
+fn publication_waits_for_exclusive_index_directory_lock() {
+    use std::os::fd::AsRawFd;
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-publish-lock-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store_root = root.join("store");
+    let index_root = root.join("index");
+    let store = BlobStore::new(&store_root);
+    let index = GenerationIndex::new(&index_root);
+    let current = store.put(b"current manifest").unwrap();
+    let next = store.put(b"next manifest").unwrap();
+    index.publish(&store, 1, current).unwrap();
+
+    // A second publisher must not inspect a stale active pointer and later
+    // overwrite a newer committed generation. The index directory is the
+    // stable serialization boundary; no disposable lock file is needed.
+    let directory = fs::File::open(&index_root).unwrap();
+    assert_eq!(
+        unsafe { libc::flock(directory.as_raw_fd(), libc::LOCK_EX) },
+        0
+    );
+    let (started_tx, started_rx) = mpsc::channel();
+    let (done_tx, done_rx) = mpsc::channel();
+    let worker = thread::spawn(move || {
+        started_tx.send(()).unwrap();
+        let result = GenerationIndex::new(index_root).publish(&BlobStore::new(store_root), 2, next);
+        done_tx.send(result).unwrap();
+    });
+    started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+    assert!(
+        done_rx.recv_timeout(Duration::from_millis(250)).is_err(),
+        "publication bypassed the exclusive index directory lock"
+    );
+    assert_eq!(
+        unsafe { libc::flock(directory.as_raw_fd(), libc::LOCK_UN) },
+        0
+    );
+    worker.join().unwrap();
+    done_rx
+        .recv_timeout(Duration::from_secs(3))
+        .unwrap()
+        .unwrap();
+    assert_eq!(index.active_generation().unwrap(), (2, next));
+    fs::remove_dir_all(root).unwrap();
+}
