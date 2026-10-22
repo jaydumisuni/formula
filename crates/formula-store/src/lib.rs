@@ -329,6 +329,22 @@ impl GenerationIndex {
         Ok(Some(recorded))
     }
 
+    #[cfg(unix)]
+    fn index_leaf_metadata_stable(before: &fs::Metadata, after: &fs::Metadata) -> bool {
+        use std::os::unix::fs::MetadataExt;
+        before.is_file()
+            && after.is_file()
+            && before.nlink() == 1
+            && after.nlink() == 1
+            && before.dev() == after.dev()
+            && before.ino() == after.ino()
+            && before.len() == after.len()
+            && before.mtime() == after.mtime()
+            && before.mtime_nsec() == after.mtime_nsec()
+            && before.ctime() == after.ctime()
+            && before.ctime_nsec() == after.ctime_nsec()
+    }
+
     /// Read an index leaf from the same inode whose type and link count were checked.
     /// A concurrent pathname replacement must not redirect a validated read.
     fn read_index_leaf(path: &Path, description: &str) -> io::Result<String> {
@@ -339,7 +355,7 @@ impl GenerationIndex {
             use std::os::unix::fs::OpenOptionsExt;
             options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
         }
-        let file = options.open(path).map_err(|error| {
+        let mut file = options.open(path).map_err(|error| {
             #[cfg(unix)]
             if error.raw_os_error() == Some(libc::ELOOP) {
                 return io::Error::new(
@@ -381,8 +397,24 @@ impl GenerationIndex {
             ));
         }
         let mut content = String::new();
-        file.take(MAX_INDEX_LEAF_BYTES + 1)
+        (&mut file)
+            .take(MAX_INDEX_LEAF_BYTES + 1)
             .read_to_string(&mut content)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let after = file.metadata()?;
+            let named = fs::symlink_metadata(path)?;
+            if !Self::index_leaf_metadata_stable(&metadata, &after)
+                || named.dev() != metadata.dev()
+                || named.ino() != metadata.ino()
+            {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("{description} changed during verified read"),
+                ));
+            }
+        }
         if content.len() as u64 > MAX_INDEX_LEAF_BYTES {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -813,6 +845,39 @@ mod tests {
                 io::ErrorKind::InvalidData
             );
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn index_leaf_metadata_guard_detects_in_place_and_replaced_inode() {
+        use std::os::unix::fs::MetadataExt;
+        let root = test_root("index-leaf-metadata");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let leaf = root.join("active-generation");
+        fs::write(&leaf, b"first").unwrap();
+        let before = fs::metadata(&leaf).unwrap();
+        assert!(GenerationIndex::index_leaf_metadata_stable(
+            &before,
+            &fs::metadata(&leaf).unwrap()
+        ));
+
+        fs::write(&leaf, b"second-longer").unwrap();
+        let changed = fs::metadata(&leaf).unwrap();
+        assert_eq!(before.ino(), changed.ino());
+        assert!(!GenerationIndex::index_leaf_metadata_stable(
+            &before, &changed
+        ));
+
+        let replacement = root.join("replacement");
+        fs::write(&replacement, b"second-longer").unwrap();
+        fs::rename(&replacement, &leaf).unwrap();
+        let replaced = fs::metadata(&leaf).unwrap();
+        assert_ne!(changed.ino(), replaced.ino());
+        assert!(!GenerationIndex::index_leaf_metadata_stable(
+            &changed, &replaced
+        ));
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
