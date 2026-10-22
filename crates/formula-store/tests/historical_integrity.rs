@@ -229,3 +229,54 @@ fn publication_waits_for_exclusive_index_directory_lock() {
     assert_eq!(index.active_generation().unwrap(), (2, next));
     fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(target_os = "linux")]
+#[test]
+fn concurrent_successor_publishers_preserve_monotonic_authority() {
+    use std::sync::{Arc, Barrier};
+    use std::thread;
+
+    let root = std::env::temp_dir().join(format!(
+        "formula-concurrent-successors-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let initial = store.put(b"initial generation").unwrap();
+    let older = store.put(b"successor two").unwrap();
+    let newer = store.put(b"successor three").unwrap();
+    index.publish(&store, 1, initial).unwrap();
+
+    let barrier = Arc::new(Barrier::new(3));
+    let mut workers = Vec::new();
+    for (generation, digest) in [(2, older), (3, newer)] {
+        let barrier = Arc::clone(&barrier);
+        let root = root.clone();
+        workers.push(thread::spawn(move || {
+            barrier.wait();
+            GenerationIndex::new(root.join("index")).publish(
+                &BlobStore::new(root.join("store")),
+                generation,
+                digest,
+            )
+        }));
+    }
+    barrier.wait();
+    let older_result = workers.remove(0).join().unwrap();
+    let newer_result = workers.remove(0).join().unwrap();
+    newer_result.unwrap();
+    if let Err(error) = older_result {
+        assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        assert!(!root.join("index/generations/2.manifest").exists());
+    } else {
+        assert_eq!(index.historical_manifest(2).unwrap(), older);
+    }
+    assert_eq!(index.historical_manifest(1).unwrap(), initial);
+    assert_eq!(index.historical_manifest(3).unwrap(), newer);
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap(),
+        (3, newer)
+    );
+    fs::remove_dir_all(root).unwrap();
+}
