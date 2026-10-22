@@ -106,6 +106,21 @@ impl FormulaMathematicalDirector {
         PtahCampaignBatch::from_directors(plans)
     }
 
+    /// Resolve a caller-qualified text phrase against fixed Formula QueryIR,
+    /// then run the existing compiler and its authority checks. No language
+    /// interpretation may manufacture a mathematical world or source digest.
+    pub fn plan_grounded_text(
+        text: &str,
+        grounded: &[crate::grounded_language::GroundedPhrase],
+        snapshot: &CompilerAuthoritySnapshot,
+        inputs: CompilerInputs,
+    ) -> Result<DirectedCampaign, crate::grounded_language::GroundedPlanningError> {
+        let query = crate::grounded_language::resolve(text, grounded)
+            .map_err(crate::grounded_language::GroundedPlanningError::Grounding)?;
+        Self::plan(&query, snapshot, inputs)
+            .map_err(crate::grounded_language::GroundedPlanningError::Compiler)
+    }
+
     /// Reuses an already-admitted mathematical capability through the native
     /// compiler. No discovery work cells are scheduled for this route.
     pub fn plan_reuse(

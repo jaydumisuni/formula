@@ -109,3 +109,23 @@ directly to the existing SUP G4 request and Ptah candidate-batch
 contracts. The Director does not select a new neural training engine,
 transport, scheduler, verifier or approval layer. Ordinary local
 mathematical execution remains usable with both specialists absent.
+
+### Exact evidence-grounded text entry (2026-10-22)
+
+Formula's Mathematical Director now accepts an exact pre-grounded phrase
+mapping through grounded_language. It retrieves the previously admitted
+QueryIR without guessing input digests, universe generations, packages,
+observers, resource budgets, or target meanings. The same CompilerV1
+authority checks and work-cell output apply. Ambiguous, unsupported or
+different language is rejected before compilation. Source qualification of
+phrase-to-math bindings belongs to the Formula owner, not a generative
+interpreter or SUP. Tests establish parity for a bounded canonical COUNT
+utterance and adversarial rejection; arbitrary English-to-QueryIR is not
+qualified as an unconstrained semantic interpreter.
+
+Ptah's separate E03 transfer and signed-effect verifier already exist.
+Its new signed readback gate returns only candidate bytes with exact
+work-cell identity. The mathematical checker remains solely Formula-owned.
+A fresh physical two-machine candidate E03 byte transfer and independent
+witness provisioning are still separate physical acceptance checks; no
+test-generated signature is a live external observer attestation.
