@@ -8,6 +8,12 @@ The project is deliberately not classified as only a CAS, theorem prover, AI mat
 
 ## Current status
 
+This main branch preserves the frozen architecture, not the newest Formula
+implementation. Read [CURRENT.md](CURRENT.md) first for the cross-branch
+2026-10-22 recovery: P9 First Light and P10–P12 are independently frozen;
+P13 has scoped canonical COUNT acceptance, while general distributed
+campaign and recovery qualification remain separate.
+
 Broad pre-design research is complete enough to support architecture.
 
 The project now has a frozen canonical architecture:
@@ -85,8 +91,8 @@ Ptah is explicitly deferred until the local First-Light proof passes.
 
 Ptah may later execute serialized Work Cells and large mathematical campaigns, but it does not become mathematical authority and is not required to consume already promoted local mathematics.
 
-## Next executable milestone
+## Original architecture baseline
 
-**P0 — Repository and reproducible build skeleton.**
+P0 repository/build skeleton was the original next step, not the current global stage. Recover latest proof stages from [CURRENT.md](CURRENT.md).
 
 The next major proof freeze is **P9 — Canonical First-Light Proof**.
