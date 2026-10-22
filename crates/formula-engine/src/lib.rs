@@ -5,6 +5,7 @@ pub mod compiler;
 pub mod decomposition;
 pub mod director;
 pub mod discovery;
+pub mod grounded_language;
 pub mod obligation;
 pub mod observational;
 pub mod ptah_campaign;
