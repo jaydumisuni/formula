@@ -167,10 +167,18 @@ impl BlobStore {
     }
 
     fn require_real_directory(path: &Path) -> io::Result<()> {
-        if !fs::symlink_metadata(path)?.file_type().is_dir() {
+        let metadata = fs::symlink_metadata(path)?;
+        if !metadata.file_type().is_dir() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "immutable blob ancestor must be a real directory",
+                "immutable authority directory must be a real directory",
+            ));
+        }
+        #[cfg(unix)]
+        if std::os::unix::fs::PermissionsExt::mode(&metadata.permissions()) & 0o022 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "immutable authority directory must not be group- or world-writable",
             ));
         }
         Ok(())
@@ -322,13 +330,7 @@ impl GenerationIndex {
 
     fn require_real_root(&self) -> io::Result<()> {
         BlobStore::require_real_ancestors(&self.root)?;
-        if !fs::symlink_metadata(&self.root)?.file_type().is_dir() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "generation index root must be a real directory",
-            ));
-        }
-        Ok(())
+        BlobStore::require_real_directory(&self.root)
     }
 
     /// Reject malformed or newer history entries during the second verified scan.
@@ -508,12 +510,7 @@ impl GenerationIndex {
         }
         let generations = self.root.join("generations");
         fs::create_dir_all(&generations)?;
-        if !fs::symlink_metadata(&generations)?.file_type().is_dir() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "generation history directory must be a real directory",
-            ));
-        }
+        BlobStore::require_real_directory(&generations)?;
         // The active pointer may be absent after an interrupted publication.
         // Durable history is still a high-water authority boundary: never
         // activate an older generation when a newer history entry exists.
@@ -686,12 +683,7 @@ impl GenerationIndex {
     pub fn historical_manifest(&self, generation: u64) -> io::Result<ArtifactDigest> {
         self.require_real_root()?;
         let generations = self.root.join("generations");
-        if !fs::symlink_metadata(&generations)?.file_type().is_dir() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "generation history directory must be a real directory",
-            ));
-        }
+        BlobStore::require_real_directory(&generations)?;
         let history = self
             .root
             .join("generations")
@@ -953,6 +945,74 @@ mod tests {
                 .kind(),
             io::ErrorKind::InvalidData
         );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn shared_writable_blob_shard_cannot_claim_immutable_authority() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("writable-blob-shard");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let bytes = b"shard-directory-authority";
+        let digest = store.put(bytes).unwrap();
+        let shard = store.blob_path(digest).parent().unwrap().to_path_buf();
+        fs::set_permissions(&shard, fs::Permissions::from_mode(0o777)).unwrap();
+        assert_eq!(
+            store.get(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.contains(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            store.put(bytes).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::set_permissions(&shard, fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(store.get(digest).unwrap(), bytes);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn shared_writable_index_directories_cannot_claim_generation_authority() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("writable-index-directories");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let manifest = store.put(b"index-directory-authority").unwrap();
+        index.publish(&store, 0, manifest).unwrap();
+
+        let history_dir = root.join("index/generations");
+        fs::set_permissions(&history_dir, fs::Permissions::from_mode(0o777)).unwrap();
+        assert_eq!(
+            index.historical_manifest(0).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 1, manifest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::set_permissions(&history_dir, fs::Permissions::from_mode(0o755)).unwrap();
+
+        let index_root = root.join("index");
+        fs::set_permissions(&index_root, fs::Permissions::from_mode(0o777)).unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 1, manifest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::set_permissions(&index_root, fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(index.active_generation().unwrap(), (0, manifest));
         fs::remove_dir_all(root).unwrap();
     }
 
