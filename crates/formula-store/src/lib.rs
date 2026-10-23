@@ -184,12 +184,12 @@ impl BlobStore {
         Ok(())
     }
 
-    // Sticky-bit protection is meaningful only when the sticky directory is
-    // owned by root or by the current process. A foreign directory owner can
-    // still unlink another user's child even when the sticky bit is set.
+    // Every authority ancestor must be owned by root or by this process:
+    // a foreign owner can replace descendants even when its directory is 0755.
+    // A shared-writable trusted ancestor is safe only with sticky protection.
     #[cfg(unix)]
     fn ancestor_custody_permitted(mode: u32, owner_uid: u32, effective_uid: u32) -> bool {
-        mode & 0o022 == 0 || (mode & 0o1000 != 0 && (owner_uid == 0 || owner_uid == effective_uid))
+        (owner_uid == 0 || owner_uid == effective_uid) && (mode & 0o022 == 0 || mode & 0o1000 != 0)
     }
 
     // A real store root is insufficient if a parent redirects it through a
@@ -987,8 +987,13 @@ mod tests {
             0o1777, current, current
         ));
         assert!(BlobStore::ancestor_custody_permitted(0o1777, 0, current));
-        assert!(BlobStore::ancestor_custody_permitted(
+        // Even a non-writable-by-others ancestor is replaceable by its
+        // foreign owner, who can rename its authority descendants.
+        assert!(!BlobStore::ancestor_custody_permitted(
             0o0755, foreign, current
+        ));
+        assert!(BlobStore::ancestor_custody_permitted(
+            0o0755, current, current
         ));
     }
 
