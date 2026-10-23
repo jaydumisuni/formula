@@ -1,0 +1,6 @@
+[package]
+name = "formula-realize"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
