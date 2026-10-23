@@ -189,7 +189,23 @@ impl BlobStore {
     fn require_real_ancestors(path: &Path) -> io::Result<()> {
         for ancestor in path.ancestors() {
             match fs::symlink_metadata(ancestor) {
-                Ok(metadata) if metadata.file_type().is_dir() => {}
+                Ok(metadata) if metadata.file_type().is_dir() => {
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        let mode = metadata.permissions().mode();
+                        // An unprotected shared-writable ancestor permits
+                        // replacement of even a private child directory.
+                        // Sticky directories (e.g. /tmp) preserve ownership
+                        // protection for existing child entries.
+                        if mode & 0o022 != 0 && mode & 0o1000 == 0 {
+                            return Err(io::Error::new(
+                                io::ErrorKind::InvalidData,
+                                "immutable authority ancestor is shared-writable without sticky protection",
+                            ));
+                        }
+                    }
+                }
                 Ok(_) => {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
@@ -945,6 +961,53 @@ mod tests {
                 .kind(),
             io::ErrorKind::InvalidData
         );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn nonsticky_shared_writable_ancestor_cannot_host_authority() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("writable-parent-ancestor");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o777)).unwrap();
+
+        let store = BlobStore::new(root.join("store"));
+        assert_eq!(
+            store.put(b"unsafe-parent").unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(!root.join("store").exists());
+
+        // A sticky shared directory, such as /tmp, protects existing
+        // owned entries and remains supported.
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o1777)).unwrap();
+        let digest = store.put(b"sticky-parent-ok").unwrap();
+        let index = GenerationIndex::new(root.join("index"));
+        index.publish(&store, 0, digest).unwrap();
+
+        // Both existing blob and generation authority must also fail closed
+        // if their ancestor becomes replaceable after initial creation.
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o777)).unwrap();
+        assert_eq!(
+            store.get(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 1, digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o1777)).unwrap();
+        assert_eq!(store.get(digest).unwrap(), b"sticky-parent-ok");
+        assert_eq!(index.active_generation().unwrap(), (0, digest));
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o755)).unwrap();
         fs::remove_dir_all(root).unwrap();
     }
 
