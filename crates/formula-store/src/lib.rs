@@ -175,13 +175,32 @@ impl BlobStore {
             ));
         }
         #[cfg(unix)]
-        if std::os::unix::fs::PermissionsExt::mode(&metadata.permissions()) & 0o022 != 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "immutable authority directory must not be group- or world-writable",
-            ));
+        {
+            use std::os::unix::fs::{MetadataExt, PermissionsExt};
+            if !Self::authority_directory_custody_permitted(
+                metadata.permissions().mode(),
+                metadata.uid(),
+                unsafe { libc::geteuid() },
+            ) {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "immutable authority directory must have trusted ownership and private writes",
+                ));
+            }
         }
         Ok(())
+    }
+
+    // Unlike a sticky shared ancestor, an authority directory itself must
+    // never be shared-writable. Its owner must be root or the current user:
+    // a foreign owner can replace its children even with mode 0755.
+    #[cfg(unix)]
+    fn authority_directory_custody_permitted(
+        mode: u32,
+        owner_uid: u32,
+        effective_uid: u32,
+    ) -> bool {
+        (owner_uid == 0 || owner_uid == effective_uid) && mode & 0o022 == 0
     }
 
     // Every authority ancestor must be owned by root or by this process:
@@ -994,6 +1013,30 @@ mod tests {
         ));
         assert!(BlobStore::ancestor_custody_permitted(
             0o0755, current, current
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn foreign_owned_private_authority_directories_are_rejected() {
+        let current = unsafe { libc::geteuid() };
+        let foreign = if current == u32::MAX { 1 } else { current + 1 };
+        // A foreign owner can replace children of a 0755 directory despite
+        // the absence of group/world write permission.
+        assert!(!BlobStore::authority_directory_custody_permitted(
+            0o755, foreign, current
+        ));
+        assert!(BlobStore::authority_directory_custody_permitted(
+            0o755, current, current
+        ));
+        assert!(BlobStore::authority_directory_custody_permitted(
+            0o755, 0, current
+        ));
+        assert!(!BlobStore::authority_directory_custody_permitted(
+            0o777, current, current
+        ));
+        assert!(!BlobStore::authority_directory_custody_permitted(
+            0o1777, current, current
         ));
     }
 
