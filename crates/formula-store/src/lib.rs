@@ -184,6 +184,14 @@ impl BlobStore {
         Ok(())
     }
 
+    // Sticky-bit protection is meaningful only when the sticky directory is
+    // owned by root or by the current process. A foreign directory owner can
+    // still unlink another user's child even when the sticky bit is set.
+    #[cfg(unix)]
+    fn ancestor_custody_permitted(mode: u32, owner_uid: u32, effective_uid: u32) -> bool {
+        mode & 0o022 == 0 || (mode & 0o1000 != 0 && (owner_uid == 0 || owner_uid == effective_uid))
+    }
+
     // A real store root is insufficient if a parent redirects it through a
     // symlink. Check existing ancestors before creating any directories.
     fn require_real_ancestors(path: &Path) -> io::Result<()> {
@@ -192,16 +200,16 @@ impl BlobStore {
                 Ok(metadata) if metadata.file_type().is_dir() => {
                     #[cfg(unix)]
                     {
-                        use std::os::unix::fs::PermissionsExt;
+                        use std::os::unix::fs::{MetadataExt, PermissionsExt};
                         let mode = metadata.permissions().mode();
-                        // An unprotected shared-writable ancestor permits
-                        // replacement of even a private child directory.
-                        // Sticky directories (e.g. /tmp) preserve ownership
-                        // protection for existing child entries.
-                        if mode & 0o022 != 0 && mode & 0o1000 == 0 {
+                        // A foreign-owned sticky ancestor is not protected:
+                        // its owner can replace a private authority child.
+                        if !Self::ancestor_custody_permitted(mode, metadata.uid(), unsafe {
+                            libc::geteuid()
+                        }) {
                             return Err(io::Error::new(
                                 io::ErrorKind::InvalidData,
-                                "immutable authority ancestor is shared-writable without sticky protection",
+                                "immutable authority ancestor lacks trusted sticky ownership",
                             ));
                         }
                     }
@@ -962,6 +970,26 @@ mod tests {
             io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn foreign_owned_sticky_ancestor_cannot_claim_authority() {
+        let current = unsafe { libc::geteuid() };
+        let foreign = if current == u32::MAX { 1 } else { current + 1 };
+        assert!(!BlobStore::ancestor_custody_permitted(
+            0o1777, foreign, current
+        ));
+        assert!(!BlobStore::ancestor_custody_permitted(
+            0o0777, current, current
+        ));
+        assert!(BlobStore::ancestor_custody_permitted(
+            0o1777, current, current
+        ));
+        assert!(BlobStore::ancestor_custody_permitted(0o1777, 0, current));
+        assert!(BlobStore::ancestor_custody_permitted(
+            0o0755, foreign, current
+        ));
     }
 
     #[cfg(unix)]
