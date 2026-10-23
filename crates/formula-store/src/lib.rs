@@ -203,6 +203,13 @@ impl BlobStore {
         (owner_uid == 0 || owner_uid == effective_uid) && mode & 0o022 == 0
     }
 
+    // Blob and generation-index leaves can be edited by their owner even
+    // with mode 0600. Only this process or root may own immutable authority.
+    #[cfg(unix)]
+    fn authority_leaf_custody_permitted(mode: u32, owner_uid: u32, effective_uid: u32) -> bool {
+        Self::authority_directory_custody_permitted(mode, owner_uid, effective_uid)
+    }
+
     // Every authority ancestor must be owned by root or by this process:
     // a foreign owner can replace descendants even when its directory is 0755.
     // A shared-writable trusted ancestor is safe only with sticky protection.
@@ -322,11 +329,18 @@ impl BlobStore {
             ));
         }
         #[cfg(unix)]
-        if std::os::unix::fs::PermissionsExt::mode(&metadata.permissions()) & 0o022 != 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "immutable blob leaf must not be group- or world-writable",
-            ));
+        {
+            use std::os::unix::fs::{MetadataExt, PermissionsExt};
+            if !Self::authority_leaf_custody_permitted(
+                metadata.permissions().mode(),
+                metadata.uid(),
+                unsafe { libc::geteuid() },
+            ) {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "immutable blob leaf lacks trusted ownership or private writes",
+                ));
+            }
         }
         let mut bytes = Vec::new();
         file.read_to_end(&mut bytes)?;
@@ -450,11 +464,18 @@ impl GenerationIndex {
             ));
         }
         #[cfg(unix)]
-        if std::os::unix::fs::PermissionsExt::mode(&metadata.permissions()) & 0o022 != 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("{description} must not be group- or world-writable"),
-            ));
+        {
+            use std::os::unix::fs::{MetadataExt, PermissionsExt};
+            if !BlobStore::authority_leaf_custody_permitted(
+                metadata.permissions().mode(),
+                metadata.uid(),
+                unsafe { libc::geteuid() },
+            ) {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("{description} lacks trusted ownership or private writes"),
+                ));
+            }
         }
         // Generation history leaves contain one digest; the active pointer adds
         // only a decimal generation and separator. Bound both metadata and
@@ -1013,6 +1034,31 @@ mod tests {
         ));
         assert!(BlobStore::ancestor_custody_permitted(
             0o0755, current, current
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn immutable_authority_leaf_requires_trusted_owner_and_private_writes() {
+        let current = unsafe { libc::geteuid() };
+        let foreign = if current == u32::MAX { 1 } else { current + 1 };
+        assert!(!BlobStore::authority_leaf_custody_permitted(
+            0o600, foreign, current
+        ));
+        assert!(!BlobStore::authority_leaf_custody_permitted(
+            0o644, foreign, current
+        ));
+        assert!(BlobStore::authority_leaf_custody_permitted(
+            0o600, current, current
+        ));
+        assert!(BlobStore::authority_leaf_custody_permitted(
+            0o644, 0, current
+        ));
+        assert!(!BlobStore::authority_leaf_custody_permitted(
+            0o622, current, current
+        ));
+        assert!(!BlobStore::authority_leaf_custody_permitted(
+            0o666, current, current
         ));
     }
 
