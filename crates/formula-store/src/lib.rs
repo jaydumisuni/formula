@@ -286,7 +286,17 @@ impl BlobStore {
     // ancestors from child to parent so each newly installed name is durable.
     fn sync_directory_chain(path: &Path) -> io::Result<()> {
         for directory in path.ancestors() {
-            fs::File::open(directory)?.sync_all()?;
+            let mut options = OpenOptions::new();
+            options.read(true);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                // An ancestor may change between custody preflight and the
+                // durability barrier. Never follow a replacement symlink or
+                // accept a regular file as a directory sync target.
+                options.custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC);
+            }
+            options.open(directory)?.sync_all()?;
         }
         Ok(())
     }
@@ -1008,6 +1018,26 @@ mod tests {
 
     fn test_root(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn directory_sync_rejects_redirected_and_nondirectory_components() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("directory-sync-custody");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("real")).unwrap();
+        symlink(root.join("real"), root.join("alias")).unwrap();
+        fs::write(root.join("regular"), b"not a directory").unwrap();
+
+        // The directory durability barrier must never follow a replacement
+        // symlink or silently fsync an attacker-supplied regular file.
+        assert!(BlobStore::sync_directory_chain(&root.join("alias")).is_err());
+        assert!(BlobStore::sync_directory_chain(&root.join("regular")).is_err());
+        assert!(BlobStore::sync_directory_chain(&root.join("real")).is_ok());
+
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
