@@ -1,63 +1,116 @@
-//! P1 D2-P02: independent publishers must not rebind one generation.
-//! This is construction evidence only, not a Formula authority admission.
+//! P1 D2-P02: two independent OS processes must not rebind a generation.
+//! Construction regression only; no Formula authority is admitted.
 
 #[cfg(target_os = "linux")]
 #[test]
-fn competing_generation_publishers_admit_exactly_one_manifest() {
+fn cross_process_publish_child() {
     use formula_store::{BlobStore, GenerationIndex};
     use std::fs;
-    use std::io;
-    use std::sync::{Arc, Barrier};
+    use std::path::PathBuf;
     use std::thread;
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, Instant};
+
+    let Some(root) = std::env::var_os("FORMULA_P1_CROSS_PROCESS_ROOT") else {
+        return; // This helper is inert in an ordinary test invocation.
+    };
+    let root = PathBuf::from(root);
+    let role = std::env::var("FORMULA_P1_CROSS_PROCESS_ROLE").unwrap();
+    let bytes: &[u8] = match role.as_str() {
+        "first" => b"first independent process",
+        "second" => b"second independent process",
+        _ => panic!("unknown process role"),
+    };
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let digest = store.put(bytes).unwrap();
+    fs::write(root.join(format!("ready-{role}")), b"ready").unwrap();
+
+    let deadline = Instant::now() + Duration::from_secs(15);
+    while !root.join("start").exists() && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert!(root.join("start").exists(), "publication barrier timed out");
+
+    let disposition = match index.publish(&store, 42, digest) {
+        Ok(()) => "ok",
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => "already_exists",
+        Err(error) => panic!("unexpected publication error: {error}"),
+    };
+    fs::write(root.join(format!("result-{role}")), disposition).unwrap();
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn competing_processes_preserve_one_exact_history_binding() {
+    use formula_store::{BlobStore, GenerationIndex};
+    use std::fs;
+    use std::process::{Command, Stdio};
+    use std::thread;
+    use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("system clock before epoch")
         .as_nanos();
     let root = std::env::temp_dir().join(format!(
-        "formula-p1-competing-publishers-{}-{nonce}",
+        "formula-p1-cross-process-{}-{nonce}",
         std::process::id()
     ));
-    fs::create_dir(&root).expect("create isolated publication fixture");
-    let store = Arc::new(BlobStore::new(root.join("store")));
-    let index = Arc::new(GenerationIndex::new(root.join("index")));
-    let first = store
-        .put(b"first independent manifest")
-        .expect("first blob");
-    let second = store
-        .put(b"second independent manifest")
-        .expect("second blob");
-    assert_ne!(first, second);
+    fs::create_dir(&root).expect("create isolated fixture");
 
-    let gate = Arc::new(Barrier::new(3));
-    let publishers: Vec<_> = [first, second]
+    let binary = std::env::current_exe().expect("current test binary");
+    let children: Vec<_> = ["first", "second"]
         .into_iter()
-        .map(|manifest| {
-            let gate = Arc::clone(&gate);
-            let store = Arc::clone(&store);
-            let index = Arc::clone(&index);
-            thread::spawn(move || {
-                gate.wait();
-                index.publish(&store, 42, manifest)
-            })
+        .map(|role| {
+            Command::new(&binary)
+                .args(["--exact", "cross_process_publish_child", "--nocapture"])
+                .env("FORMULA_P1_CROSS_PROCESS_ROOT", &root)
+                .env("FORMULA_P1_CROSS_PROCESS_ROLE", role)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .expect("spawn independent publisher")
         })
         .collect();
-    gate.wait();
 
-    let results: Vec<_> = publishers
-        .into_iter()
-        .map(|publisher| publisher.join().expect("publisher thread panicked"))
-        .collect();
-    assert_eq!(
-        results.iter().filter(|result| result.is_ok()).count(),
-        1,
-        "only one distinct manifest may bind generation 42"
-    );
-    for rejected in results.iter().filter_map(|result| result.as_ref().err()) {
-        assert_eq!(rejected.kind(), io::ErrorKind::AlreadyExists);
+    let deadline = Instant::now() + Duration::from_secs(15);
+    while !(root.join("ready-first").exists() && root.join("ready-second").exists())
+        && Instant::now() < deadline
+    {
+        thread::sleep(Duration::from_millis(10));
     }
-    let winner = if results[0].is_ok() { first } else { second };
+    assert!(
+        root.join("ready-first").exists() && root.join("ready-second").exists(),
+        "both publishers must reach the process barrier"
+    );
+    fs::write(root.join("start"), b"go").unwrap();
+
+    for child in children {
+        let output = child.wait_with_output().expect("wait for publisher");
+        assert!(
+            output.status.success(),
+            "publisher failed: stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let first = fs::read_to_string(root.join("result-first")).unwrap();
+    let second = fs::read_to_string(root.join("result-second")).unwrap();
+    assert!(
+        (first == "ok" && second == "already_exists")
+            || (second == "ok" && first == "already_exists"),
+        "exactly one process may publish a distinct manifest: {first}, {second}"
+    );
+
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first_digest = store.put(b"first independent process").unwrap();
+    let second_digest = store.put(b"second independent process").unwrap();
+    let winner = if first == "ok" {
+        first_digest
+    } else {
+        second_digest
+    };
     assert_eq!(index.historical_manifest(42).unwrap(), winner);
     assert_eq!(
         index.verified_active_generation(&store).unwrap(),
