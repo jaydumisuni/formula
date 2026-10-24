@@ -4,8 +4,9 @@
 //! again on read. It does not publish generations or grant mathematical authority.
 
 use formula_core::{ArtifactDigest, UniverseGeneration};
+use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -323,6 +324,21 @@ impl BlobStore {
         Self::read_verified_opened(&mut file, path, expected)
     }
 
+    // Validate hostile/corrupt blob contents without first allocating a Vec
+    // sized by an untrusted file. Valid blobs still return exact bytes.
+    fn digest_reader(reader: &mut impl Read) -> io::Result<ArtifactDigest> {
+        let mut hasher = Sha256::new();
+        let mut chunk = [0_u8; 64 * 1024];
+        loop {
+            let count = reader.read(&mut chunk)?;
+            if count == 0 {
+                break;
+            }
+            hasher.update(&chunk[..count]);
+        }
+        Ok(ArtifactDigest::from_bytes(hasher.finalize().into()))
+    }
+
     // Keep the opened inode and its pathname bound through verification. A
     // digest match alone does not prove that the name still resolves to it.
     fn read_verified_opened(
@@ -358,9 +374,41 @@ impl BlobStore {
                 ));
             }
         }
+        // A corrupt sparse/oversized blob must not force a correspondingly
+        // large allocation merely because its filename claims a known digest.
+        if Self::digest_reader(file)? != expected {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "existing blob digest mismatch",
+            ));
+        }
+        let preflight_metadata = file.metadata()?;
+        if preflight_metadata.len() != metadata.len() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "immutable blob leaf changed during digest preflight",
+            ));
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let named = fs::symlink_metadata(path)?;
+            if !GenerationIndex::index_leaf_metadata_stable(&metadata, &preflight_metadata)
+                || named.dev() != metadata.dev()
+                || named.ino() != metadata.ino()
+            {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "immutable blob leaf changed during digest preflight",
+                ));
+            }
+        }
+        file.seek(SeekFrom::Start(0))?;
         let mut bytes = Vec::new();
-        file.read_to_end(&mut bytes)?;
-        if ArtifactDigest::sha256(&bytes) != expected {
+        (&mut *file)
+            .take(metadata.len().saturating_add(1))
+            .read_to_end(&mut bytes)?;
+        if bytes.len() as u64 != metadata.len() || ArtifactDigest::sha256(&bytes) != expected {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "existing blob digest mismatch",
@@ -1002,6 +1050,25 @@ mod tests {
             128
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn streaming_digest_preflight_reads_bounded_chunks() {
+        struct BoundedReader {
+            remaining: usize,
+        }
+        impl Read for BoundedReader {
+            fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+                assert!(buffer.len() <= 64 * 1024);
+                let count = self.remaining.min(buffer.len());
+                buffer[..count].fill(0x5a);
+                self.remaining -= count;
+                Ok(count)
+            }
+        }
+        let count = 1024 * 1024 + 17;
+        let digest = BlobStore::digest_reader(&mut BoundedReader { remaining: count }).unwrap();
+        assert_eq!(digest, ArtifactDigest::sha256(&vec![0x5a; count]));
     }
 
     #[cfg(unix)]
