@@ -330,7 +330,11 @@ impl BlobStore {
         let mut hasher = Sha256::new();
         let mut chunk = [0_u8; 64 * 1024];
         loop {
-            let count = reader.read(&mut chunk)?;
+            let count = match reader.read(&mut chunk) {
+                Ok(count) => count,
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                Err(error) => return Err(error),
+            };
             if count == 0 {
                 break;
             }
@@ -1069,6 +1073,47 @@ mod tests {
         let count = 1024 * 1024 + 17;
         let digest = BlobStore::digest_reader(&mut BoundedReader { remaining: count }).unwrap();
         assert_eq!(digest, ArtifactDigest::sha256(&vec![0x5a; count]));
+    }
+
+    #[test]
+    fn streaming_digest_preflight_retries_interrupted_reads() {
+        struct InterruptedOnce {
+            interrupted: bool,
+            offset: usize,
+        }
+        impl Read for InterruptedOnce {
+            fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+                if !self.interrupted {
+                    self.interrupted = true;
+                    return Err(io::Error::from(io::ErrorKind::Interrupted));
+                }
+                let content = b"interrupted stream resumes";
+                let count = (content.len() - self.offset).min(buffer.len());
+                buffer[..count].copy_from_slice(&content[self.offset..self.offset + count]);
+                self.offset += count;
+                Ok(count)
+            }
+        }
+        let digest = BlobStore::digest_reader(&mut InterruptedOnce {
+            interrupted: false,
+            offset: 0,
+        })
+        .unwrap();
+        assert_eq!(digest, ArtifactDigest::sha256(b"interrupted stream resumes"));
+    }
+
+    #[test]
+    fn streaming_digest_preflight_propagates_noninterrupted_errors() {
+        struct DeniedReader;
+        impl Read for DeniedReader {
+            fn read(&mut self, _buffer: &mut [u8]) -> io::Result<usize> {
+                Err(io::Error::from(io::ErrorKind::PermissionDenied))
+            }
+        }
+        assert_eq!(
+            BlobStore::digest_reader(&mut DeniedReader).unwrap_err().kind(),
+            io::ErrorKind::PermissionDenied
+        );
     }
 
     #[cfg(unix)]
