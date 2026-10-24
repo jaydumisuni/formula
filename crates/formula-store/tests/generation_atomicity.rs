@@ -1,6 +1,41 @@
 use formula_store::{BlobStore, GenerationIndex};
 use std::{fs, io};
 
+#[cfg(target_os = "linux")]
+#[test]
+fn first_publication_replays_from_fresh_nested_authority_directories() {
+    // The store, index, and their common parent do not exist at admission.
+    // Successful publication must install every directory before committing
+    // the blob, immutable history, and active-generation pointer.
+    let root = std::env::temp_dir().join(format!(
+        "formula-new-directory-custody-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store_root = root.join("nested/store");
+    let index_root = root.join("nested/index");
+    assert!(!root.exists());
+
+    let store = BlobStore::new(&store_root);
+    let index = GenerationIndex::new(&index_root);
+    let digest = store.put(b"first durable generation").unwrap();
+    index.publish(&store, 1, digest).unwrap();
+
+    assert!(store_root.join("blobs").is_dir());
+    assert!(index_root.join("generations").is_dir());
+    assert_eq!(
+        BlobStore::new(store_root).get(digest).unwrap(),
+        b"first durable generation"
+    );
+    assert_eq!(
+        GenerationIndex::new(index_root)
+            .verified_active_generation(&store)
+            .unwrap(),
+        (1, digest)
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn stale_pointer_temp_does_not_block_atomic_publication() {
     let root = std::env::temp_dir().join(format!(

@@ -281,18 +281,49 @@ impl BlobStore {
         Ok(())
     }
 
+    // A synced leaf is not crash-durable if an ancestor directory entry was
+    // just created but never synced. On first creation, sync the root and its
+    // ancestors from child to parent so each newly installed name is durable.
+    fn sync_directory_chain(path: &Path) -> io::Result<()> {
+        for directory in path.ancestors() {
+            fs::File::open(directory)?.sync_all()?;
+        }
+        Ok(())
+    }
+
+    fn directory_missing(path: &Path) -> io::Result<bool> {
+        match fs::symlink_metadata(path) {
+            Ok(_) => Ok(false),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(true),
+            Err(error) => Err(error),
+        }
+    }
+
     fn ensure_blob_directories(&self, digest: ArtifactDigest) -> io::Result<()> {
         Self::require_real_ancestors(&self.root)?;
+        let new_root = Self::directory_missing(&self.root)?;
         fs::create_dir_all(&self.root)?;
         Self::require_real_ancestors(&self.root)?;
         Self::require_real_directory(&self.root)?;
+        if new_root {
+            Self::sync_directory_chain(&self.root)?;
+        }
         let blobs = self.root.join("blobs");
+        let new_blobs = Self::directory_missing(&blobs)?;
         fs::create_dir_all(&blobs)?;
         Self::require_real_directory(&blobs)?;
+        if new_blobs {
+            fs::File::open(&self.root)?.sync_all()?;
+        }
         let hex = digest.to_hex();
         let shard = blobs.join(&hex[..2]);
+        let new_shard = Self::directory_missing(&shard)?;
         fs::create_dir_all(&shard)?;
-        Self::require_real_directory(&shard)
+        Self::require_real_directory(&shard)?;
+        if new_shard {
+            fs::File::open(&blobs)?.sync_all()?;
+        }
+        Ok(())
     }
 
     fn verify_existing(&self, path: &Path, expected: ArtifactDigest) -> io::Result<()> {
@@ -590,8 +621,12 @@ impl GenerationIndex {
         manifest: ArtifactDigest,
     ) -> io::Result<()> {
         BlobStore::require_real_ancestors(&self.root)?;
+        let new_root = BlobStore::directory_missing(&self.root)?;
         fs::create_dir_all(&self.root)?;
         self.require_real_root()?;
+        if new_root {
+            BlobStore::sync_directory_chain(&self.root)?;
+        }
         // Hold the index directory inode's advisory lock across the complete
         // high-water scan, immutable history installation, and active-pointer
         // rename/fsync. A pathname lock file would itself be replaceable.
@@ -641,8 +676,12 @@ impl GenerationIndex {
             }
         }
         let generations = self.root.join("generations");
+        let new_generations = BlobStore::directory_missing(&generations)?;
         fs::create_dir_all(&generations)?;
         BlobStore::require_real_directory(&generations)?;
+        if new_generations {
+            fs::File::open(&self.root)?.sync_all()?;
+        }
         // The active pointer may be absent after an interrupted publication.
         // Durable history is still a high-water authority boundary: never
         // activate an older generation when a newer history entry exists.
