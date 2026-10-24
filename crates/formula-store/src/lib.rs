@@ -221,6 +221,22 @@ impl BlobStore {
     // A real store root is insufficient if a parent redirects it through a
     // symlink. Check existing ancestors before creating any directories.
     fn require_real_ancestors(path: &Path) -> io::Result<()> {
+        // Relative roots change meaning with process cwd. A lexical ".."
+        // component can traverse a different directory than the one whose
+        // custody the caller intended to verify. Reject both before any I/O.
+        if !path.is_absolute()
+            || path.components().any(|part| {
+                matches!(
+                    part,
+                    std::path::Component::ParentDir | std::path::Component::CurDir
+                )
+            })
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "immutable authority root requires an absolute path without traversal",
+            ));
+        }
         for ancestor in path.ancestors() {
             match fs::symlink_metadata(ancestor) {
                 Ok(metadata) if metadata.file_type().is_dir() => {
@@ -1260,6 +1276,68 @@ mod tests {
             io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn authority_public_entrypoints_reject_noncanonical_roots() {
+        let relative = PathBuf::from(format!(
+            ".formula-relative-authority-{}",
+            std::process::id()
+        ));
+        assert!(!relative.exists());
+        let store = BlobStore::new(&relative);
+        assert_eq!(
+            store.put(b"no-relative-authority").unwrap_err().kind(),
+            io::ErrorKind::InvalidInput
+        );
+        assert!(
+            !relative.exists(),
+            "rejected store root must not be created"
+        );
+
+        let index = GenerationIndex::new(&relative);
+        assert_eq!(
+            index
+                .publish(&store, 1, ArtifactDigest::sha256(b"no-relative-authority"))
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidInput
+        );
+        assert!(
+            !relative.exists(),
+            "rejected index root must not be created"
+        );
+
+        let parent = test_root("public-parent-traversal")
+            .join("..")
+            .join("authority");
+        assert_eq!(
+            BlobStore::new(&parent)
+                .put(b"no-parent-traversal")
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidInput
+        );
+    }
+
+    #[test]
+    fn authority_paths_reject_relative_and_parent_traversal() {
+        // Authority custody cannot depend on a process's mutable current
+        // directory or on lexical parent traversal through a different inode.
+        let relative = Path::new("relative/authority");
+        assert_eq!(
+            BlobStore::require_real_ancestors(relative)
+                .expect_err("relative authority root must be rejected")
+                .kind(),
+            io::ErrorKind::InvalidInput
+        );
+        let parent = test_root("lexical-parent").join("..").join("authority");
+        assert_eq!(
+            BlobStore::require_real_ancestors(&parent)
+                .expect_err("parent traversal must be rejected")
+                .kind(),
+            io::ErrorKind::InvalidInput
+        );
     }
 
     #[cfg(unix)]
