@@ -23,7 +23,8 @@ fn cross_process_publish_child() {
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
     let digest = store.put(bytes).unwrap();
-    fs::write(root.join(format!("ready-{role}")), b"ready").unwrap();
+    // Publish the child-produced digest before releasing the process barrier.
+    fs::write(root.join(format!("ready-{role}")), digest.to_hex()).unwrap();
 
     let deadline = Instant::now() + Duration::from_secs(15);
     while !root.join("start").exists() && Instant::now() < deadline {
@@ -42,6 +43,7 @@ fn cross_process_publish_child() {
 #[cfg(target_os = "linux")]
 #[test]
 fn competing_processes_preserve_one_exact_history_binding() {
+    use formula_core::ArtifactDigest;
     use formula_store::{BlobStore, GenerationIndex};
     use std::fs;
     use std::process::{Command, Stdio};
@@ -104,8 +106,12 @@ fn competing_processes_preserve_one_exact_history_binding() {
 
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
-    let first_digest = store.put(b"first independent process").unwrap();
-    let second_digest = store.put(b"second independent process").unwrap();
+    // Read immutable child evidence; a parent put() would silently repair a missing
+    // blob and could make a broken publication look valid.
+    let first_digest =
+        ArtifactDigest::from_hex(&fs::read_to_string(root.join("ready-first")).unwrap()).unwrap();
+    let second_digest =
+        ArtifactDigest::from_hex(&fs::read_to_string(root.join("ready-second")).unwrap()).unwrap();
     let winner = if first == "ok" {
         first_digest
     } else {
