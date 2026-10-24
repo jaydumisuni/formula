@@ -96,9 +96,7 @@ pub enum GroundedPlanningError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::query::{
-        ActivatedPackageBinding, ResourceContract, TargetRequest,
-    };
+    use crate::query::{ActivatedPackageBinding, ResourceContract, TargetRequest};
 
     fn d(n: u8) -> ArtifactDigest {
         ArtifactDigest::of_bytes(&[n; 32])
@@ -141,12 +139,8 @@ mod tests {
             TargetRequest::new(d(3), RequestedResultClass::Count),
             TargetRequest::new(d(6), RequestedResultClass::Count),
         ]);
-        let phrase = GroundedPhrase::new(
-            "count approved targets",
-            homogeneous.clone(),
-            Some(d(9)),
-        )
-        .unwrap();
+        let phrase =
+            GroundedPhrase::new("count approved targets", homogeneous.clone(), Some(d(9))).unwrap();
         assert_eq!(
             resolve("count approved targets?", &[phrase]).unwrap(),
             homogeneous
