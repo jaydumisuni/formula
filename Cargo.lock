@@ -86,6 +86,7 @@ version = "0.0.1"
 dependencies = [
  "formula-core",
  "libc",
+ "sha2",
 ]
 
 [[package]]
