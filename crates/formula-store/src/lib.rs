@@ -83,8 +83,16 @@ impl BlobStore {
                 return Err(error);
             }
         }
-        fs::File::open(path.parent().expect("blob path has parent"))?.sync_all()?;
+        // A successful rename is not yet a verified immutable publication:
+        // re-open the installed name and validate its inode, custody, links,
+        // bytes and digest before reporting the new authority as stored.
+        self.finish_new_blob_installation(&path, digest)?;
         Ok(digest)
+    }
+
+    fn finish_new_blob_installation(&self, path: &Path, digest: ArtifactDigest) -> io::Result<()> {
+        self.verify_existing(path, digest)?;
+        fs::File::open(path.parent().expect("blob path has parent"))?.sync_all()
     }
 
     // Linux renameat2 installs the fully synced temp file atomically, without
@@ -917,6 +925,45 @@ mod tests {
 
     fn test_root(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
+    }
+
+    #[test]
+    fn newly_installed_blob_requires_verified_final_name() {
+        let root = test_root("post-install-readback");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(&root);
+        let bytes = b"post-install-verified";
+        let digest = store.put(bytes).unwrap();
+        let path = store.blob_path(digest);
+        store.finish_new_blob_installation(&path, digest).unwrap();
+
+        // An installed name that no longer contains the claimed digest is
+        // not valid authority, even if the rename previously succeeded.
+        fs::write(&path, b"replaced-after-rename").unwrap();
+        assert_eq!(
+            store
+                .finish_new_blob_installation(&path, digest)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        #[cfg(unix)]
+        {
+            // A matching digest is insufficient when the installed inode
+            // gained a second hardlink before the final readback.
+            fs::write(&path, bytes).unwrap();
+            let alias = root.join("post-install-alias");
+            fs::hard_link(&path, &alias).unwrap();
+            assert_eq!(
+                store
+                    .finish_new_blob_installation(&path, digest)
+                    .unwrap_err()
+                    .kind(),
+                io::ErrorKind::InvalidData
+            );
+        }
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
