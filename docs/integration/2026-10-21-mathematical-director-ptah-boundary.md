@@ -65,3 +65,67 @@ Keep the original P13 workplan above as history. Integrate on the post-P12 integ
 ### Post-review P1 corrections
 
 - The Formula Director enforces SideEffectPolicy::deny_all on BOTH normal planning and exact-capability reuse. An unsafe reuse query fails before CompilerV1::compile_reuse and is covered by a negative regression test.
+
+
+## 2026-10-22: Optional SUP and multi-Director Ptah candidate collection
+
+- Formula's new sup_handoff library emits an optional request to SUP's
+  existing G4 Production Director only when neural help is genuinely
+  justified. Caller supplies an exact SUP generation, instruction,
+  measured baseline/evidence digest, acceptance criteria and forbidden
+  regressions. Formula's own mathematical discovery, truth, promotion and
+  second-use remain its own responsibility; there is no mandatory SUP
+  dependency or training authorization.
+- Live SUP G4 intake was exercised on KRATOS. With no externally qualified
+  Formula neural learning package, SUP correctly returned AWAIT_SOURCE,
+  training_executed=false, authority_granted=false. This is not an
+  assertion that a neural model was trained.
+- Formula's new ptah_campaign library collects actual Director-produced
+  WorkCell plans across multiple grounded campaigns. It binds exact
+  per-plan manifests and candidate byte digests, allows identical
+  evidence replay, and rejects conflicting retries, missing candidate
+  bytes or changed work identities. The stable observation is
+  caller-checkpoint metadata, not mathematical proof or authority.
+- Ptah continues as optional workstation/workspace and execution
+  substrate. Ordinary Formula CPU work remains local and available
+  if Ptah, SUP or another Node is offline.
+
+Verified with Formula Rust workspace tests, strict Clippy, format
+checks, negative tests and live SUP schema acceptance. The existing
+physical P13 COUNT equivalence evidence remains unchanged.
+
+Still unqualified by these additions: general physical E03 candidate
+artifact transfer, signed effect readback, arbitrary interrupted
+operation/lease recovery, autonomous remote scheduling, and grounded
+English-to-QueryIR. Such broader Ptah facilities need their own real
+native-transport verification when the actual workload needs them.
+Do not treat this scoped additional interface as universal P13 proof.
+
+### Formula Director public entry points (2026-10-22)
+
+The product-owned FormulaMathematicalDirector now exposes
+request_neural_specialist and ptah_candidate_collection, delegating
+directly to the existing SUP G4 request and Ptah candidate-batch
+contracts. The Director does not select a new neural training engine,
+transport, scheduler, verifier or approval layer. Ordinary local
+mathematical execution remains usable with both specialists absent.
+
+### Exact evidence-grounded text entry (2026-10-22)
+
+Formula's Mathematical Director now accepts an exact pre-grounded phrase
+mapping through grounded_language. It retrieves the previously admitted
+QueryIR without guessing input digests, universe generations, packages,
+observers, resource budgets, or target meanings. The same CompilerV1
+authority checks and work-cell output apply. Ambiguous, unsupported or
+different language is rejected before compilation. Source qualification of
+phrase-to-math bindings belongs to the Formula owner, not a generative
+interpreter or SUP. Tests establish parity for a bounded canonical COUNT
+utterance and adversarial rejection; arbitrary English-to-QueryIR is not
+qualified as an unconstrained semantic interpreter.
+
+Ptah's separate E03 transfer and signed-effect verifier already exist.
+Its new signed readback gate returns only candidate bytes with exact
+work-cell identity. The mathematical checker remains solely Formula-owned.
+A fresh physical two-machine candidate E03 byte transfer and independent
+witness provisioning are still separate physical acceptance checks; no
+test-generated signature is a live external observer attestation.

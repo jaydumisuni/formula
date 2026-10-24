@@ -308,6 +308,17 @@ impl QueryIR {
             .unwrap_or(RequestedResultClass::Decision)
     }
 
+    /// A grounded text phrase may name only a nonempty, uniform result class.
+    /// The general QueryIR compiler still supports mixed target classes; this
+    /// narrower rule prevents one phrase prefix from mislabeling other targets.
+    pub fn grounded_result_class(&self) -> Option<RequestedResultClass> {
+        let class = self.targets.first()?.result_class();
+        self.targets
+            .iter()
+            .all(|target| target.result_class() == class)
+            .then_some(class)
+    }
+
     pub fn resource_contract(&self) -> ResourceContract {
         self.resource_contract
     }

@@ -8,6 +8,10 @@ use crate::{
     region::CompilerAuthoritySnapshot,
     reuse::{CompiledReuseCampaign, ReuseRequest},
 };
+use crate::{
+    ptah_campaign::{PtahCampaignBatch, PtahCampaignError},
+    sup_handoff::{SupHandoffError, SupLearningRequest, SupNeuralIntent},
+};
 use formula_core::{canonical::CanonicalValue, digest::ArtifactDigest};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -82,6 +86,41 @@ impl DirectedCampaign {
 pub struct FormulaMathematicalDirector;
 
 impl FormulaMathematicalDirector {
+    /// Uses the existing SUP Production Director as an optional neural
+    /// specialist, with caller-owned baseline and regression evidence.
+    /// This is not a replacement for Formula's local model-free learning.
+    pub fn request_neural_specialist(
+        neural_justified: bool,
+        sup_generation: &str,
+        intent: &SupNeuralIntent<'_>,
+    ) -> Result<Option<SupLearningRequest>, SupHandoffError> {
+        SupLearningRequest::optional_neural(neural_justified, sup_generation, intent)
+    }
+
+    /// Gives the chosen Ptah workspace/worker exact candidate-only packets
+    /// emitted by Formula's existing compiler. Formula retains all checking,
+    /// mathematical admission and promotion responsibility.
+    pub fn ptah_candidate_collection(
+        plans: &[DirectedCampaign],
+    ) -> Result<PtahCampaignBatch, PtahCampaignError> {
+        PtahCampaignBatch::from_directors(plans)
+    }
+
+    /// Resolve a caller-qualified text phrase against fixed Formula QueryIR,
+    /// then run the existing compiler and its authority checks. No language
+    /// interpretation may manufacture a mathematical world or source digest.
+    pub fn plan_grounded_text(
+        text: &str,
+        grounded: &[crate::grounded_language::GroundedPhrase],
+        snapshot: &CompilerAuthoritySnapshot,
+        inputs: CompilerInputs,
+    ) -> Result<DirectedCampaign, crate::grounded_language::GroundedPlanningError> {
+        let query = crate::grounded_language::resolve(text, grounded)
+            .map_err(crate::grounded_language::GroundedPlanningError::Grounding)?;
+        Self::plan(&query, snapshot, inputs)
+            .map_err(crate::grounded_language::GroundedPlanningError::Compiler)
+    }
+
     /// Reuses an already-admitted mathematical capability through the native
     /// compiler. No discovery work cells are scheduled for this route.
     pub fn plan_reuse(
