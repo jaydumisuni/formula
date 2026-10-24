@@ -284,19 +284,31 @@ impl BlobStore {
     // A synced leaf is not crash-durable if an ancestor directory entry was
     // just created but never synced. On first creation, sync the root and its
     // ancestors from child to parent so each newly installed name is durable.
+    // Bind every durability barrier to a real directory inode, including
+    // ordinary parent-entry and generation-pointer fsyncs. Pathname preflight
+    // alone cannot prevent a symlink replacement before a later open().
+    fn sync_real_directory(path: &Path) -> io::Result<()> {
+        let mut options = OpenOptions::new();
+        options.read(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC);
+        }
+        let directory = options.open(path)?;
+        #[cfg(not(unix))]
+        if !directory.metadata()?.is_dir() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "durability barrier target must be a directory",
+            ));
+        }
+        directory.sync_all()
+    }
+
     fn sync_directory_chain(path: &Path) -> io::Result<()> {
         for directory in path.ancestors() {
-            let mut options = OpenOptions::new();
-            options.read(true);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::OpenOptionsExt;
-                // An ancestor may change between custody preflight and the
-                // durability barrier. Never follow a replacement symlink or
-                // accept a regular file as a directory sync target.
-                options.custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC);
-            }
-            options.open(directory)?.sync_all()?;
+            Self::sync_real_directory(directory)?;
         }
         Ok(())
     }
@@ -323,7 +335,7 @@ impl BlobStore {
         fs::create_dir_all(&blobs)?;
         Self::require_real_directory(&blobs)?;
         if new_blobs {
-            fs::File::open(&self.root)?.sync_all()?;
+            BlobStore::sync_real_directory(&self.root)?;
         }
         let hex = digest.to_hex();
         let shard = blobs.join(&hex[..2]);
@@ -331,7 +343,7 @@ impl BlobStore {
         fs::create_dir_all(&shard)?;
         Self::require_real_directory(&shard)?;
         if new_shard {
-            fs::File::open(&blobs)?.sync_all()?;
+            BlobStore::sync_real_directory(&blobs)?;
         }
         Ok(())
     }
@@ -690,7 +702,7 @@ impl GenerationIndex {
         fs::create_dir_all(&generations)?;
         BlobStore::require_real_directory(&generations)?;
         if new_generations {
-            fs::File::open(&self.root)?.sync_all()?;
+            BlobStore::sync_real_directory(&self.root)?;
         }
         // The active pointer may be absent after an interrupted publication.
         // Durable history is still a high-water authority boundary: never
@@ -810,7 +822,7 @@ impl GenerationIndex {
                 }
                 Err(error) => return Err(error),
             }
-            fs::File::open(&generations)?.sync_all()?;
+            BlobStore::sync_real_directory(&generations)?;
         }
 
         // An interrupted publication can leave its temporary pointer behind.
@@ -852,7 +864,7 @@ impl GenerationIndex {
             write!(file, "{generation}\n{manifest_hex}")?;
             file.sync_all()?;
             fs::rename(&temp, &active)?;
-            fs::File::open(&self.root)?.sync_all()?;
+            BlobStore::sync_real_directory(&self.root)?;
             Ok(())
         })() {
             let _ = fs::remove_file(&temp);
@@ -1036,6 +1048,11 @@ mod tests {
         assert!(BlobStore::sync_directory_chain(&root.join("alias")).is_err());
         assert!(BlobStore::sync_directory_chain(&root.join("regular")).is_err());
         assert!(BlobStore::sync_directory_chain(&root.join("real")).is_ok());
+        // Every single-directory fsync used during publication must enforce
+        // the same no-follow, directory-only rule as the ancestor barrier.
+        assert!(BlobStore::sync_real_directory(&root.join("alias")).is_err());
+        assert!(BlobStore::sync_real_directory(&root.join("regular")).is_err());
+        assert!(BlobStore::sync_real_directory(&root.join("real")).is_ok());
 
         fs::remove_dir_all(root).unwrap();
     }
