@@ -45,7 +45,13 @@ impl GroundedPhrase {
         evidence: Option<ArtifactDigest>,
     ) -> Result<Self, GroundingError> {
         let text = normalize(text)?;
-        let prefix = match query.requested_result_class() {
+        // A phrase's result-class prefix must describe EVERY target, not
+        // merely the first sorted target in QueryIR. Empty or heterogeneous
+        // target sets require explicit QueryIR, not one misleading utterance.
+        let class = query
+            .grounded_result_class()
+            .ok_or(GroundingError::ClassMismatch)?;
+        let prefix = match class {
             RequestedResultClass::Count => &["count ", "how many "][..],
             RequestedResultClass::Decision => &["is ", "does ", "decide "][..],
             RequestedResultClass::Witness => &["find ", "show "][..],
@@ -85,4 +91,65 @@ pub fn resolve(
 pub enum GroundedPlanningError {
     Grounding(GroundingError),
     Compiler(crate::director::DirectorError),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::query::{
+        ActivatedPackageBinding, ResourceContract, TargetRequest,
+    };
+
+    fn d(n: u8) -> ArtifactDigest {
+        ArtifactDigest::of_bytes(&[n; 32])
+    }
+
+    fn query(targets: Vec<TargetRequest>) -> QueryIR {
+        QueryIR::new(
+            d(1),
+            d(2),
+            vec![],
+            vec![],
+            targets,
+            d(4),
+            d(5),
+            ResourceContract::new(100, 1024, 50),
+            SideEffectPolicy::deny_all(),
+            ActivatedPackageBinding::new(d(1), vec![d(30)], vec![]),
+        )
+    }
+
+    #[test]
+    fn reject_empty_and_mixed_result_classes_before_text_grounding() {
+        assert_eq!(
+            GroundedPhrase::new("is the result valid", query(vec![]), Some(d(9))),
+            Err(GroundingError::ClassMismatch)
+        );
+        let mixed = query(vec![
+            TargetRequest::new(d(3), RequestedResultClass::Count),
+            TargetRequest::new(d(6), RequestedResultClass::Decision),
+        ]);
+        assert_eq!(
+            GroundedPhrase::new("count approved targets", mixed, Some(d(9))),
+            Err(GroundingError::ClassMismatch)
+        );
+    }
+
+    #[test]
+    fn homogeneous_multi_target_grounding_remains_possible() {
+        let homogeneous = query(vec![
+            TargetRequest::new(d(3), RequestedResultClass::Count),
+            TargetRequest::new(d(6), RequestedResultClass::Count),
+        ]);
+        let phrase = GroundedPhrase::new(
+            "count approved targets",
+            homogeneous.clone(),
+            Some(d(9)),
+        )
+        .unwrap();
+        assert_eq!(
+            resolve("count approved targets?", &[phrase]).unwrap(),
+            homogeneous
+        );
+    }
 }
