@@ -22,8 +22,12 @@ fn competing_generation_publishers_admit_exactly_one_manifest() {
     fs::create_dir(&root).expect("create isolated publication fixture");
     let store = Arc::new(BlobStore::new(root.join("store")));
     let index = Arc::new(GenerationIndex::new(root.join("index")));
-    let first = store.put(b"first independent manifest").expect("first blob");
-    let second = store.put(b"second independent manifest").expect("second blob");
+    let first = store
+        .put(b"first independent manifest")
+        .expect("first blob");
+    let second = store
+        .put(b"second independent manifest")
+        .expect("second blob");
     assert_ne!(first, second);
 
     let gate = Arc::new(Barrier::new(3));
@@ -53,12 +57,11 @@ fn competing_generation_publishers_admit_exactly_one_manifest() {
     for rejected in results.iter().filter_map(|result| result.as_ref().err()) {
         assert_eq!(rejected.kind(), io::ErrorKind::AlreadyExists);
     }
-    let winner = if results[0].is_ok() {
-        first
-    } else {
-        second
-    };
+    let winner = if results[0].is_ok() { first } else { second };
     assert_eq!(index.historical_manifest(42).unwrap(), winner);
-    assert_eq!(index.verified_active_generation(&store).unwrap(), (42, winner));
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap(),
+        (42, winner)
+    );
     fs::remove_dir_all(root).expect("remove isolated fixture");
 }
