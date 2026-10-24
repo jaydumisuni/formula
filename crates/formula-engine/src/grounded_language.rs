@@ -17,7 +17,14 @@ fn normalize(text: &str) -> Result<String, GroundingError> {
     if text.is_empty() || text.len() > 2048 || !text.is_ascii() {
         return Err(GroundingError::InvalidText);
     }
-    let reduced = text.trim().trim_end_matches('?').to_ascii_lowercase();
+    // A single terminal question mark is a permitted spelling variant.
+    // Repeated or interior question marks must not alias an approved QueryIR.
+    let trimmed = text.trim();
+    let reduced = trimmed.strip_suffix('?').unwrap_or(trimmed);
+    if reduced.contains('?') {
+        return Err(GroundingError::InvalidText);
+    }
+    let reduced = reduced.to_ascii_lowercase();
     if reduced.bytes().any(|b| !b.is_ascii_graphic() && b != b' ') {
         return Err(GroundingError::InvalidText);
     }
@@ -130,6 +137,31 @@ mod tests {
         assert_eq!(
             GroundedPhrase::new("count approved targets", mixed, Some(d(9))),
             Err(GroundingError::ClassMismatch)
+        );
+    }
+
+    #[test]
+    fn unapproved_question_mark_aliases_fail_closed() {
+        let q = query(vec![TargetRequest::new(d(3), RequestedResultClass::Count)]);
+        let approved = GroundedPhrase::new("count approved targets", q.clone(), Some(d(9)))
+            .unwrap();
+        for instruction in [
+            "count approved targets??",
+            "count approved? targets",
+            "count approved targets? ?",
+        ] {
+            assert_eq!(
+                resolve(instruction, std::slice::from_ref(&approved)),
+                Err(GroundingError::InvalidText)
+            );
+        }
+        assert_eq!(
+            GroundedPhrase::new("count approved targets??", q.clone(), Some(d(9))),
+            Err(GroundingError::InvalidText)
+        );
+        assert_eq!(
+            resolve("count approved targets?", &[approved]).unwrap(),
+            q
         );
     }
 
