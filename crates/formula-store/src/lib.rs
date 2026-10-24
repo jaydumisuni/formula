@@ -1099,7 +1099,10 @@ mod tests {
             offset: 0,
         })
         .unwrap();
-        assert_eq!(digest, ArtifactDigest::sha256(b"interrupted stream resumes"));
+        assert_eq!(
+            digest,
+            ArtifactDigest::sha256(b"interrupted stream resumes")
+        );
     }
 
     #[test]
@@ -1111,7 +1114,9 @@ mod tests {
             }
         }
         assert_eq!(
-            BlobStore::digest_reader(&mut DeniedReader).unwrap_err().kind(),
+            BlobStore::digest_reader(&mut DeniedReader)
+                .unwrap_err()
+                .kind(),
             io::ErrorKind::PermissionDenied
         );
     }
