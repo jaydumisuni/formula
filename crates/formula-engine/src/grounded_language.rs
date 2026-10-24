@@ -143,8 +143,8 @@ mod tests {
     #[test]
     fn unapproved_question_mark_aliases_fail_closed() {
         let q = query(vec![TargetRequest::new(d(3), RequestedResultClass::Count)]);
-        let approved = GroundedPhrase::new("count approved targets", q.clone(), Some(d(9)))
-            .unwrap();
+        let approved =
+            GroundedPhrase::new("count approved targets", q.clone(), Some(d(9))).unwrap();
         for instruction in [
             "count approved targets??",
             "count approved? targets",
@@ -159,10 +159,7 @@ mod tests {
             GroundedPhrase::new("count approved targets??", q.clone(), Some(d(9))),
             Err(GroundingError::InvalidText)
         );
-        assert_eq!(
-            resolve("count approved targets?", &[approved]).unwrap(),
-            q
-        );
+        assert_eq!(resolve("count approved targets?", &[approved]).unwrap(), q);
     }
 
     #[test]
