@@ -2104,7 +2104,9 @@ mod tests {
         // The old binding-only finish check still passes after a referenced
         // blob changes. A replay acknowledgement must reject the mutation.
         fs::write(store.blob_path(first), b"corrupt after initial blob scan").unwrap();
-        index.finish_verified_history_snapshot(observed, &history).unwrap();
+        index
+            .finish_verified_history_snapshot(observed, &history)
+            .unwrap();
         assert_eq!(
             index
                 .finish_verified_manifest_snapshot(&store, observed, &history)
