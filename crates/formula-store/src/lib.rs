@@ -367,9 +367,7 @@ impl BlobStore {
                         Self::ancestor_custody_permitted(mode, owner, effective_uid)
                     }
                 };
-                if !custody_ok(live.mode(), live.uid())
-                    || !custody_ok(named.mode(), named.uid())
-                {
+                if !custody_ok(live.mode(), live.uid()) || !custody_ok(named.mode(), named.uid()) {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
                         "durability barrier directory lost trusted write custody",
@@ -1229,7 +1227,10 @@ mod tests {
         let authority_result =
             BlobStore::sync_opened_real_directory_with_custody(&root, &opened, true);
         fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
-        assert_eq!(authority_result.unwrap_err().kind(), io::ErrorKind::InvalidData);
+        assert_eq!(
+            authority_result.unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
