@@ -84,8 +84,19 @@ impl BlobStore {
                 return Err(error);
             }
         }
-        Self::sync_published_blob_parent(&path)?;
+        self.finish_new_blob_installation(&path, digest)?;
         Ok(digest)
+    }
+
+    // Atomic installation and file sync are not sufficient to acknowledge a
+    // blob: a competing filesystem actor may have rebound the published name
+    // or introduced a hardlink before the directory durability barrier.
+    // Verify the exact installed leaf before and after the barrier, preserving
+    // the no-follow, single-link, owner, inode and digest checks.
+    fn finish_new_blob_installation(&self, path: &Path, digest: ArtifactDigest) -> io::Result<()> {
+        self.verify_existing(path, digest)?;
+        Self::sync_published_blob_parent(path)?;
+        self.verify_existing(path, digest)
     }
 
     // Linux renameat2 installs the fully synced temp file atomically, without
@@ -1066,6 +1077,41 @@ mod tests {
 
     fn test_root(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
+    }
+
+    #[test]
+    fn newly_installed_blob_must_pass_final_name_custody_readback() {
+        let root = test_root("installed-blob-final-custody");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(&root);
+        let bytes = b"verified-after-atomic-install";
+        let digest = store.put(bytes).unwrap();
+        let path = store.blob_path(digest);
+
+        store.finish_new_blob_installation(&path, digest).unwrap();
+        fs::write(&path, b"tampered-after-install").unwrap();
+        assert_eq!(
+            store
+                .finish_new_blob_installation(&path, digest)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        #[cfg(unix)]
+        {
+            fs::write(&path, bytes).unwrap();
+            let alias = root.join("hardlink-to-installed-blob");
+            fs::hard_link(&path, &alias).unwrap();
+            assert_eq!(
+                store
+                    .finish_new_blob_installation(&path, digest)
+                    .unwrap_err()
+                    .kind(),
+                io::ErrorKind::InvalidData
+            );
+        }
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[cfg(unix)]
