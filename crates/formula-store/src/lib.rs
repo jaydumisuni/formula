@@ -324,6 +324,7 @@ impl BlobStore {
     // be rebound after open but before the durability barrier. Check the
     // opened inode against the named directory on both sides of sync_all().
     // The caller must not acknowledge a barrier for a detached directory.
+    #[cfg(test)]
     fn sync_opened_real_directory(path: &Path, directory: &fs::File) -> io::Result<()> {
         Self::sync_opened_real_directory_with_custody(path, directory, false)
     }
