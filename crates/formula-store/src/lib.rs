@@ -606,6 +606,27 @@ impl GenerationIndex {
         BlobStore::require_real_directory(&self.root)
     }
 
+    // A directory flock follows its opened inode, not its pathname. If the
+    // authority root is renamed after lock acquisition, a replacement root
+    // would otherwise receive publication writes without holding its lock.
+    #[cfg(unix)]
+    fn verify_publication_lock_binding(&self, locked: &fs::File) -> io::Result<()> {
+        use std::os::unix::fs::MetadataExt;
+        self.require_real_root()?;
+        let opened = locked.metadata()?;
+        let named = fs::symlink_metadata(&self.root)?;
+        if !opened.is_dir()
+            || opened.dev() != named.dev()
+            || opened.ino() != named.ino()
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "generation publication lock no longer protects the named root",
+            ));
+        }
+        Ok(())
+    }
+
     /// Reject malformed or newer history entries during the second verified scan.
     fn verified_history_entry_number(
         name: &str,
@@ -762,6 +783,7 @@ impl GenerationIndex {
             if unsafe { libc::flock(directory.as_raw_fd(), libc::LOCK_EX) } != 0 {
                 return Err(io::Error::last_os_error());
             }
+            self.verify_publication_lock_binding(&directory)?;
             directory
         };
         #[cfg(not(unix))]
@@ -968,6 +990,10 @@ impl GenerationIndex {
             // published pointer, its history, and the referenced immutable
             // blobs still agree at acknowledgement time.
             self.finish_generation_publication(store, generation, manifest)?;
+            // The final readback must still be protected by the same directory
+            // inode lock. A detached lock cannot authorize an acknowledgement.
+            #[cfg(unix)]
+            self.verify_publication_lock_binding(&_publication_lock)?;
             Ok(())
         })() {
             let _ = fs::remove_file(&temp);
@@ -1226,6 +1252,39 @@ mod tests {
 
     fn test_root(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn generation_publication_lock_rejects_rebound_root() {
+        use std::os::fd::AsRawFd;
+
+        let root = test_root("publication-lock-root-rebind");
+        let detached = root.with_extension("detached-lock");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&detached);
+        fs::create_dir_all(&root).unwrap();
+        let index = GenerationIndex::new(&root);
+        let locked = fs::File::open(&root).unwrap();
+        assert_eq!(unsafe { libc::flock(locked.as_raw_fd(), libc::LOCK_EX) }, 0);
+        index.verify_publication_lock_binding(&locked).unwrap();
+
+        // A flock on the old directory continues to succeed after a rename.
+        // It does not protect a new directory at the same pathname.
+        fs::rename(&root, &detached).unwrap();
+        fs::create_dir(&root).unwrap();
+        assert!(locked.sync_all().is_ok());
+        assert_eq!(
+            index
+                .verify_publication_lock_binding(&locked)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        drop(locked);
+        fs::remove_dir_all(&root).unwrap();
+        fs::remove_dir_all(detached).unwrap();
     }
 
     #[cfg(unix)]
