@@ -645,7 +645,6 @@ impl GenerationIndex {
         }
     }
 
-
     // History installation must use the directory inode reached from the
     // locked authority root, not a path which can be rebound after flock.
     #[cfg(target_os = "linux")]
@@ -710,9 +709,7 @@ impl GenerationIndex {
             Ok(stat)
         };
         let before = stat_leaf(&from)?;
-        if (before.st_dev as u64) != metadata.dev()
-            || (before.st_ino as u64) != metadata.ino()
-        {
+        if (before.st_dev as u64) != metadata.dev() || (before.st_ino as u64) != metadata.ino() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "history temp is outside the locked history directory",
@@ -1109,7 +1106,9 @@ impl GenerationIndex {
                             use std::ffi::CString;
                             use std::os::unix::ffi::OsStrExt;
                             let name = CString::new(
-                                temp.file_name().expect("history temp has a name").as_bytes(),
+                                temp.file_name()
+                                    .expect("history temp has a name")
+                                    .as_bytes(),
                             )
                             .map_err(|_| {
                                 io::Error::new(io::ErrorKind::InvalidInput, "NUL in history temp")
@@ -1524,7 +1523,6 @@ mod tests {
         fs::remove_dir_all(detached).unwrap();
     }
 
-
     #[cfg(target_os = "linux")]
     #[test]
     fn locked_history_install_cannot_write_into_rebound_root() {
@@ -1549,7 +1547,11 @@ mod tests {
 
         fs::rename(&root, &detached).unwrap();
         fs::create_dir_all(root.join("generations")).unwrap();
-        fs::write(root.join("generations/3.manifest.tmp-guard"), b"replacement").unwrap();
+        fs::write(
+            root.join("generations/3.manifest.tmp-guard"),
+            b"replacement",
+        )
+        .unwrap();
         GenerationIndex::install_history_no_replace_under_lock(
             &history_dir,
             &temp,
@@ -1567,9 +1569,11 @@ mod tests {
             fs::read(root.join("generations/3.manifest.tmp-guard")).unwrap(),
             b"replacement"
         );
-        assert!(GenerationIndex::new(&root)
-            .verify_publication_lock_binding(&locked)
-            .is_err());
+        assert!(
+            GenerationIndex::new(&root)
+                .verify_publication_lock_binding(&locked)
+                .is_err()
+        );
         drop(staged);
         drop(history_dir);
         drop(locked);
@@ -1594,13 +1598,15 @@ mod tests {
         fs::write(&temp, b"foreign-temp").unwrap();
         let staged = fs::File::open(&temp).unwrap();
 
-        assert!(GenerationIndex::install_history_no_replace_under_lock(
-            &history_dir,
-            &temp,
-            &history,
-            &staged,
-        )
-        .is_err());
+        assert!(
+            GenerationIndex::install_history_no_replace_under_lock(
+                &history_dir,
+                &temp,
+                &history,
+                &staged,
+            )
+            .is_err()
+        );
         assert!(!root.join("generations/3.manifest").exists());
         assert!(!detached.join("generations/3.manifest").exists());
         drop(staged);
