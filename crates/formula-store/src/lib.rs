@@ -1089,7 +1089,21 @@ impl GenerationIndex {
                 "active generation manifest blob missing",
             ));
         }
+        // The active pointer and history can advance while the historical
+        // blobs are being verified. Never return an earlier authority snapshot
+        // as the verified *active* generation after such a transition.
+        self.finish_verified_generation_replay(active)?;
         Ok(active)
+    }
+
+    fn finish_verified_generation_replay(&self, observed: (u64, ArtifactDigest)) -> io::Result<()> {
+        if self.active_generation()? != observed {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "active generation changed during verified replay",
+            ));
+        }
+        Ok(())
     }
 }
 
@@ -1861,6 +1875,43 @@ mod tests {
             index
                 .finish_generation_publication(&store, 3, manifest)
                 .is_err()
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn verified_replay_rechecks_active_pointer_and_history_after_blob_scan() {
+        let root = test_root("generation-replay-final-readback");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let old = store.put(b"first replay manifest").unwrap();
+        let new = store.put(b"second replay manifest").unwrap();
+        index.publish(&store, 1, old).unwrap();
+        let observed = index.active_generation().unwrap();
+
+        // Model a second publisher advancing the active pointer while a
+        // verified replay is busy scanning its immutable blob chain.
+        index.publish(&store, 2, new).unwrap();
+        assert_eq!(
+            index
+                .finish_verified_generation_replay(observed)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(index.finish_verified_generation_replay((2, new)).is_ok());
+
+        // An interrupted successor may install durable history before its
+        // pointer. That newer history must also invalidate the old snapshot.
+        let third = store.put(b"third replay manifest").unwrap();
+        fs::write(root.join("index/generations/3.manifest"), third.to_hex()).unwrap();
+        assert_eq!(
+            index
+                .finish_verified_generation_replay((2, new))
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(root).unwrap();
     }
