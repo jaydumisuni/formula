@@ -353,11 +353,42 @@ impl BlobStore {
         Self::sync_real_directory(parent)
     }
 
-    fn sync_directory_chain(path: &Path) -> io::Result<()> {
+    // A newly created nested root needs durable directory entries only up
+    // through its first pre-existing parent. Higher ancestors did not change
+    // and may legitimately be execute-only to this writer.
+    fn first_existing_directory(path: &Path) -> io::Result<PathBuf> {
+        for ancestor in path.ancestors() {
+            match fs::symlink_metadata(ancestor) {
+                Ok(metadata) if metadata.file_type().is_dir() => {
+                    return Ok(ancestor.to_path_buf());
+                }
+                Ok(_) => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "authority ancestor must be a real directory",
+                    ));
+                }
+                Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error),
+            }
+        }
+        Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "no existing authority directory ancestor",
+        ))
+    }
+
+    fn sync_directory_chain(path: &Path, first_existing: &Path) -> io::Result<()> {
         for directory in path.ancestors() {
             Self::sync_real_directory(directory)?;
+            if directory == first_existing {
+                return Ok(());
+            }
         }
-        Ok(())
+        Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "durability boundary is not an ancestor of the new authority root",
+        ))
     }
 
     fn directory_missing(path: &Path) -> io::Result<bool> {
@@ -370,12 +401,16 @@ impl BlobStore {
 
     fn ensure_blob_directories(&self, digest: ArtifactDigest) -> io::Result<()> {
         Self::require_real_ancestors(&self.root)?;
-        let new_root = Self::directory_missing(&self.root)?;
+        let durability_boundary = if Self::directory_missing(&self.root)? {
+            Some(Self::first_existing_directory(&self.root)?)
+        } else {
+            None
+        };
         fs::create_dir_all(&self.root)?;
         Self::require_real_ancestors(&self.root)?;
         Self::require_real_directory(&self.root)?;
-        if new_root {
-            Self::sync_directory_chain(&self.root)?;
+        if let Some(boundary) = durability_boundary {
+            Self::sync_directory_chain(&self.root, &boundary)?;
         }
         let blobs = self.root.join("blobs");
         let new_blobs = Self::directory_missing(&blobs)?;
@@ -690,11 +725,15 @@ impl GenerationIndex {
         manifest: ArtifactDigest,
     ) -> io::Result<()> {
         BlobStore::require_real_ancestors(&self.root)?;
-        let new_root = BlobStore::directory_missing(&self.root)?;
+        let durability_boundary = if BlobStore::directory_missing(&self.root)? {
+            Some(BlobStore::first_existing_directory(&self.root)?)
+        } else {
+            None
+        };
         fs::create_dir_all(&self.root)?;
         self.require_real_root()?;
-        if new_root {
-            BlobStore::sync_directory_chain(&self.root)?;
+        if let Some(boundary) = durability_boundary {
+            BlobStore::sync_directory_chain(&self.root, &boundary)?;
         }
         // Hold the index directory inode's advisory lock across the complete
         // high-water scan, immutable history installation, and active-pointer
@@ -1115,6 +1154,35 @@ mod tests {
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn new_authority_directory_durability_stops_at_existing_private_parent() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("existing-private-boundary");
+        let _ = fs::remove_dir_all(&root);
+        let no_read = root.join("no-read-ancestor");
+        let private = no_read.join("private");
+        fs::create_dir_all(&private).unwrap();
+        fs::set_permissions(&no_read, fs::Permissions::from_mode(0o311)).unwrap();
+
+        // The private directory already exists and is readable/writable.
+        // An unchanged execute-only ancestor need not be opened for fsync.
+        let store = BlobStore::new(private.join("new/store"));
+        let index = GenerationIndex::new(private.join("new/index"));
+        let manifest = store
+            .put(b"first manifest under existing private parent")
+            .unwrap();
+        index.publish(&store, 1, manifest).unwrap();
+        assert_eq!(
+            index.verified_active_generation(&store).unwrap(),
+            (1, manifest)
+        );
+
+        fs::set_permissions(&no_read, fs::Permissions::from_mode(0o700)).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn newly_installed_blob_must_pass_final_name_custody_readback() {
         let root = test_root("installed-blob-final-custody");
@@ -1163,9 +1231,9 @@ mod tests {
 
         // The directory durability barrier must never follow a replacement
         // symlink or silently fsync an attacker-supplied regular file.
-        assert!(BlobStore::sync_directory_chain(&root.join("alias")).is_err());
-        assert!(BlobStore::sync_directory_chain(&root.join("regular")).is_err());
-        assert!(BlobStore::sync_directory_chain(&root.join("real")).is_ok());
+        assert!(BlobStore::sync_directory_chain(&root.join("alias"), &root).is_err());
+        assert!(BlobStore::sync_directory_chain(&root.join("regular"), &root).is_err());
+        assert!(BlobStore::sync_directory_chain(&root.join("real"), &root).is_ok());
         // Every single-directory fsync used during publication must enforce
         // the same no-follow, directory-only rule as the ancestor barrier.
         assert!(BlobStore::sync_real_directory(&root.join("alias")).is_err());
