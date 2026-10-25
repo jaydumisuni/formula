@@ -296,14 +296,38 @@ impl BlobStore {
             options.custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC);
         }
         let directory = options.open(path)?;
-        #[cfg(not(unix))]
-        if !directory.metadata()?.is_dir() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "durability barrier target must be a directory",
-            ));
-        }
-        directory.sync_all()
+        Self::sync_opened_real_directory(path, &directory)
+    }
+
+    // A no-follow open alone is insufficient: the directory pathname may
+    // be rebound after open but before the durability barrier. Check the
+    // opened inode against the named directory on both sides of sync_all().
+    // The caller must not acknowledge a barrier for a detached directory.
+    fn sync_opened_real_directory(path: &Path, directory: &fs::File) -> io::Result<()> {
+        let opened = directory.metadata()?;
+        let verify_named = || -> io::Result<()> {
+            let named = fs::symlink_metadata(path)?;
+            if !opened.file_type().is_dir() || !named.file_type().is_dir() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "durability barrier target must be a real directory",
+                ));
+            }
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                if opened.dev() != named.dev() || opened.ino() != named.ino() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "durability barrier directory pathname changed after open",
+                    ));
+                }
+            }
+            Ok(())
+        };
+        verify_named()?;
+        directory.sync_all()?;
+        verify_named()
     }
 
     // A completed blob is not durable until its directory entry is synced.
@@ -1066,6 +1090,25 @@ mod tests {
         assert!(BlobStore::sync_real_directory(&root.join("regular")).is_err());
         assert!(BlobStore::sync_real_directory(&root.join("real")).is_ok());
 
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn opened_directory_durability_rejects_rebound_pathname() {
+        let root = test_root("directory-fsync-opened-inode");
+        let _ = fs::remove_dir_all(&root);
+        let original = root.join("shard");
+        fs::create_dir_all(&original).unwrap();
+        let opened = fs::File::open(&original).unwrap();
+        // The old sync_all-only barrier returns success on a detached inode.
+        fs::rename(&original, root.join("detached")).unwrap();
+        fs::create_dir(&original).unwrap();
+        assert!(opened.sync_all().is_ok());
+        // Reject that descriptor even though the replacement is a directory.
+        assert!(BlobStore::sync_opened_real_directory(&original, &opened).is_err());
+        let replacement = fs::File::open(&original).unwrap();
+        assert!(BlobStore::sync_opened_real_directory(&original, &replacement).is_ok());
         fs::remove_dir_all(root).unwrap();
     }
 
