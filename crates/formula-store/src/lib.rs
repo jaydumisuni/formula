@@ -633,11 +633,8 @@ impl GenerationIndex {
     ) -> io::Result<fs::File> {
         use std::os::fd::{AsRawFd, FromRawFd};
 
-        let flags = libc::O_WRONLY
-            | libc::O_CREAT
-            | libc::O_EXCL
-            | libc::O_NOFOLLOW
-            | libc::O_CLOEXEC;
+        let flags =
+            libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW | libc::O_CLOEXEC;
         // SAFETY: name is NUL-terminated and locked owns a live directory fd.
         let descriptor = unsafe { libc::openat(locked.as_raw_fd(), name.as_ptr(), flags, 0o600) };
         if descriptor < 0 {
@@ -1428,12 +1425,9 @@ mod tests {
         assert_eq!(fs::read(detached.join(name)).unwrap(), b"locked-root-temp");
         assert_eq!(fs::read(root.join(name)).unwrap(), b"replacement-root-temp");
         assert_eq!(
-            GenerationIndex::create_pointer_temp_under_lock(
-                &locked,
-                &CString::new(name).unwrap()
-            )
-            .unwrap_err()
-            .kind(),
+            GenerationIndex::create_pointer_temp_under_lock(&locked, &CString::new(name).unwrap())
+                .unwrap_err()
+                .kind(),
             io::ErrorKind::AlreadyExists
         );
         assert_eq!(
