@@ -640,10 +640,16 @@ impl GenerationIndex {
         use std::os::unix::fs::MetadataExt;
 
         let name = temp.file_name().ok_or_else(|| {
-            io::Error::new(io::ErrorKind::InvalidInput, "missing staged pointer filename")
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "missing staged pointer filename",
+            )
         })?;
         let from = CString::new(name.as_bytes()).map_err(|_| {
-            io::Error::new(io::ErrorKind::InvalidInput, "invalid staged pointer filename")
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "invalid staged pointer filename",
+            )
         })?;
         let to = CString::new("active-generation").expect("static filename has no NUL");
         let staged_metadata = staged.metadata()?;
@@ -669,7 +675,7 @@ impl GenerationIndex {
             Ok(metadata)
         };
         let before = stat_relative(&from)?;
-        if before.st_dev != staged_metadata.dev() || before.st_ino != staged_metadata.ino() {
+        if (before.st_dev as u64) != staged_metadata.dev() || (before.st_ino as u64) != staged_metadata.ino() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "staged pointer is not within the locked authority root",
@@ -687,7 +693,7 @@ impl GenerationIndex {
             return Err(io::Error::last_os_error());
         }
         let after = stat_relative(&to)?;
-        if after.st_dev != staged_metadata.dev() || after.st_ino != staged_metadata.ino() {
+        if (after.st_dev as u64) != staged_metadata.dev() || (after.st_ino as u64) != staged_metadata.ino() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "published pointer no longer names the staged inode",
@@ -1383,7 +1389,10 @@ mod tests {
         );
         let index = GenerationIndex::new(&root);
         assert_eq!(
-            index.verify_publication_lock_binding(&locked).unwrap_err().kind(),
+            index
+                .verify_publication_lock_binding(&locked)
+                .unwrap_err()
+                .kind(),
             io::ErrorKind::InvalidData
         );
 
@@ -1408,7 +1417,9 @@ mod tests {
         fs::write(&temp, b"replacement-temp").unwrap();
         let staged = fs::File::open(&temp).unwrap();
 
-        assert!(GenerationIndex::rename_active_pointer_under_lock(&locked, &temp, &staged).is_err());
+        assert!(
+            GenerationIndex::rename_active_pointer_under_lock(&locked, &temp, &staged).is_err()
+        );
         assert!(!detached.join("active-generation").exists());
         assert!(!root.join("active-generation").exists());
 
