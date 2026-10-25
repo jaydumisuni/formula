@@ -675,7 +675,9 @@ impl GenerationIndex {
             Ok(metadata)
         };
         let before = stat_relative(&from)?;
-        if (before.st_dev as u64) != staged_metadata.dev() || (before.st_ino as u64) != staged_metadata.ino() {
+        if (before.st_dev as u64) != staged_metadata.dev()
+            || (before.st_ino as u64) != staged_metadata.ino()
+        {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "staged pointer is not within the locked authority root",
@@ -693,7 +695,9 @@ impl GenerationIndex {
             return Err(io::Error::last_os_error());
         }
         let after = stat_relative(&to)?;
-        if (after.st_dev as u64) != staged_metadata.dev() || (after.st_ino as u64) != staged_metadata.ino() {
+        if (after.st_dev as u64) != staged_metadata.dev()
+            || (after.st_ino as u64) != staged_metadata.ino()
+        {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "published pointer no longer names the staged inode",
