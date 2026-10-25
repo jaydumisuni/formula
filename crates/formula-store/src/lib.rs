@@ -579,8 +579,7 @@ impl BlobStore {
             use std::os::unix::fs::MetadataExt;
             let named = fs::symlink_metadata(path)?;
             if !GenerationIndex::index_leaf_metadata_stable(&metadata, &preflight_metadata)
-                || named.dev() != metadata.dev()
-                || named.ino() != metadata.ino()
+                || !GenerationIndex::index_leaf_metadata_stable(&metadata, &named)
             {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
@@ -605,8 +604,7 @@ impl BlobStore {
             let after = file.metadata()?;
             let named = fs::symlink_metadata(path)?;
             if !GenerationIndex::index_leaf_metadata_stable(&metadata, &after)
-                || named.dev() != metadata.dev()
-                || named.ino() != metadata.ino()
+                || !GenerationIndex::index_leaf_metadata_stable(&metadata, &named)
             {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
@@ -671,6 +669,9 @@ impl GenerationIndex {
             && after.nlink() == 1
             && before.dev() == after.dev()
             && before.ino() == after.ino()
+            && before.mode() == after.mode()
+            && before.uid() == after.uid()
+            && before.gid() == after.gid()
             && before.len() == after.len()
             && before.mtime() == after.mtime()
             && before.mtime_nsec() == after.mtime_nsec()
@@ -746,8 +747,7 @@ impl GenerationIndex {
             let after = file.metadata()?;
             let named = fs::symlink_metadata(path)?;
             if !Self::index_leaf_metadata_stable(&metadata, &after)
-                || named.dev() != metadata.dev()
-                || named.ino() != metadata.ino()
+                || !GenerationIndex::index_leaf_metadata_stable(&metadata, &named)
             {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
@@ -1417,6 +1417,22 @@ mod tests {
             &before,
             &fs::metadata(&leaf).unwrap()
         ));
+
+        // A pathname chmod leaves inode and byte length unchanged. The
+        // post-read named-file check must still reject the custody change,
+        // even if the opened descriptor was checked immediately before it.
+        use std::os::unix::fs::PermissionsExt;
+        let original_mode = before.mode() & 0o7777;
+        let changed_mode = original_mode ^ 0o200;
+        fs::set_permissions(&leaf, fs::Permissions::from_mode(changed_mode)).unwrap();
+        let named_changed = fs::symlink_metadata(&leaf).unwrap();
+        assert_eq!(before.ino(), named_changed.ino());
+        assert_eq!(before.len(), named_changed.len());
+        assert!(!GenerationIndex::index_leaf_metadata_stable(
+            &before,
+            &named_changed
+        ));
+        fs::set_permissions(&leaf, fs::Permissions::from_mode(original_mode)).unwrap();
 
         fs::write(&leaf, b"second-longer").unwrap();
         let changed = fs::metadata(&leaf).unwrap();
