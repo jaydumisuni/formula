@@ -84,7 +84,7 @@ impl BlobStore {
                 return Err(error);
             }
         }
-        fs::File::open(path.parent().expect("blob path has parent"))?.sync_all()?;
+        Self::sync_published_blob_parent(&path)?;
         Ok(digest)
     }
 
@@ -304,6 +304,18 @@ impl BlobStore {
             ));
         }
         directory.sync_all()
+    }
+
+    // A completed blob is not durable until its directory entry is synced.
+    // Do not use File::open(parent): it follows a substituted symlink and can
+    // acknowledge an unrelated directory as the publication barrier.
+    fn sync_published_blob_parent(path: &Path) -> io::Result<()> {
+        let parent = path.parent().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "blob path has no parent")
+        })?;
+        Self::require_real_ancestors(parent)?;
+        Self::require_real_directory(parent)?;
+        Self::sync_real_directory(parent)
     }
 
     fn sync_directory_chain(path: &Path) -> io::Result<()> {
@@ -1054,6 +1066,31 @@ mod tests {
         assert!(BlobStore::sync_real_directory(&root.join("regular")).is_err());
         assert!(BlobStore::sync_real_directory(&root.join("real")).is_ok());
 
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn blob_parent_durability_rejects_rebound_shard() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("blob-parent-durability");
+        let _ = fs::remove_dir_all(&root);
+        let shard = root.join("blobs/ab");
+        let outside = root.join("outside");
+        fs::create_dir_all(&shard).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        let leaf = shard.join("ab000000");
+
+        // Rebind the shard after the blob installation. The old direct
+        // File::open(parent) barrier follows this alias and reports success,
+        // even though it fsyncs the wrong directory inode.
+        fs::rename(&shard, root.join("saved-shard")).unwrap();
+        symlink(&outside, &shard).unwrap();
+        assert!(fs::File::open(&shard).unwrap().sync_all().is_ok());
+
+        // The publication barrier must reject the replaced shard instead.
+        assert!(BlobStore::sync_published_blob_parent(&leaf).is_err());
         fs::remove_dir_all(root).unwrap();
     }
 
