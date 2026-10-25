@@ -2055,6 +2055,51 @@ mod tests {
     }
 
     #[test]
+    fn verified_replay_rejects_rebound_or_inserted_older_history() {
+        let root = test_root("generation-replay-history-snapshot");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let first = store.put(b"first history manifest").unwrap();
+        let second = store.put(b"second history manifest").unwrap();
+        let substitute = store.put(b"substituted history manifest").unwrap();
+        index.publish(&store, 1, first).unwrap();
+        index.publish(&store, 2, second).unwrap();
+        let observed = index.active_generation().unwrap();
+        let verified_history = [(1, first), (2, second)];
+
+        // The active pointer stays unchanged, and the replacement is a valid
+        // digest. Checking only the active generation incorrectly accepts it.
+        let history = root.join("index/generations/1.manifest");
+        fs::write(&history, substitute.to_hex()).unwrap();
+        assert_eq!(index.active_generation().unwrap(), observed);
+        assert!(index.finish_verified_generation_replay(observed).is_ok());
+        assert_eq!(
+            index
+                .finish_verified_history_snapshot(observed, &verified_history)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        fs::write(&history, first.to_hex()).unwrap();
+        index
+            .finish_verified_history_snapshot(observed, &verified_history)
+            .unwrap();
+
+        // A newly inserted older generation must also invalidate the snapshot.
+        fs::write(root.join("index/generations/0.manifest"), substitute.to_hex()).unwrap();
+        assert_eq!(
+            index
+                .finish_verified_history_snapshot(observed, &verified_history)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn active_generation_replays_exact_published_pointer() {
         let root = test_root("active-replay");
         let _ = fs::remove_dir_all(&root);
