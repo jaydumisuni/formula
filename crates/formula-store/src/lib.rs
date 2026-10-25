@@ -333,6 +333,19 @@ impl BlobStore {
                         "durability barrier directory pathname changed after open",
                     ));
                 }
+                // An unchanged inode is not enough: chmod/chown can revoke
+                // authority custody after the earlier pathname preflight.
+                // A trusted sticky ancestor (e.g. /tmp) is still permitted.
+                let live = directory.metadata()?;
+                let effective_uid = unsafe { libc::geteuid() };
+                if !Self::ancestor_custody_permitted(live.mode(), live.uid(), effective_uid)
+                    || !Self::ancestor_custody_permitted(named.mode(), named.uid(), effective_uid)
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "durability barrier directory lost trusted write custody",
+                    ));
+                }
             }
             Ok(())
         };
@@ -1152,6 +1165,31 @@ mod tests {
 
     fn test_root(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn durability_barrier_rejects_shared_writable_directory_after_open() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("barrier-custody-after-open");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let opened = fs::File::open(&root).unwrap();
+
+        // The opened inode remains the same, but its write custody changes
+        // before fsync. A clean inode match alone cannot attest authority.
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o777)).unwrap();
+        let result = BlobStore::sync_opened_real_directory(&root, &opened);
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(result.unwrap_err().kind(), io::ErrorKind::InvalidData);
+
+        // A trusted sticky parent remains a valid ancestor durability barrier.
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o1777)).unwrap();
+        let sticky_result = BlobStore::sync_opened_real_directory(&root, &opened);
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
+        sticky_result.unwrap();
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[cfg(unix)]
