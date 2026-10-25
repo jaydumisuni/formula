@@ -299,6 +299,16 @@ impl BlobStore {
     // ordinary parent-entry and generation-pointer fsyncs. Pathname preflight
     // alone cannot prevent a symlink replacement before a later open().
     fn sync_real_directory(path: &Path) -> io::Result<()> {
+        Self::sync_real_directory_with_custody(path, false)
+    }
+
+    // Publication roots, shards and generation-index directories must retain
+    // private writes even when a sticky shared ancestor would be acceptable.
+    fn sync_real_authority_directory(path: &Path) -> io::Result<()> {
+        Self::sync_real_directory_with_custody(path, true)
+    }
+
+    fn sync_real_directory_with_custody(path: &Path, require_private: bool) -> io::Result<()> {
         let mut options = OpenOptions::new();
         options.read(true);
         #[cfg(unix)]
@@ -307,7 +317,7 @@ impl BlobStore {
             options.custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC);
         }
         let directory = options.open(path)?;
-        Self::sync_opened_real_directory(path, &directory)
+        Self::sync_opened_real_directory_with_custody(path, &directory, require_private)
     }
 
     // A no-follow open alone is insufficient: the directory pathname may
@@ -315,6 +325,16 @@ impl BlobStore {
     // opened inode against the named directory on both sides of sync_all().
     // The caller must not acknowledge a barrier for a detached directory.
     fn sync_opened_real_directory(path: &Path, directory: &fs::File) -> io::Result<()> {
+        Self::sync_opened_real_directory_with_custody(path, directory, false)
+    }
+
+    fn sync_opened_real_directory_with_custody(
+        path: &Path,
+        directory: &fs::File,
+        require_private: bool,
+    ) -> io::Result<()> {
+        #[cfg(not(unix))]
+        let _ = require_private;
         let opened = directory.metadata()?;
         let verify_named = || -> io::Result<()> {
             let named = fs::symlink_metadata(path)?;
@@ -335,11 +355,19 @@ impl BlobStore {
                 }
                 // An unchanged inode is not enough: chmod/chown can revoke
                 // authority custody after the earlier pathname preflight.
-                // A trusted sticky ancestor (e.g. /tmp) is still permitted.
+                // Sticky shared ancestors (e.g. /tmp) are permitted, but
+                // authority directories themselves must retain private writes.
                 let live = directory.metadata()?;
                 let effective_uid = unsafe { libc::geteuid() };
-                if !Self::ancestor_custody_permitted(live.mode(), live.uid(), effective_uid)
-                    || !Self::ancestor_custody_permitted(named.mode(), named.uid(), effective_uid)
+                let custody_ok = |mode, owner| {
+                    if require_private {
+                        Self::authority_directory_custody_permitted(mode, owner, effective_uid)
+                    } else {
+                        Self::ancestor_custody_permitted(mode, owner, effective_uid)
+                    }
+                };
+                if !custody_ok(live.mode(), live.uid())
+                    || !custody_ok(named.mode(), named.uid())
                 {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
@@ -363,7 +391,7 @@ impl BlobStore {
         })?;
         Self::require_real_ancestors(parent)?;
         Self::require_real_directory(parent)?;
-        Self::sync_real_directory(parent)
+        Self::sync_real_authority_directory(parent)
     }
 
     // A newly created nested root needs durable directory entries only up
@@ -393,7 +421,11 @@ impl BlobStore {
 
     fn sync_directory_chain(path: &Path, first_existing: &Path) -> io::Result<()> {
         for directory in path.ancestors() {
-            Self::sync_real_directory(directory)?;
+            if directory == first_existing {
+                Self::sync_real_directory(directory)?;
+            } else {
+                Self::sync_real_authority_directory(directory)?;
+            }
             if directory == first_existing {
                 return Ok(());
             }
@@ -430,7 +462,7 @@ impl BlobStore {
         fs::create_dir_all(&blobs)?;
         Self::require_real_directory(&blobs)?;
         if new_blobs {
-            BlobStore::sync_real_directory(&self.root)?;
+            BlobStore::sync_real_authority_directory(&self.root)?;
         }
         let hex = digest.to_hex();
         let shard = blobs.join(&hex[..2]);
@@ -438,7 +470,7 @@ impl BlobStore {
         fs::create_dir_all(&shard)?;
         Self::require_real_directory(&shard)?;
         if new_shard {
-            BlobStore::sync_real_directory(&blobs)?;
+            BlobStore::sync_real_authority_directory(&blobs)?;
         }
         Ok(())
     }
@@ -801,7 +833,7 @@ impl GenerationIndex {
         fs::create_dir_all(&generations)?;
         BlobStore::require_real_directory(&generations)?;
         if new_generations {
-            BlobStore::sync_real_directory(&self.root)?;
+            BlobStore::sync_real_authority_directory(&self.root)?;
         }
         // The active pointer may be absent after an interrupted publication.
         // Durable history is still a high-water authority boundary: never
@@ -921,7 +953,7 @@ impl GenerationIndex {
                 }
                 Err(error) => return Err(error),
             }
-            BlobStore::sync_real_directory(&generations)?;
+            BlobStore::sync_real_authority_directory(&generations)?;
         }
 
         // An interrupted publication can leave its temporary pointer behind.
@@ -963,7 +995,7 @@ impl GenerationIndex {
             write!(file, "{generation}\n{manifest_hex}")?;
             file.sync_all()?;
             fs::rename(&temp, &active)?;
-            BlobStore::sync_real_directory(&self.root)?;
+            BlobStore::sync_real_authority_directory(&self.root)?;
             // The durable directory barrier alone cannot attest that the
             // published pointer, its history, and the referenced immutable
             // blobs still agree at acknowledgement time.
@@ -1189,6 +1221,14 @@ mod tests {
         let sticky_result = BlobStore::sync_opened_real_directory(&root, &opened);
         fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
         sticky_result.unwrap();
+
+        // The same sticky shared-writable inode is NOT a valid immutable
+        // authority directory, even though it is a valid trusted ancestor.
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o1777)).unwrap();
+        let authority_result =
+            BlobStore::sync_opened_real_directory_with_custody(&root, &opened, true);
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(authority_result.unwrap_err().kind(), io::ErrorKind::InvalidData);
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -1277,6 +1317,18 @@ mod tests {
         assert!(BlobStore::sync_real_directory(&root.join("alias")).is_err());
         assert!(BlobStore::sync_real_directory(&root.join("regular")).is_err());
         assert!(BlobStore::sync_real_directory(&root.join("real")).is_ok());
+        // Shared sticky ancestors are allowed, but publication directories
+        // with the same mode must not pass the authority fsync barrier.
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(root.join("real"), fs::Permissions::from_mode(0o1777)).unwrap();
+        assert!(BlobStore::sync_real_directory(&root.join("real")).is_ok());
+        assert_eq!(
+            BlobStore::sync_real_authority_directory(&root.join("real"))
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::set_permissions(root.join("real"), fs::Permissions::from_mode(0o700)).unwrap();
 
         fs::remove_dir_all(root).unwrap();
     }
