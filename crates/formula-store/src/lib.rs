@@ -615,10 +615,7 @@ impl GenerationIndex {
         self.require_real_root()?;
         let opened = locked.metadata()?;
         let named = fs::symlink_metadata(&self.root)?;
-        if !opened.is_dir()
-            || opened.dev() != named.dev()
-            || opened.ino() != named.ino()
-        {
+        if !opened.is_dir() || opened.dev() != named.dev() || opened.ino() != named.ino() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "generation publication lock no longer protects the named root",
