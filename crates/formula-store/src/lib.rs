@@ -2088,7 +2088,11 @@ mod tests {
             .unwrap();
 
         // A newly inserted older generation must also invalidate the snapshot.
-        fs::write(root.join("index/generations/0.manifest"), substitute.to_hex()).unwrap();
+        fs::write(
+            root.join("index/generations/0.manifest"),
+            substitute.to_hex(),
+        )
+        .unwrap();
         assert_eq!(
             index
                 .finish_verified_history_snapshot(observed, &verified_history)
