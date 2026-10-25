@@ -912,10 +912,32 @@ impl GenerationIndex {
             file.sync_all()?;
             fs::rename(&temp, &active)?;
             BlobStore::sync_real_directory(&self.root)?;
+            // The durable directory barrier alone cannot attest that the
+            // published pointer, its history, and the referenced immutable
+            // blobs still agree at acknowledgement time.
+            self.finish_generation_publication(store, generation, manifest)?;
             Ok(())
         })() {
             let _ = fs::remove_file(&temp);
             return Err(error);
+        }
+        Ok(())
+    }
+
+    // A concurrent filesystem actor may alter a pointer or referenced blob
+    // after preflight but before the final fsync. Never return publication
+    // success without replaying the exact durable generation and blob chain.
+    fn finish_generation_publication(
+        &self,
+        store: &BlobStore,
+        generation: u64,
+        manifest: ArtifactDigest,
+    ) -> io::Result<()> {
+        if self.verified_active_generation(store)? != (generation, manifest) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "published generation differs from the requested authority",
+            ));
         }
         Ok(())
     }
@@ -1802,6 +1824,43 @@ mod tests {
         assert_eq!(
             fs::read_to_string(root.join("index/active-generation")).unwrap(),
             format!("1\n{}", manifest.to_hex())
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn publication_acknowledgement_rechecks_pointer_history_and_manifest_blob() {
+        let root = test_root("generation-final-readback");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let bytes = b"generation-final-readback";
+        let manifest = store.put(bytes).unwrap();
+        index.publish(&store, 3, manifest).unwrap();
+        index
+            .finish_generation_publication(&store, 3, manifest)
+            .unwrap();
+
+        // Preflight and directory fsync could both have passed before a
+        // referenced immutable blob was modified. Acknowledgement must fail.
+        fs::write(store.blob_path(manifest), b"corrupted-after-preflight").unwrap();
+        assert!(
+            index
+                .finish_generation_publication(&store, 3, manifest)
+                .is_err()
+        );
+        fs::write(store.blob_path(manifest), bytes).unwrap();
+
+        // The final active pointer must still name this exact generation.
+        fs::write(
+            root.join("index/active-generation"),
+            format!("2\n{}", manifest.to_hex()),
+        )
+        .unwrap();
+        assert!(
+            index
+                .finish_generation_publication(&store, 3, manifest)
+                .is_err()
         );
         fs::remove_dir_all(root).unwrap();
     }
