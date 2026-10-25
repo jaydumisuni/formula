@@ -624,6 +624,30 @@ impl GenerationIndex {
         Ok(())
     }
 
+    // Stage the pointer inside the inode protected by flock. Opening through
+    // self.root would let a same-owner rename redirect a newly created temp.
+    #[cfg(unix)]
+    fn create_pointer_temp_under_lock(
+        locked: &fs::File,
+        name: &std::ffi::CStr,
+    ) -> io::Result<fs::File> {
+        use std::os::fd::{AsRawFd, FromRawFd};
+
+        let flags = libc::O_WRONLY
+            | libc::O_CREAT
+            | libc::O_EXCL
+            | libc::O_NOFOLLOW
+            | libc::O_CLOEXEC;
+        // SAFETY: name is NUL-terminated and locked owns a live directory fd.
+        let descriptor = unsafe { libc::openat(locked.as_raw_fd(), name.as_ptr(), flags, 0o600) };
+        if descriptor < 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            // SAFETY: successful openat returns a newly owned file descriptor.
+            Ok(unsafe { fs::File::from_raw_fd(descriptor) })
+        }
+    }
+
     // Rename the active pointer through the *locked directory descriptor*, not
     // through a pathname which another same-owner process could replace. Bind
     // the staged inode before and after rename; an old temp slot under the
@@ -1035,14 +1059,24 @@ impl GenerationIndex {
                     std::process::id()
                 ));
                 let open_result = {
-                    let mut opts = OpenOptions::new();
-                    opts.write(true).create_new(true);
                     #[cfg(unix)]
                     {
-                        use std::os::unix::fs::OpenOptionsExt;
-                        opts.mode(0o600);
+                        use std::ffi::CString;
+                        use std::os::unix::ffi::OsStrExt;
+                        let name = temp.file_name().ok_or_else(|| {
+                            io::Error::new(io::ErrorKind::InvalidInput, "missing pointer temp name")
+                        })?;
+                        let name = CString::new(name.as_bytes()).map_err(|_| {
+                            io::Error::new(io::ErrorKind::InvalidInput, "NUL in pointer temp name")
+                        })?;
+                        Self::create_pointer_temp_under_lock(&_publication_lock, &name)
                     }
-                    opts.open(&temp)
+                    #[cfg(not(unix))]
+                    {
+                        let mut opts = OpenOptions::new();
+                        opts.write(true).create_new(true);
+                        opts.open(&temp)
+                    }
                 };
                 match open_result {
                     Ok(file) => {
@@ -1075,6 +1109,9 @@ impl GenerationIndex {
             self.verify_publication_lock_binding(&_publication_lock)?;
             Ok(())
         })() {
+            // Preserve failed Unix staging for investigation. A pathname-based
+            // cleanup could delete an unrelated temp in a rebound authority root.
+            #[cfg(not(unix))]
             let _ = fs::remove_file(&temp);
             return Err(error);
         }
@@ -1363,6 +1400,53 @@ mod tests {
 
         drop(locked);
         fs::remove_dir_all(&root).unwrap();
+        fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn locked_pointer_staging_cannot_be_redirected_to_rebound_root() {
+        use std::ffi::CString;
+
+        let root = test_root("locked-pointer-openat");
+        let detached = root.with_extension("detached-openat");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&detached);
+        fs::create_dir_all(&root).unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        fs::rename(&root, &detached).unwrap();
+        fs::create_dir(&root).unwrap();
+
+        let name = "active-generation.tmp-openat";
+        fs::write(root.join(name), b"replacement-root-temp").unwrap();
+        let mut staged =
+            GenerationIndex::create_pointer_temp_under_lock(&locked, &CString::new(name).unwrap())
+                .unwrap();
+        staged.write_all(b"locked-root-temp").unwrap();
+        staged.sync_all().unwrap();
+
+        assert_eq!(fs::read(detached.join(name)).unwrap(), b"locked-root-temp");
+        assert_eq!(fs::read(root.join(name)).unwrap(), b"replacement-root-temp");
+        assert_eq!(
+            GenerationIndex::create_pointer_temp_under_lock(
+                &locked,
+                &CString::new(name).unwrap()
+            )
+            .unwrap_err()
+            .kind(),
+            io::ErrorKind::AlreadyExists
+        );
+        assert_eq!(
+            GenerationIndex::new(&root)
+                .verify_publication_lock_binding(&locked)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        drop(staged);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
         fs::remove_dir_all(detached).unwrap();
     }
 
