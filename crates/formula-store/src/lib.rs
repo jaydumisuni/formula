@@ -645,6 +645,101 @@ impl GenerationIndex {
         }
     }
 
+    // History installation must use the directory inode reached from the
+    // locked authority root, not a path which can be rebound after flock.
+    #[cfg(target_os = "linux")]
+    fn open_history_directory_under_lock(locked: &fs::File) -> io::Result<fs::File> {
+        use std::ffi::CString;
+        use std::os::fd::{AsRawFd, FromRawFd};
+
+        let name = CString::new("generations").expect("static name has no NUL");
+        let flags = libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC;
+        let fd = unsafe { libc::openat(locked.as_raw_fd(), name.as_ptr(), flags) };
+        if fd < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(unsafe { fs::File::from_raw_fd(fd) })
+    }
+
+    // No-replace installation and the durability barrier operate against the
+    // same pinned history directory. Reject a temp opened in a replacement
+    // pathname, and never use a pathname-based cleanup on failed admission.
+    #[cfg(target_os = "linux")]
+    fn install_history_no_replace_under_lock(
+        history_dir: &fs::File,
+        temp: &Path,
+        history: &Path,
+        staged: &fs::File,
+    ) -> io::Result<()> {
+        use std::ffi::CString;
+        use std::os::fd::AsRawFd;
+        use std::os::unix::ffi::OsStrExt;
+        use std::os::unix::fs::MetadataExt;
+
+        let leaf = |path: &Path| -> io::Result<CString> {
+            let name = path.file_name().ok_or_else(|| {
+                io::Error::new(io::ErrorKind::InvalidInput, "missing history leaf name")
+            })?;
+            CString::new(name.as_bytes()).map_err(|_| {
+                io::Error::new(io::ErrorKind::InvalidInput, "NUL in history leaf name")
+            })
+        };
+        let from = leaf(temp)?;
+        let to = leaf(history)?;
+        let metadata = staged.metadata()?;
+        if !metadata.is_file() || metadata.nlink() != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "history temp must be a single-link regular file",
+            ));
+        }
+        let stat_leaf = |name: &std::ffi::CStr| -> io::Result<libc::stat> {
+            let mut stat = unsafe { std::mem::zeroed::<libc::stat>() };
+            if unsafe {
+                libc::fstatat(
+                    history_dir.as_raw_fd(),
+                    name.as_ptr(),
+                    &mut stat,
+                    libc::AT_SYMLINK_NOFOLLOW,
+                )
+            } != 0
+            {
+                return Err(io::Error::last_os_error());
+            }
+            Ok(stat)
+        };
+        let before = stat_leaf(&from)?;
+        if (before.st_dev as u64) != metadata.dev() || (before.st_ino as u64) != metadata.ino() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "history temp is outside the locked history directory",
+            ));
+        }
+        if unsafe {
+            libc::renameat2(
+                history_dir.as_raw_fd(),
+                from.as_ptr(),
+                history_dir.as_raw_fd(),
+                to.as_ptr(),
+                libc::RENAME_NOREPLACE,
+            )
+        } != 0
+        {
+            return Err(io::Error::last_os_error());
+        }
+        let after = stat_leaf(&to)?;
+        if (after.st_dev as u64) != metadata.dev()
+            || (after.st_ino as u64) != metadata.ino()
+            || after.st_nlink != 1
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "installed history leaf changed during publication",
+            ));
+        }
+        history_dir.sync_all()
+    }
+
     // Rename the active pointer through the *locked directory descriptor*, not
     // through a pathname which another same-owner process could replace. Bind
     // the staged inode before and after rename; an old temp slot under the
@@ -922,6 +1017,8 @@ impl GenerationIndex {
         let new_generations = BlobStore::directory_missing(&generations)?;
         fs::create_dir_all(&generations)?;
         BlobStore::require_real_directory(&generations)?;
+        #[cfg(target_os = "linux")]
+        let history_dir = Self::open_history_directory_under_lock(&_publication_lock)?;
         if new_generations {
             BlobStore::sync_real_directory(&self.root)?;
         }
@@ -1004,14 +1101,31 @@ impl GenerationIndex {
                         std::process::id()
                     ));
                     let open_result = {
-                        let mut opts = OpenOptions::new();
-                        opts.write(true).create_new(true);
-                        #[cfg(unix)]
+                        #[cfg(target_os = "linux")]
                         {
-                            use std::os::unix::fs::OpenOptionsExt;
-                            opts.mode(0o600);
+                            use std::ffi::CString;
+                            use std::os::unix::ffi::OsStrExt;
+                            let name = CString::new(
+                                temp.file_name()
+                                    .expect("history temp has a name")
+                                    .as_bytes(),
+                            )
+                            .map_err(|_| {
+                                io::Error::new(io::ErrorKind::InvalidInput, "NUL in history temp")
+                            })?;
+                            Self::create_pointer_temp_under_lock(&history_dir, &name)
                         }
-                        opts.open(&temp)
+                        #[cfg(not(target_os = "linux"))]
+                        {
+                            let mut opts = OpenOptions::new();
+                            opts.write(true).create_new(true);
+                            #[cfg(unix)]
+                            {
+                                use std::os::unix::fs::OpenOptionsExt;
+                                opts.mode(0o600);
+                            }
+                            opts.open(&temp)
+                        }
                     };
                     match open_result {
                         Ok(file) => {
@@ -1028,7 +1142,12 @@ impl GenerationIndex {
             };
             file.write_all(manifest_hex.as_bytes())?;
             file.sync_all()?;
-            match BlobStore::install_no_replace(&temp, &history) {
+            #[cfg(target_os = "linux")]
+            let installed =
+                Self::install_history_no_replace_under_lock(&history_dir, &temp, &history, &file);
+            #[cfg(not(target_os = "linux"))]
+            let installed = BlobStore::install_no_replace(&temp, &history);
+            match installed {
                 Ok(()) => {}
                 Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
                     // A competing publisher won the race. Only the same exact
@@ -1039,10 +1158,14 @@ impl GenerationIndex {
                             "generation already bound to another manifest",
                         ));
                     }
+                    // A rebinding actor could redirect pathname-based cleanup.
+                    // Preserve the unused Linux temp for later investigation.
+                    #[cfg(not(target_os = "linux"))]
                     fs::remove_file(&temp)?;
                 }
                 Err(error) => return Err(error),
             }
+            #[cfg(not(target_os = "linux"))]
             BlobStore::sync_real_directory(&generations)?;
         }
 
@@ -1397,6 +1520,99 @@ mod tests {
 
         drop(locked);
         fs::remove_dir_all(&root).unwrap();
+        fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn locked_history_install_cannot_write_into_rebound_root() {
+        use std::ffi::CString;
+
+        let root = test_root("locked-history-renameat2");
+        let detached = root.with_extension("detached-history");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&detached);
+        fs::create_dir_all(root.join("generations")).unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+        let temp = root.join("generations/3.manifest.tmp-guard");
+        let history = root.join("generations/3.manifest");
+        let mut staged = GenerationIndex::create_pointer_temp_under_lock(
+            &history_dir,
+            &CString::new("3.manifest.tmp-guard").unwrap(),
+        )
+        .unwrap();
+        staged.write_all(b"locked-history").unwrap();
+        staged.sync_all().unwrap();
+
+        fs::rename(&root, &detached).unwrap();
+        fs::create_dir_all(root.join("generations")).unwrap();
+        fs::write(
+            root.join("generations/3.manifest.tmp-guard"),
+            b"replacement",
+        )
+        .unwrap();
+        GenerationIndex::install_history_no_replace_under_lock(
+            &history_dir,
+            &temp,
+            &history,
+            &staged,
+        )
+        .unwrap();
+
+        assert_eq!(
+            fs::read(detached.join("generations/3.manifest")).unwrap(),
+            b"locked-history"
+        );
+        assert!(!root.join("generations/3.manifest").exists());
+        assert_eq!(
+            fs::read(root.join("generations/3.manifest.tmp-guard")).unwrap(),
+            b"replacement"
+        );
+        assert!(
+            GenerationIndex::new(&root)
+                .verify_publication_lock_binding(&locked)
+                .is_err()
+        );
+        drop(staged);
+        drop(history_dir);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn locked_history_install_rejects_temp_from_replacement_root() {
+        let root = test_root("locked-history-foreign-temp");
+        let detached = root.with_extension("detached-history");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&detached);
+        fs::create_dir_all(root.join("generations")).unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+        fs::rename(&root, &detached).unwrap();
+        fs::create_dir_all(root.join("generations")).unwrap();
+        let temp = root.join("generations/3.manifest.tmp-guard");
+        let history = root.join("generations/3.manifest");
+        fs::write(&temp, b"foreign-temp").unwrap();
+        let staged = fs::File::open(&temp).unwrap();
+
+        assert!(
+            GenerationIndex::install_history_no_replace_under_lock(
+                &history_dir,
+                &temp,
+                &history,
+                &staged,
+            )
+            .is_err()
+        );
+        assert!(!root.join("generations/3.manifest").exists());
+        assert!(!detached.join("generations/3.manifest").exists());
+        drop(staged);
+        drop(history_dir);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
         fs::remove_dir_all(detached).unwrap();
     }
 
