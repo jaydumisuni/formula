@@ -1121,6 +1121,7 @@ impl GenerationIndex {
         store: &BlobStore,
     ) -> io::Result<(u64, ArtifactDigest)> {
         let active = self.active_generation()?;
+        let mut verified_history = Vec::new();
         for entry in fs::read_dir(self.root.join("generations"))? {
             let entry = entry?;
             let name = entry.file_name();
@@ -1133,6 +1134,7 @@ impl GenerationIndex {
                         "historical generation manifest blob missing",
                     ));
                 }
+                verified_history.push((generation, digest));
             }
         }
         if !store.contains(active.1)? {
@@ -1144,8 +1146,38 @@ impl GenerationIndex {
         // The active pointer and history can advance while the historical
         // blobs are being verified. Never return an earlier authority snapshot
         // as the verified *active* generation after such a transition.
-        self.finish_verified_generation_replay(active)?;
+        self.finish_verified_history_snapshot(active, &verified_history)?;
         Ok(active)
+    }
+
+    // An unchanged active pointer does not attest that older history entries
+    // still match the manifest blobs scanned earlier. Bind the complete
+    // generation-to-digest set across the verification boundary, rejecting
+    // changed or newly inserted historical entries before acknowledging replay.
+    fn finish_verified_history_snapshot(
+        &self,
+        observed: (u64, ArtifactDigest),
+        verified_history: &[(u64, ArtifactDigest)],
+    ) -> io::Result<()> {
+        self.finish_verified_generation_replay(observed)?;
+        let mut current_history = Vec::new();
+        for entry in fs::read_dir(self.root.join("generations"))? {
+            let name = entry?.file_name();
+            let name = name.to_string_lossy();
+            if let Some(generation) = Self::verified_history_entry_number(&name, observed.0)? {
+                current_history.push((generation, self.historical_manifest(generation)?));
+            }
+        }
+        let mut expected = verified_history.to_vec();
+        expected.sort_unstable_by_key(|(generation, _)| *generation);
+        current_history.sort_unstable_by_key(|(generation, _)| *generation);
+        if current_history != expected {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "historical generation bindings changed during verified replay",
+            ));
+        }
+        self.finish_verified_generation_replay(observed)
     }
 
     fn finish_verified_generation_replay(&self, observed: (u64, ArtifactDigest)) -> io::Result<()> {
