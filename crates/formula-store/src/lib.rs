@@ -624,6 +624,78 @@ impl GenerationIndex {
         Ok(())
     }
 
+    // Rename the active pointer through the *locked directory descriptor*, not
+    // through a pathname which another same-owner process could replace. Bind
+    // the staged inode before and after rename; an old temp slot under the
+    // detached locked root must never be mistaken for this publisher's file.
+    #[cfg(unix)]
+    fn rename_active_pointer_under_lock(
+        locked: &fs::File,
+        temp: &Path,
+        staged: &fs::File,
+    ) -> io::Result<()> {
+        use std::ffi::CString;
+        use std::os::fd::AsRawFd;
+        use std::os::unix::ffi::OsStrExt;
+        use std::os::unix::fs::MetadataExt;
+
+        let name = temp.file_name().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "missing staged pointer filename")
+        })?;
+        let from = CString::new(name.as_bytes()).map_err(|_| {
+            io::Error::new(io::ErrorKind::InvalidInput, "invalid staged pointer filename")
+        })?;
+        let to = CString::new("active-generation").expect("static filename has no NUL");
+        let staged_metadata = staged.metadata()?;
+        if !staged_metadata.is_file() || staged_metadata.nlink() != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "staged pointer must be a single-link regular file",
+            ));
+        }
+        let stat_relative = |name: &std::ffi::CStr| -> io::Result<libc::stat> {
+            let mut metadata = unsafe { std::mem::zeroed::<libc::stat>() };
+            if unsafe {
+                libc::fstatat(
+                    locked.as_raw_fd(),
+                    name.as_ptr(),
+                    &mut metadata,
+                    libc::AT_SYMLINK_NOFOLLOW,
+                )
+            } != 0
+            {
+                return Err(io::Error::last_os_error());
+            }
+            Ok(metadata)
+        };
+        let before = stat_relative(&from)?;
+        if before.st_dev != staged_metadata.dev() || before.st_ino != staged_metadata.ino() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "staged pointer is not within the locked authority root",
+            ));
+        }
+        if unsafe {
+            libc::renameat(
+                locked.as_raw_fd(),
+                from.as_ptr(),
+                locked.as_raw_fd(),
+                to.as_ptr(),
+            )
+        } != 0
+        {
+            return Err(io::Error::last_os_error());
+        }
+        let after = stat_relative(&to)?;
+        if after.st_dev != staged_metadata.dev() || after.st_ino != staged_metadata.ino() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "published pointer no longer names the staged inode",
+            ));
+        }
+        locked.sync_all()
+    }
+
     /// Reject malformed or newer history entries during the second verified scan.
     fn verified_history_entry_number(
         name: &str,
@@ -981,8 +1053,8 @@ impl GenerationIndex {
         if let Err(error) = (|| -> io::Result<()> {
             write!(file, "{generation}\n{manifest_hex}")?;
             file.sync_all()?;
-            fs::rename(&temp, &active)?;
-            BlobStore::sync_real_directory(&self.root)?;
+            #[cfg(unix)]
+            Self::rename_active_pointer_under_lock(&_publication_lock, &temp, &file)?;
             // The durable directory barrier alone cannot attest that the
             // published pointer, its history, and the referenced immutable
             // blobs still agree at acknowledgement time.
@@ -1281,6 +1353,68 @@ mod tests {
 
         drop(locked);
         fs::remove_dir_all(&root).unwrap();
+        fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn locked_pointer_rename_cannot_write_into_rebound_authority_root() {
+        let root = test_root("locked-pointer-renameat");
+        let detached = root.with_extension("detached-pointer");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&detached);
+        fs::create_dir_all(&root).unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let temp = root.join("active-generation.tmp-test");
+        fs::write(&temp, b"locked-generation").unwrap();
+        let staged = fs::File::open(&temp).unwrap();
+
+        fs::rename(&root, &detached).unwrap();
+        fs::create_dir(&root).unwrap();
+        fs::write(root.join("active-generation"), b"replacement-generation").unwrap();
+        GenerationIndex::rename_active_pointer_under_lock(&locked, &temp, &staged).unwrap();
+        assert_eq!(
+            fs::read(detached.join("active-generation")).unwrap(),
+            b"locked-generation"
+        );
+        assert_eq!(
+            fs::read(root.join("active-generation")).unwrap(),
+            b"replacement-generation"
+        );
+        let index = GenerationIndex::new(&root);
+        assert_eq!(
+            index.verify_publication_lock_binding(&locked).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        drop(staged);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn locked_pointer_rename_rejects_temp_from_replacement_root() {
+        let root = test_root("locked-pointer-replacement-temp");
+        let detached = root.with_extension("detached-pointer");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&detached);
+        fs::create_dir_all(&root).unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        fs::rename(&root, &detached).unwrap();
+        fs::create_dir(&root).unwrap();
+        let temp = root.join("active-generation.tmp-test");
+        fs::write(&temp, b"replacement-temp").unwrap();
+        let staged = fs::File::open(&temp).unwrap();
+
+        assert!(GenerationIndex::rename_active_pointer_under_lock(&locked, &temp, &staged).is_err());
+        assert!(!detached.join("active-generation").exists());
+        assert!(!root.join("active-generation").exists());
+
+        drop(staged);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
         fs::remove_dir_all(detached).unwrap();
     }
 
