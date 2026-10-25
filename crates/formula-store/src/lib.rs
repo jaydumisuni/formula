@@ -1146,7 +1146,7 @@ impl GenerationIndex {
         // The active pointer and history can advance while the historical
         // blobs are being verified. Never return an earlier authority snapshot
         // as the verified *active* generation after such a transition.
-        self.finish_verified_history_snapshot(active, &verified_history)?;
+        self.finish_verified_manifest_snapshot(store, active, &verified_history)?;
         Ok(active)
     }
 
@@ -1178,6 +1178,35 @@ impl GenerationIndex {
             ));
         }
         self.finish_verified_generation_replay(observed)
+    }
+
+    // A history binding can remain unchanged while its previously verified
+    // immutable blob is removed or rewritten. Recheck every referenced blob
+    // after the binding rescan, then bind the history/pointer once more before
+    // acknowledging replay. This narrows the post-scan mutation window; it
+    // does not grant authority against a concurrent trusted writer.
+    fn finish_verified_manifest_snapshot(
+        &self,
+        store: &BlobStore,
+        observed: (u64, ArtifactDigest),
+        verified_history: &[(u64, ArtifactDigest)],
+    ) -> io::Result<()> {
+        self.finish_verified_history_snapshot(observed, verified_history)?;
+        for (_, digest) in verified_history {
+            if !store.contains(*digest)? {
+                return Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    "historical manifest blob disappeared during verified replay",
+                ));
+            }
+        }
+        if !store.contains(observed.1)? {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "active manifest blob disappeared during verified replay",
+            ));
+        }
+        self.finish_verified_history_snapshot(observed, verified_history)
     }
 
     fn finish_verified_generation_replay(&self, observed: (u64, ArtifactDigest)) -> io::Result<()> {
@@ -2050,6 +2079,54 @@ mod tests {
                 .unwrap_err()
                 .kind(),
             io::ErrorKind::InvalidData
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn verified_replay_rechecks_historical_blobs_after_binding_scan() {
+        let root = test_root("generation-replay-late-blob-mutation");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let first_bytes = b"first immutable history";
+        let first = store.put(first_bytes).unwrap();
+        let second = store.put(b"second immutable history").unwrap();
+        index.publish(&store, 1, first).unwrap();
+        index.publish(&store, 2, second).unwrap();
+        let observed = index.active_generation().unwrap();
+        let history = [(1, first), (2, second)];
+
+        index
+            .finish_verified_manifest_snapshot(&store, observed, &history)
+            .unwrap();
+
+        // The old binding-only finish check still passes after a referenced
+        // blob changes. A replay acknowledgement must reject the mutation.
+        fs::write(store.blob_path(first), b"corrupt after initial blob scan").unwrap();
+        index
+            .finish_verified_history_snapshot(observed, &history)
+            .unwrap();
+        assert_eq!(
+            index
+                .finish_verified_manifest_snapshot(&store, observed, &history)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        fs::write(store.blob_path(first), first_bytes).unwrap();
+        index
+            .finish_verified_manifest_snapshot(&store, observed, &history)
+            .unwrap();
+
+        fs::remove_file(store.blob_path(first)).unwrap();
+        assert_eq!(
+            index
+                .finish_verified_manifest_snapshot(&store, observed, &history)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::NotFound
         );
         fs::remove_dir_all(root).unwrap();
     }
