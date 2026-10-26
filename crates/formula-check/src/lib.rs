@@ -22,6 +22,21 @@ pub enum EvidencePreflightError {
     BindingMismatch,
 }
 
+/// Unicode formatting marks are not visible evidence-family identity.
+/// Keep meaningful Unicode letters while rejecting hidden/reordering markers.
+fn is_hidden_family_format_mark(c: char) -> bool {
+    matches!(
+        c,
+        '\u{ad}'
+            | '\u{61c}'
+            | '\u{180e}'
+            | '\u{200b}'..='\u{200f}'
+            | '\u{202a}'..='\u{202e}'
+            | '\u{2060}'..='\u{206f}'
+            | '\u{feff}'
+    )
+}
+
 /// Reject metadata substitution without claiming that evidence is sound.
 ///
 /// The judgement's structural digest commits to its world, proposition, and
@@ -33,7 +48,10 @@ pub fn preflight_evidence_metadata(
 ) -> Result<(), EvidencePreflightError> {
     if frozen.evidence_family.is_empty()
         || frozen.evidence_family.trim() != frozen.evidence_family
-        || frozen.evidence_family.chars().any(char::is_control)
+        || frozen
+            .evidence_family
+            .chars()
+            .any(|c| c.is_control() || is_hidden_family_format_mark(c))
     {
         return Err(EvidencePreflightError::InvalidFamily);
     }
@@ -187,6 +205,57 @@ mod tests {
                 Err(EvidencePreflightError::InvalidFamily)
             );
         }
+    }
+
+    #[test]
+    /// Reject invisible formatting marks even when both sides bind the same bytes.
+    fn invisible_format_marks_in_family_fail_closed() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for family in [
+            "finite\u{ad}exhaustive",
+            "finite\u{61c}exhaustive",
+            "finite\u{180e}exhaustive",
+            "finite\u{200b}exhaustive",
+            "finite\u{202e}exhaustive",
+            "finite\u{2066}exhaustive",
+            "finite\u{feff}exhaustive",
+        ] {
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily),
+                "hidden format mark in {family:?} must not be admitted",
+            );
+        }
+    }
+
+    #[test]
+    /// Preserve meaningful Unicode family names; the guard targets hidden marks.
+    fn visible_unicode_family_still_preflights() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        let family = "finite-épreuve";
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: b"proof",
+            checker_digest: checker,
+        };
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(b"proof"), checker);
+        assert_eq!(preflight_evidence_metadata(&recorded, &frozen), Ok(()));
     }
 
     #[test]
