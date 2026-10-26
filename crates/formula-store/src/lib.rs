@@ -1778,7 +1778,9 @@ mod tests {
         );
         // A second scan must start from the beginning of an independent stream.
         assert_eq!(
-            GenerationIndex::history_names_under_lock(&locked, &history_dir).unwrap().len(),
+            GenerationIndex::history_names_under_lock(&locked, &history_dir)
+                .unwrap()
+                .len(),
             1
         );
 
