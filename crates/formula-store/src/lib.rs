@@ -574,7 +574,6 @@ impl BlobStore {
         }
         #[cfg(unix)]
         {
-            use std::os::unix::fs::MetadataExt;
             let named = fs::symlink_metadata(path)?;
             if !GenerationIndex::index_leaf_metadata_stable(&metadata, &preflight_metadata)
                 || !GenerationIndex::index_leaf_metadata_stable(&metadata, &named)
@@ -598,7 +597,6 @@ impl BlobStore {
         }
         #[cfg(unix)]
         {
-            use std::os::unix::fs::MetadataExt;
             let after = file.metadata()?;
             let named = fs::symlink_metadata(path)?;
             if !GenerationIndex::index_leaf_metadata_stable(&metadata, &after)
@@ -633,6 +631,39 @@ impl GenerationIndex {
     fn require_real_root(&self) -> io::Result<()> {
         BlobStore::require_real_ancestors(&self.root)?;
         BlobStore::require_real_directory(&self.root)
+    }
+
+    // The advisory publication lock belongs to an inode, not a pathname.
+    // Rebinding the index root while that inode remains locked must not allow
+    // path-based history/pointer operations to acknowledge another directory.
+    #[cfg(unix)]
+    fn require_locked_root(&self, locked: &fs::File) -> io::Result<()> {
+        use std::os::unix::fs::MetadataExt;
+
+        let opened = locked.metadata()?;
+        let named = fs::symlink_metadata(&self.root)?;
+        let effective_uid = unsafe { libc::geteuid() };
+        if !opened.is_dir()
+            || !named.file_type().is_dir()
+            || opened.dev() != named.dev()
+            || opened.ino() != named.ino()
+            || !BlobStore::authority_directory_custody_permitted(
+                opened.mode(),
+                opened.uid(),
+                effective_uid,
+            )
+            || !BlobStore::authority_directory_custody_permitted(
+                named.mode(),
+                named.uid(),
+                effective_uid,
+            )
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "generation index root no longer matches the locked authority directory",
+            ));
+        }
+        Ok(())
     }
 
     /// Reject malformed or newer history entries during the second verified scan.
@@ -741,7 +772,6 @@ impl GenerationIndex {
             .read_to_string(&mut content)?;
         #[cfg(unix)]
         {
-            use std::os::unix::fs::MetadataExt;
             let after = file.metadata()?;
             let named = fs::symlink_metadata(path)?;
             if !Self::index_leaf_metadata_stable(&metadata, &after)
@@ -800,6 +830,8 @@ impl GenerationIndex {
             io::ErrorKind::Unsupported,
             "generation publication requires an exclusive directory lock",
         ));
+        #[cfg(unix)]
+        self.require_locked_root(&_publication_lock)?;
         if !store.contains(manifest)? {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
@@ -955,6 +987,9 @@ impl GenerationIndex {
             BlobStore::sync_real_authority_directory(&generations)?;
         }
 
+        #[cfg(unix)]
+        self.require_locked_root(&_publication_lock)?;
+
         // An interrupted publication can leave its temporary pointer behind.
         // Never overwrite it or let it permanently prevent a later publication.
         let (temp, mut file) = {
@@ -993,12 +1028,16 @@ impl GenerationIndex {
         if let Err(error) = (|| -> io::Result<()> {
             write!(file, "{generation}\n{manifest_hex}")?;
             file.sync_all()?;
+            #[cfg(unix)]
+            self.require_locked_root(&_publication_lock)?;
             fs::rename(&temp, &active)?;
             BlobStore::sync_real_authority_directory(&self.root)?;
             // The durable directory barrier alone cannot attest that the
             // published pointer, its history, and the referenced immutable
             // blobs still agree at acknowledgement time.
             self.finish_generation_publication(store, generation, manifest)?;
+            #[cfg(unix)]
+            self.require_locked_root(&_publication_lock)?;
             Ok(())
         })() {
             let _ = fs::remove_file(&temp);
@@ -1196,6 +1235,44 @@ mod tests {
 
     fn test_root(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn publication_lock_rejects_rebound_or_shared_writable_index_root() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("generation-locked-root-custody");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let index_path = root.join("index");
+        fs::create_dir(&index_path).unwrap();
+        let index = GenerationIndex::new(&index_path);
+        let locked = fs::File::open(&index_path).unwrap();
+        index.require_locked_root(&locked).unwrap();
+
+        // The original directory stays open (and could remain flock-locked),
+        // while the same owner replaces its name with a fresh directory.
+        let detached = root.join("detached-index");
+        fs::rename(&index_path, &detached).unwrap();
+        fs::create_dir(&index_path).unwrap();
+        assert_eq!(
+            index.require_locked_root(&locked).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        fs::remove_dir(&index_path).unwrap();
+        fs::rename(&detached, &index_path).unwrap();
+        index.require_locked_root(&locked).unwrap();
+
+        fs::set_permissions(&index_path, fs::Permissions::from_mode(0o777)).unwrap();
+        assert_eq!(
+            index.require_locked_root(&locked).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::set_permissions(&index_path, fs::Permissions::from_mode(0o700)).unwrap();
+        index.require_locked_root(&locked).unwrap();
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[cfg(unix)]
