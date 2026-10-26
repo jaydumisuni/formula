@@ -686,14 +686,29 @@ impl GenerationIndex {
             return Err(io::Error::last_os_error());
         }
         let pinned = history_dir.metadata()?;
+        // The directory can retain its inode while chmod/chown grants an
+        // untrusted writer access after the initial pathname preflight.
+        // Recheck both the opened inode and its current named binding at
+        // every scan, historical read, and durability acknowledgement.
+        let effective_uid = unsafe { libc::geteuid() };
         if !pinned.is_dir()
             || (named.st_mode & libc::S_IFMT) != libc::S_IFDIR
             || pinned.dev() != named.st_dev as u64
             || pinned.ino() != named.st_ino as u64
+            || !BlobStore::authority_directory_custody_permitted(
+                pinned.mode(),
+                pinned.uid(),
+                effective_uid,
+            )
+            || !BlobStore::authority_directory_custody_permitted(
+                named.st_mode as u32,
+                named.st_uid as u32,
+                effective_uid,
+            )
         {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "locked generation history directory was rebound",
+                "locked generation history directory was rebound or lost private custody",
             ));
         }
         Ok(())
@@ -1840,6 +1855,68 @@ mod tests {
         drop(locked);
         fs::remove_dir_all(root).unwrap();
         fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn locked_history_operations_reject_lost_directory_custody() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("pinned-history-private-custody");
+        let _ = fs::remove_dir_all(&root);
+        let generations = root.join("generations");
+        fs::create_dir_all(&generations).unwrap();
+        fs::write(generations.join("1.manifest"), "first").unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+        GenerationIndex::verify_history_directory_binding(&locked, &history_dir).unwrap();
+
+        // Same pathname and inode, but a new peer-writable mode revokes the
+        // private authority boundary after the original directory admission.
+        let original = fs::metadata(&generations).unwrap().permissions();
+        let mut shared = original.clone();
+        shared.set_mode(original.mode() | 0o022);
+        fs::set_permissions(&generations, shared).unwrap();
+        assert_eq!(
+            GenerationIndex::verify_history_directory_binding(&locked, &history_dir)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+        let mut visited = false;
+        assert_eq!(
+            GenerationIndex::for_each_history_name_under_lock(
+                &locked,
+                &history_dir,
+                |_| {
+                    visited = true;
+                    Ok(())
+                },
+            )
+            .unwrap_err()
+            .kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(!visited, "untrusted history directory must not be scanned");
+        assert_eq!(
+            GenerationIndex::sync_history_directory_under_lock(&locked, &history_dir)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        fs::set_permissions(&generations, original).unwrap();
+        GenerationIndex::verify_history_directory_binding(&locked, &history_dir).unwrap();
+        let mut names = 0;
+        GenerationIndex::for_each_history_name_under_lock(&locked, &history_dir, |_| {
+            names += 1;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(names, 1);
+        drop(history_dir);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[cfg(target_os = "linux")]
