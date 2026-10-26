@@ -31,7 +31,9 @@ pub fn preflight_evidence_metadata(
     recorded: &EvidenceEnvelopeMetadata,
     frozen: &FrozenEvidence<'_>,
 ) -> Result<(), EvidencePreflightError> {
-    if frozen.evidence_family.is_empty() || frozen.evidence_family.trim() != frozen.evidence_family
+    if frozen.evidence_family.is_empty()
+        || frozen.evidence_family.trim() != frozen.evidence_family
+        || frozen.evidence_family.chars().any(char::is_control)
     {
         return Err(EvidencePreflightError::InvalidFamily);
     }
@@ -51,15 +53,18 @@ pub fn preflight_evidence_metadata(
 mod tests {
     use super::*;
 
+    /// Derive a deterministic fixture digest without reusing a production trust root.
     fn digest(tag: &[u8]) -> ArtifactDigest {
         ArtifactDigest::sha256(tag)
     }
 
+    /// Construct a fixture judgement with explicit world and dependency identity.
     fn judgement(world: ArtifactDigest, dependencies: Vec<ArtifactDigest>) -> Judgement {
         Judgement::new(world, "finite-exact", b"x == x".to_vec(), dependencies)
     }
 
     #[test]
+    /// Accept matching metadata without claiming that the evidence body is valid.
     fn exact_frozen_binding_is_only_preflighted() {
         let j = judgement(digest(b"world"), vec![digest(b"dependency")]);
         let checker = digest(b"checker-v1");
@@ -79,6 +84,7 @@ mod tests {
     }
 
     #[test]
+    /// Reject target, world, and dependency substitutions against a frozen judgement.
     fn substituted_target_world_and_dependencies_fail_closed() {
         let j = judgement(digest(b"world"), vec![digest(b"dependency")]);
         let altered_world = judgement(digest(b"other-world"), vec![digest(b"dependency")]);
@@ -121,6 +127,7 @@ mod tests {
     }
 
     #[test]
+    /// Reject changes to payload bytes, evidence family, or checker identity.
     fn changed_payload_family_or_checker_fail_closed() {
         let j = judgement(digest(b"world"), vec![]);
         let checker = digest(b"checker-v1");
@@ -153,6 +160,37 @@ mod tests {
     }
 
     #[test]
+    /// Reject control-bearing family identifiers even when both sides match exactly.
+    fn control_characters_in_family_fail_even_with_matching_metadata() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for family in [
+            "finite\nexhaustive",
+            "finite\0exhaustive",
+            "finite\u{7f}exhaustive",
+            "finite\u{85}exhaustive",
+        ] {
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily)
+            );
+        }
+    }
+
+    #[test]
+    /// Reject empty and whitespace-padded family identifiers before digest matching.
     fn empty_or_whitespace_padded_family_is_rejected() {
         let j = judgement(digest(b"world"), vec![]);
         let checker = digest(b"checker");
