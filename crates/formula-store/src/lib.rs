@@ -711,6 +711,103 @@ impl GenerationIndex {
         Self::verify_history_directory_binding(locked, history_dir)
     }
 
+    // Read the historical digest from the same directory inode used for
+    // immutable installation. A pathname-based read could follow a replacement
+    // generations directory after the publisher has acquired its flock.
+    #[cfg(target_os = "linux")]
+    fn historical_manifest_under_lock(
+        locked: &fs::File,
+        history_dir: &fs::File,
+        generation: u64,
+    ) -> io::Result<ArtifactDigest> {
+        use std::ffi::CString;
+        use std::os::fd::{AsRawFd, FromRawFd};
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+        Self::verify_history_directory_binding(locked, history_dir)?;
+        let name = CString::new(format!("{generation}.manifest"))
+            .expect("decimal history name contains no NUL");
+        let descriptor = unsafe {
+            libc::openat(
+                history_dir.as_raw_fd(),
+                name.as_ptr(),
+                libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC,
+            )
+        };
+        if descriptor < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        let mut file = unsafe { fs::File::from_raw_fd(descriptor) };
+        let before = file.metadata()?;
+        if !before.is_file()
+            || before.nlink() != 1
+            || !BlobStore::authority_leaf_custody_permitted(
+                before.permissions().mode(),
+                before.uid(),
+                unsafe { libc::geteuid() },
+            )
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "historical manifest leaf lacks trusted single-inode custody",
+            ));
+        }
+        const MAX_HISTORY_BYTES: u64 = 128;
+        if before.len() > MAX_HISTORY_BYTES {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "historical manifest leaf exceeds size limit",
+            ));
+        }
+        let mut content = String::new();
+        (&mut file)
+            .take(MAX_HISTORY_BYTES + 1)
+            .read_to_string(&mut content)?;
+        if content.len() as u64 > MAX_HISTORY_BYTES {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "historical manifest leaf grew during read",
+            ));
+        }
+        let after = file.metadata()?;
+        let mut named = unsafe { std::mem::zeroed::<libc::stat>() };
+        if unsafe {
+            libc::fstatat(
+                history_dir.as_raw_fd(),
+                name.as_ptr(),
+                &mut named,
+                libc::AT_SYMLINK_NOFOLLOW,
+            )
+        } != 0
+        {
+            return Err(io::Error::last_os_error());
+        }
+        if !Self::index_leaf_metadata_stable(&before, &after)
+            || (named.st_mode & libc::S_IFMT) != libc::S_IFREG
+            || named.st_dev as u64 != before.dev()
+            || named.st_ino as u64 != before.ino()
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "historical manifest leaf changed during pinned read",
+            ));
+        }
+        Self::verify_history_directory_binding(locked, history_dir)?;
+        let digest = ArtifactDigest::from_hex(content.trim()).map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "invalid historical manifest digest",
+            )
+        })?;
+        if content != digest.to_hex() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "non-canonical historical manifest digest",
+            ));
+        }
+        Ok(digest)
+    }
+
     // No-replace installation and the durability barrier operate against the
     // same pinned history directory. Reject a temp opened in a replacement
     // pathname, and never use a pathname-based cleanup on failed admission.
@@ -1101,6 +1198,13 @@ impl GenerationIndex {
                 // Even an older immutable history leaf is part of the durable
                 // generation chain; corruption must block new publication.
                 if recorded < generation {
+                    #[cfg(target_os = "linux")]
+                    let historical = Self::historical_manifest_under_lock(
+                        &_publication_lock,
+                        &history_dir,
+                        recorded,
+                    )?;
+                    #[cfg(not(target_os = "linux"))]
                     let historical = self.historical_manifest(recorded)?;
                     if !store.contains(historical)? {
                         return Err(io::Error::new(
@@ -1134,7 +1238,13 @@ impl GenerationIndex {
             Err(error) => return Err(error),
         };
         if history_present {
-            if Self::read_index_leaf(&history, "generation history entry")? != manifest_hex {
+            #[cfg(target_os = "linux")]
+            let recorded =
+                Self::historical_manifest_under_lock(&_publication_lock, &history_dir, generation)?
+                    .to_hex();
+            #[cfg(not(target_os = "linux"))]
+            let recorded = Self::read_index_leaf(&history, "generation history entry")?;
+            if recorded != manifest_hex {
                 return Err(io::Error::new(
                     io::ErrorKind::AlreadyExists,
                     "generation already bound to another manifest",
@@ -1202,7 +1312,15 @@ impl GenerationIndex {
                 Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
                     // A competing publisher won the race. Only the same exact
                     // canonical digest is acceptable for this generation.
-                    if self.historical_manifest(generation)? != manifest {
+                    #[cfg(target_os = "linux")]
+                    let recorded = Self::historical_manifest_under_lock(
+                        &_publication_lock,
+                        &history_dir,
+                        generation,
+                    )?;
+                    #[cfg(not(target_os = "linux"))]
+                    let recorded = self.historical_manifest(generation)?;
+                    if recorded != manifest {
                         return Err(io::Error::new(
                             io::ErrorKind::AlreadyExists,
                             "generation already bound to another manifest",
@@ -1577,6 +1695,63 @@ mod tests {
         drop(locked);
         fs::remove_dir_all(&root).unwrap();
         fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn locked_history_read_rejects_rebound_directory() {
+        let root = test_root("pinned-history-read-rebind");
+        let detached = root.with_extension("history-detached");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&detached);
+        fs::create_dir_all(root.join("generations")).unwrap();
+        let original = ArtifactDigest::sha256(b"pinned-history-original");
+        let substituted = ArtifactDigest::sha256(b"pinned-history-substitute");
+        fs::write(root.join("generations/1.manifest"), original.to_hex()).unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+        assert_eq!(
+            GenerationIndex::historical_manifest_under_lock(&locked, &history_dir, 1).unwrap(),
+            original
+        );
+
+        fs::rename(root.join("generations"), &detached).unwrap();
+        fs::create_dir(root.join("generations")).unwrap();
+        fs::write(root.join("generations/1.manifest"), substituted.to_hex()).unwrap();
+        // A pathname-only read accepts the substituted digest. The publisher
+        // must reject it because its locked history directory is detached.
+        assert_eq!(
+            GenerationIndex::new(&root).historical_manifest(1).unwrap(),
+            substituted
+        );
+        assert!(GenerationIndex::historical_manifest_under_lock(&locked, &history_dir, 1).is_err());
+        drop(history_dir);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn locked_history_read_rejects_symlink_leaf() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("pinned-history-read-symlink");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("generations")).unwrap();
+        let digest = ArtifactDigest::sha256(b"pinned-history-leaf");
+        fs::write(root.join("target.manifest"), digest.to_hex()).unwrap();
+        symlink(
+            root.join("target.manifest"),
+            root.join("generations/1.manifest"),
+        )
+        .unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+        assert!(GenerationIndex::historical_manifest_under_lock(&locked, &history_dir, 1).is_err());
+        drop(history_dir);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[cfg(target_os = "linux")]
