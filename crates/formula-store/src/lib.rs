@@ -1061,7 +1061,11 @@ impl GenerationIndex {
             Ok(metadata)
         };
         let before = stat_relative(&from)?;
-        if before.st_dev != staged_metadata.dev() || before.st_ino != staged_metadata.ino() {
+        // libc::dev_t is signed on macOS but u64 on Linux; MetadataExt::dev
+        // is u64 on both. Keep the conversion local to the portable pointer check.
+        #[allow(clippy::unnecessary_cast)]
+        let before_dev = before.st_dev as u64;
+        if before_dev != staged_metadata.dev() || before.st_ino != staged_metadata.ino() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "staged pointer is not within the locked authority root",
@@ -1079,7 +1083,9 @@ impl GenerationIndex {
             return Err(io::Error::last_os_error());
         }
         let after = stat_relative(&to)?;
-        if after.st_dev != staged_metadata.dev() || after.st_ino != staged_metadata.ino() {
+        #[allow(clippy::unnecessary_cast)]
+        let after_dev = after.st_dev as u64;
+        if after_dev != staged_metadata.dev() || after.st_ino != staged_metadata.ino() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "published pointer no longer names the staged inode",
