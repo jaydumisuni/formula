@@ -722,8 +722,14 @@ impl GenerationIndex {
         use std::ffi::{CStr, CString, OsStr};
         use std::os::fd::AsRawFd;
         use std::os::unix::ffi::OsStrExt;
+        use std::os::unix::fs::MetadataExt;
 
         Self::verify_history_directory_binding(locked, history_dir)?;
+        // A directory can retain its inode while entries are added or removed
+        // without respecting the publisher's advisory flock. Such a mutation
+        // makes the high-water enumeration non-atomic even when its name stays
+        // bound to the pinned descriptor.
+        let before = history_dir.metadata()?;
         let dot = CString::new(".").expect("static name has no NUL");
         // openat(".", pinned_fd) creates an independent directory stream:
         // dup would share its directory offset with the pinned descriptor.
@@ -768,6 +774,20 @@ impl GenerationIndex {
             return Err(io::Error::last_os_error());
         }
         Self::verify_history_directory_binding(locked, history_dir)?;
+        let after = history_dir.metadata()?;
+        if before.dev() != after.dev()
+            || before.ino() != after.ino()
+            || before.len() != after.len()
+            || before.mtime() != after.mtime()
+            || before.mtime_nsec() != after.mtime_nsec()
+            || before.ctime() != after.ctime()
+            || before.ctime_nsec() != after.ctime_nsec()
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "generation history directory mutated during high-water scan",
+            ));
+        }
         Ok(())
     }
 
@@ -1820,6 +1840,52 @@ mod tests {
         drop(locked);
         fs::remove_dir_all(root).unwrap();
         fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn locked_history_scan_rejects_in_place_entry_mutation() {
+        let root = test_root("pinned-history-scan-mutation");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("generations")).unwrap();
+        fs::write(root.join("generations/1.manifest"), "first").unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+
+        // The pathname and pinned inode remain identical throughout the scan.
+        // A writer that ignores flock adds a newer history entry mid-iteration.
+        let mut visits = 0;
+        let error =
+            GenerationIndex::for_each_history_name_under_lock(&locked, &history_dir, |_| {
+                visits += 1;
+                if visits == 1 {
+                    fs::write(root.join("generations/2.manifest"), "second")?;
+                }
+                Ok(())
+            })
+            .unwrap_err();
+        assert!(visits >= 1);
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        GenerationIndex::verify_history_directory_binding(&locked, &history_dir).unwrap();
+
+        // A fresh, stable enumeration remains valid after the mutation.
+        let mut names = Vec::new();
+        GenerationIndex::for_each_history_name_under_lock(&locked, &history_dir, |name| {
+            names.push(name.to_os_string());
+            Ok(())
+        })
+        .unwrap();
+        names.sort();
+        assert_eq!(
+            names,
+            vec![
+                std::ffi::OsString::from("1.manifest"),
+                std::ffi::OsString::from("2.manifest"),
+            ]
+        );
+        drop(history_dir);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[cfg(target_os = "linux")]
