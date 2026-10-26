@@ -711,6 +711,66 @@ impl GenerationIndex {
         Self::verify_history_directory_binding(locked, history_dir)
     }
 
+    // Enumerate history through the already pinned directory inode. A fresh
+    // read_dir(generations) could scan a substituted pathname after flock.
+    #[cfg(target_os = "linux")]
+    fn history_names_under_lock(
+        locked: &fs::File,
+        history_dir: &fs::File,
+    ) -> io::Result<Vec<std::ffi::OsString>> {
+        use std::ffi::{CStr, CString, OsString};
+        use std::os::fd::AsRawFd;
+        use std::os::unix::ffi::OsStringExt;
+
+        Self::verify_history_directory_binding(locked, history_dir)?;
+        let dot = CString::new(".").expect("static name has no NUL");
+        // openat(".", pinned_fd) creates an independent directory stream:
+        // dup would share its directory offset with the pinned descriptor.
+        let fd = unsafe {
+            libc::openat(
+                history_dir.as_raw_fd(),
+                dot.as_ptr(),
+                libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        let dir = unsafe { libc::fdopendir(fd) };
+        if dir.is_null() {
+            let error = io::Error::last_os_error();
+            unsafe { libc::close(fd) };
+            return Err(error);
+        }
+        let mut names = Vec::new();
+        let scan = (|| -> io::Result<()> {
+            loop {
+                // A null readdir result means EOF only when errno is zero.
+                unsafe { *libc::__errno_location() = 0 };
+                let entry = unsafe { libc::readdir(dir) };
+                if entry.is_null() {
+                    let error = io::Error::last_os_error();
+                    if error.raw_os_error().unwrap_or(0) != 0 {
+                        return Err(error);
+                    }
+                    break;
+                }
+                let bytes = unsafe { CStr::from_ptr((*entry).d_name.as_ptr()) }.to_bytes();
+                if bytes != b"." && bytes != b".." {
+                    names.push(OsString::from_vec(bytes.to_vec()));
+                }
+            }
+            Ok(())
+        })();
+        let close = unsafe { libc::closedir(dir) };
+        scan?;
+        if close != 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Self::verify_history_directory_binding(locked, history_dir)?;
+        Ok(names)
+    }
+
     // Read the historical digest from the same directory inode used for
     // immutable installation. A pathname-based read could follow a replacement
     // generations directory after the publisher has acquired its flock.
@@ -1172,9 +1232,13 @@ impl GenerationIndex {
         // The active pointer may be absent after an interrupted publication.
         // Durable history is still a high-water authority boundary: never
         // activate an older generation when a newer history entry exists.
-        for entry in fs::read_dir(&generations)? {
-            let entry = entry?;
-            let name = entry.file_name();
+        #[cfg(target_os = "linux")]
+        let history_names = Self::history_names_under_lock(&_publication_lock, &history_dir)?;
+        #[cfg(not(target_os = "linux"))]
+        let history_names = fs::read_dir(&generations)?
+            .map(|entry| entry.map(|entry| entry.file_name()))
+            .collect::<io::Result<Vec<_>>>()?;
+        for name in history_names {
             let name = name.to_string_lossy();
             if let Some(number) = name.strip_suffix(".manifest") {
                 let recorded = number.parse::<u64>().map_err(|_| {
@@ -1694,6 +1758,38 @@ mod tests {
 
         drop(locked);
         fs::remove_dir_all(&root).unwrap();
+        fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn locked_history_scan_rejects_rebound_directory() {
+        let root = test_root("pinned-history-scan-rebind");
+        let detached = root.with_extension("scan-detached");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&detached);
+        fs::create_dir_all(root.join("generations")).unwrap();
+        fs::write(root.join("generations/1.manifest"), "first").unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+        assert_eq!(
+            GenerationIndex::history_names_under_lock(&locked, &history_dir).unwrap(),
+            vec![std::ffi::OsString::from("1.manifest")]
+        );
+        // A second scan must start from the beginning of an independent stream.
+        assert_eq!(
+            GenerationIndex::history_names_under_lock(&locked, &history_dir).unwrap().len(),
+            1
+        );
+
+        fs::rename(root.join("generations"), &detached).unwrap();
+        fs::create_dir(root.join("generations")).unwrap();
+        fs::write(root.join("generations/99.manifest"), "substitute").unwrap();
+        assert_eq!(fs::read_dir(root.join("generations")).unwrap().count(), 1);
+        assert!(GenerationIndex::history_names_under_lock(&locked, &history_dir).is_err());
+        drop(history_dir);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
         fs::remove_dir_all(detached).unwrap();
     }
 
