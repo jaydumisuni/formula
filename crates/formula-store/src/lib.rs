@@ -661,6 +661,56 @@ impl GenerationIndex {
         Ok(unsafe { fs::File::from_raw_fd(fd) })
     }
 
+    // A directory fd can outlive its name. Publication must not acknowledge
+    // history synced in a detached generations directory.
+    #[cfg(target_os = "linux")]
+    fn verify_history_directory_binding(
+        locked: &fs::File,
+        history_dir: &fs::File,
+    ) -> io::Result<()> {
+        use std::ffi::CString;
+        use std::os::fd::AsRawFd;
+        use std::os::unix::fs::MetadataExt;
+
+        let name = CString::new("generations").expect("static name has no NUL");
+        let mut named = unsafe { std::mem::zeroed::<libc::stat>() };
+        if unsafe {
+            libc::fstatat(
+                locked.as_raw_fd(),
+                name.as_ptr(),
+                &mut named,
+                libc::AT_SYMLINK_NOFOLLOW,
+            )
+        } != 0
+        {
+            return Err(io::Error::last_os_error());
+        }
+        let pinned = history_dir.metadata()?;
+        if !pinned.is_dir()
+            || (named.st_mode & libc::S_IFMT) != libc::S_IFDIR
+            || pinned.dev() != named.st_dev as u64
+            || pinned.ino() != named.st_ino as u64
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "locked generation history directory was rebound",
+            ));
+        }
+        Ok(())
+    }
+
+    // Even when RENAME_NOREPLACE finds an identical competing history leaf,
+    // the winning directory entry needs its own durability barrier.
+    #[cfg(target_os = "linux")]
+    fn sync_history_directory_under_lock(
+        locked: &fs::File,
+        history_dir: &fs::File,
+    ) -> io::Result<()> {
+        Self::verify_history_directory_binding(locked, history_dir)?;
+        history_dir.sync_all()?;
+        Self::verify_history_directory_binding(locked, history_dir)
+    }
+
     // No-replace installation and the durability barrier operate against the
     // same pinned history directory. Reject a temp opened in a replacement
     // pathname, and never use a pathname-based cleanup on failed admission.
@@ -1168,6 +1218,10 @@ impl GenerationIndex {
             #[cfg(not(target_os = "linux"))]
             BlobStore::sync_real_directory(&generations)?;
         }
+        // The winning history entry may have been installed by another writer
+        // after our absence check. Its directory entry must also be synced.
+        #[cfg(target_os = "linux")]
+        Self::sync_history_directory_under_lock(&_publication_lock, &history_dir)?;
 
         // An interrupted publication can leave its temporary pointer behind.
         // Never overwrite it or let it permanently prevent a later publication.
@@ -1227,6 +1281,8 @@ impl GenerationIndex {
             // inode lock. A detached lock cannot authorize an acknowledgement.
             #[cfg(unix)]
             self.verify_publication_lock_binding(&_publication_lock)?;
+            #[cfg(target_os = "linux")]
+            Self::verify_history_directory_binding(&_publication_lock, &history_dir)?;
             Ok(())
         })() {
             // Preserve failed Unix staging for investigation. A pathname-based
@@ -1521,6 +1577,65 @@ mod tests {
         drop(locked);
         fs::remove_dir_all(&root).unwrap();
         fs::remove_dir_all(detached).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn locked_history_directory_rebind_fails_durability_barrier() {
+        let root = test_root("locked-history-dir-rebind");
+        let detached = root.join("generations-detached");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("generations")).unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+        GenerationIndex::sync_history_directory_under_lock(&locked, &history_dir).unwrap();
+
+        fs::rename(root.join("generations"), &detached).unwrap();
+        fs::create_dir(root.join("generations")).unwrap();
+        assert!(GenerationIndex::verify_history_directory_binding(&locked, &history_dir).is_err());
+        assert!(GenerationIndex::sync_history_directory_under_lock(&locked, &history_dir).is_err());
+
+        drop(history_dir);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn locked_history_collision_requires_directory_sync_before_ack() {
+        use std::ffi::CString;
+
+        let root = test_root("locked-history-collision-sync");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("generations")).unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+        let temp = root.join("generations/3.manifest.tmp-collision");
+        let history = root.join("generations/3.manifest");
+        let mut staged = GenerationIndex::create_pointer_temp_under_lock(
+            &history_dir,
+            &CString::new("3.manifest.tmp-collision").unwrap(),
+        )
+        .unwrap();
+        staged.write_all(b"existing-history").unwrap();
+        staged.sync_all().unwrap();
+        fs::write(&history, b"existing-history").unwrap();
+
+        let collision = GenerationIndex::install_history_no_replace_under_lock(
+            &history_dir,
+            &temp,
+            &history,
+            &staged,
+        )
+        .unwrap_err();
+        assert_eq!(collision.kind(), io::ErrorKind::AlreadyExists);
+        GenerationIndex::sync_history_directory_under_lock(&locked, &history_dir).unwrap();
+        assert_eq!(fs::read(&history).unwrap(), b"existing-history");
+
+        drop(staged);
+        drop(history_dir);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[cfg(target_os = "linux")]
