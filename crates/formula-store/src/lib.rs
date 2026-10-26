@@ -1845,12 +1845,38 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn locked_history_scan_rejects_in_place_entry_mutation() {
+        use std::os::fd::AsRawFd;
+        use std::os::unix::fs::MetadataExt;
+
         let root = test_root("pinned-history-scan-mutation");
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(root.join("generations")).unwrap();
         fs::write(root.join("generations/1.manifest"), "first").unwrap();
         let locked = fs::File::open(&root).unwrap();
         let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+
+        // Two directory-entry writes can share a filesystem timestamp tick.
+        // Backdate the pinned inode's mtime so the callback mutation must be
+        // observable even on filesystems with coarse timestamp resolution.
+        let seeded_times = [
+            libc::timespec {
+                tv_sec: 0,
+                tv_nsec: libc::UTIME_OMIT,
+            },
+            libc::timespec {
+                tv_sec: 946_684_800,
+                tv_nsec: 0,
+            },
+        ];
+        assert_eq!(
+            unsafe { libc::futimens(history_dir.as_raw_fd(), seeded_times.as_ptr()) },
+            0,
+            "could not seed an old history-directory mtime"
+        );
+        assert!(
+            history_dir.metadata().unwrap().mtime() <= 946_684_801,
+            "filesystem did not retain the seeded history-directory mtime"
+        );
 
         // The pathname and pinned inode remain identical throughout the scan.
         // A writer that ignores flock adds a newer history entry mid-iteration.
