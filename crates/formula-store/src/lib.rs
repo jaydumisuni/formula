@@ -84,8 +84,19 @@ impl BlobStore {
                 return Err(error);
             }
         }
-        fs::File::open(path.parent().expect("blob path has parent"))?.sync_all()?;
+        self.finish_new_blob_installation(&path, digest)?;
         Ok(digest)
+    }
+
+    // Atomic installation and file sync are not sufficient to acknowledge a
+    // blob: a competing filesystem actor may have rebound the published name
+    // or introduced a hardlink before the directory durability barrier.
+    // Verify the exact installed leaf before and after the barrier, preserving
+    // the no-follow, single-link, owner, inode and digest checks.
+    fn finish_new_blob_installation(&self, path: &Path, digest: ArtifactDigest) -> io::Result<()> {
+        self.verify_existing(path, digest)?;
+        Self::sync_published_blob_parent(path)?;
+        self.verify_existing(path, digest)
     }
 
     // Linux renameat2 installs the fully synced temp file atomically, without
@@ -281,18 +292,186 @@ impl BlobStore {
         Ok(())
     }
 
+    // A synced leaf is not crash-durable if an ancestor directory entry was
+    // just created but never synced. On first creation, sync the root and its
+    // ancestors from child to parent so each newly installed name is durable.
+    // Bind every durability barrier to a real directory inode, including
+    // ordinary parent-entry and generation-pointer fsyncs. Pathname preflight
+    // alone cannot prevent a symlink replacement before a later open().
+    fn sync_real_directory(path: &Path) -> io::Result<()> {
+        Self::sync_real_directory_with_custody(path, false)
+    }
+
+    // Publication roots, shards and generation-index directories must retain
+    // private writes even when a sticky shared ancestor would be acceptable.
+    fn sync_real_authority_directory(path: &Path) -> io::Result<()> {
+        Self::sync_real_directory_with_custody(path, true)
+    }
+
+    fn sync_real_directory_with_custody(path: &Path, require_private: bool) -> io::Result<()> {
+        let mut options = OpenOptions::new();
+        options.read(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC);
+        }
+        let directory = options.open(path)?;
+        Self::sync_opened_real_directory_with_custody(path, &directory, require_private)
+    }
+
+    // A no-follow open alone is insufficient: the directory pathname may
+    // be rebound after open but before the durability barrier. Check the
+    // opened inode against the named directory on both sides of sync_all().
+    // The caller must not acknowledge a barrier for a detached directory.
+    #[cfg(test)]
+    fn sync_opened_real_directory(path: &Path, directory: &fs::File) -> io::Result<()> {
+        Self::sync_opened_real_directory_with_custody(path, directory, false)
+    }
+
+    fn sync_opened_real_directory_with_custody(
+        path: &Path,
+        directory: &fs::File,
+        require_private: bool,
+    ) -> io::Result<()> {
+        #[cfg(not(unix))]
+        let _ = require_private;
+        let opened = directory.metadata()?;
+        let verify_named = || -> io::Result<()> {
+            let named = fs::symlink_metadata(path)?;
+            if !opened.file_type().is_dir() || !named.file_type().is_dir() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "durability barrier target must be a real directory",
+                ));
+            }
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                if opened.dev() != named.dev() || opened.ino() != named.ino() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "durability barrier directory pathname changed after open",
+                    ));
+                }
+                // An unchanged inode is not enough: chmod/chown can revoke
+                // authority custody after the earlier pathname preflight.
+                // Sticky shared ancestors (e.g. /tmp) are permitted, but
+                // authority directories themselves must retain private writes.
+                let live = directory.metadata()?;
+                let effective_uid = unsafe { libc::geteuid() };
+                let custody_ok = |mode, owner| {
+                    if require_private {
+                        Self::authority_directory_custody_permitted(mode, owner, effective_uid)
+                    } else {
+                        Self::ancestor_custody_permitted(mode, owner, effective_uid)
+                    }
+                };
+                if !custody_ok(live.mode(), live.uid()) || !custody_ok(named.mode(), named.uid()) {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "durability barrier directory lost trusted write custody",
+                    ));
+                }
+            }
+            Ok(())
+        };
+        verify_named()?;
+        directory.sync_all()?;
+        verify_named()
+    }
+
+    // A completed blob is not durable until its directory entry is synced.
+    // Do not use File::open(parent): it follows a substituted symlink and can
+    // acknowledge an unrelated directory as the publication barrier.
+    fn sync_published_blob_parent(path: &Path) -> io::Result<()> {
+        let parent = path.parent().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidInput, "blob path has no parent")
+        })?;
+        Self::require_real_ancestors(parent)?;
+        Self::require_real_directory(parent)?;
+        Self::sync_real_authority_directory(parent)
+    }
+
+    // A newly created nested root needs durable directory entries only up
+    // through its first pre-existing parent. Higher ancestors did not change
+    // and may legitimately be execute-only to this writer.
+    fn first_existing_directory(path: &Path) -> io::Result<PathBuf> {
+        for ancestor in path.ancestors() {
+            match fs::symlink_metadata(ancestor) {
+                Ok(metadata) if metadata.file_type().is_dir() => {
+                    return Ok(ancestor.to_path_buf());
+                }
+                Ok(_) => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "authority ancestor must be a real directory",
+                    ));
+                }
+                Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error),
+            }
+        }
+        Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "no existing authority directory ancestor",
+        ))
+    }
+
+    fn sync_directory_chain(path: &Path, first_existing: &Path) -> io::Result<()> {
+        for directory in path.ancestors() {
+            if directory == first_existing {
+                Self::sync_real_directory(directory)?;
+            } else {
+                Self::sync_real_authority_directory(directory)?;
+            }
+            if directory == first_existing {
+                return Ok(());
+            }
+        }
+        Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "durability boundary is not an ancestor of the new authority root",
+        ))
+    }
+
+    fn directory_missing(path: &Path) -> io::Result<bool> {
+        match fs::symlink_metadata(path) {
+            Ok(_) => Ok(false),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(true),
+            Err(error) => Err(error),
+        }
+    }
+
     fn ensure_blob_directories(&self, digest: ArtifactDigest) -> io::Result<()> {
         Self::require_real_ancestors(&self.root)?;
+        let durability_boundary = if Self::directory_missing(&self.root)? {
+            Some(Self::first_existing_directory(&self.root)?)
+        } else {
+            None
+        };
         fs::create_dir_all(&self.root)?;
         Self::require_real_ancestors(&self.root)?;
         Self::require_real_directory(&self.root)?;
+        if let Some(boundary) = durability_boundary {
+            Self::sync_directory_chain(&self.root, &boundary)?;
+        }
         let blobs = self.root.join("blobs");
+        let new_blobs = Self::directory_missing(&blobs)?;
         fs::create_dir_all(&blobs)?;
         Self::require_real_directory(&blobs)?;
+        if new_blobs {
+            BlobStore::sync_real_authority_directory(&self.root)?;
+        }
         let hex = digest.to_hex();
         let shard = blobs.join(&hex[..2]);
+        let new_shard = Self::directory_missing(&shard)?;
         fs::create_dir_all(&shard)?;
-        Self::require_real_directory(&shard)
+        Self::require_real_directory(&shard)?;
+        if new_shard {
+            BlobStore::sync_real_authority_directory(&blobs)?;
+        }
+        Ok(())
     }
 
     fn verify_existing(&self, path: &Path, expected: ArtifactDigest) -> io::Result<()> {
@@ -395,11 +574,9 @@ impl BlobStore {
         }
         #[cfg(unix)]
         {
-            use std::os::unix::fs::MetadataExt;
             let named = fs::symlink_metadata(path)?;
             if !GenerationIndex::index_leaf_metadata_stable(&metadata, &preflight_metadata)
-                || named.dev() != metadata.dev()
-                || named.ino() != metadata.ino()
+                || !GenerationIndex::index_leaf_metadata_stable(&metadata, &named)
             {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
@@ -420,12 +597,10 @@ impl BlobStore {
         }
         #[cfg(unix)]
         {
-            use std::os::unix::fs::MetadataExt;
             let after = file.metadata()?;
             let named = fs::symlink_metadata(path)?;
             if !GenerationIndex::index_leaf_metadata_stable(&metadata, &after)
-                || named.dev() != metadata.dev()
-                || named.ino() != metadata.ino()
+                || !GenerationIndex::index_leaf_metadata_stable(&metadata, &named)
             {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
@@ -456,6 +631,39 @@ impl GenerationIndex {
     fn require_real_root(&self) -> io::Result<()> {
         BlobStore::require_real_ancestors(&self.root)?;
         BlobStore::require_real_directory(&self.root)
+    }
+
+    // The advisory publication lock belongs to an inode, not a pathname.
+    // Rebinding the index root while that inode remains locked must not allow
+    // path-based history/pointer operations to acknowledge another directory.
+    #[cfg(unix)]
+    fn require_locked_root(&self, locked: &fs::File) -> io::Result<()> {
+        use std::os::unix::fs::MetadataExt;
+
+        let opened = locked.metadata()?;
+        let named = fs::symlink_metadata(&self.root)?;
+        let effective_uid = unsafe { libc::geteuid() };
+        if !opened.is_dir()
+            || !named.file_type().is_dir()
+            || opened.dev() != named.dev()
+            || opened.ino() != named.ino()
+            || !BlobStore::authority_directory_custody_permitted(
+                opened.mode(),
+                opened.uid(),
+                effective_uid,
+            )
+            || !BlobStore::authority_directory_custody_permitted(
+                named.mode(),
+                named.uid(),
+                effective_uid,
+            )
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "generation index root no longer matches the locked authority directory",
+            ));
+        }
+        Ok(())
     }
 
     /// Reject malformed or newer history entries during the second verified scan.
@@ -490,6 +698,9 @@ impl GenerationIndex {
             && after.nlink() == 1
             && before.dev() == after.dev()
             && before.ino() == after.ino()
+            && before.mode() == after.mode()
+            && before.uid() == after.uid()
+            && before.gid() == after.gid()
             && before.len() == after.len()
             && before.mtime() == after.mtime()
             && before.mtime_nsec() == after.mtime_nsec()
@@ -561,12 +772,10 @@ impl GenerationIndex {
             .read_to_string(&mut content)?;
         #[cfg(unix)]
         {
-            use std::os::unix::fs::MetadataExt;
             let after = file.metadata()?;
             let named = fs::symlink_metadata(path)?;
             if !Self::index_leaf_metadata_stable(&metadata, &after)
-                || named.dev() != metadata.dev()
-                || named.ino() != metadata.ino()
+                || !GenerationIndex::index_leaf_metadata_stable(&metadata, &named)
             {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
@@ -590,8 +799,16 @@ impl GenerationIndex {
         manifest: ArtifactDigest,
     ) -> io::Result<()> {
         BlobStore::require_real_ancestors(&self.root)?;
+        let durability_boundary = if BlobStore::directory_missing(&self.root)? {
+            Some(BlobStore::first_existing_directory(&self.root)?)
+        } else {
+            None
+        };
         fs::create_dir_all(&self.root)?;
         self.require_real_root()?;
+        if let Some(boundary) = durability_boundary {
+            BlobStore::sync_directory_chain(&self.root, &boundary)?;
+        }
         // Hold the index directory inode's advisory lock across the complete
         // high-water scan, immutable history installation, and active-pointer
         // rename/fsync. A pathname lock file would itself be replaceable.
@@ -613,6 +830,8 @@ impl GenerationIndex {
             io::ErrorKind::Unsupported,
             "generation publication requires an exclusive directory lock",
         ));
+        #[cfg(unix)]
+        self.require_locked_root(&_publication_lock)?;
         if !store.contains(manifest)? {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
@@ -641,8 +860,12 @@ impl GenerationIndex {
             }
         }
         let generations = self.root.join("generations");
+        let new_generations = BlobStore::directory_missing(&generations)?;
         fs::create_dir_all(&generations)?;
         BlobStore::require_real_directory(&generations)?;
+        if new_generations {
+            BlobStore::sync_real_authority_directory(&self.root)?;
+        }
         // The active pointer may be absent after an interrupted publication.
         // Durable history is still a high-water authority boundary: never
         // activate an older generation when a newer history entry exists.
@@ -761,8 +984,11 @@ impl GenerationIndex {
                 }
                 Err(error) => return Err(error),
             }
-            fs::File::open(&generations)?.sync_all()?;
+            BlobStore::sync_real_authority_directory(&generations)?;
         }
+
+        #[cfg(unix)]
+        self.require_locked_root(&_publication_lock)?;
 
         // An interrupted publication can leave its temporary pointer behind.
         // Never overwrite it or let it permanently prevent a later publication.
@@ -802,12 +1028,38 @@ impl GenerationIndex {
         if let Err(error) = (|| -> io::Result<()> {
             write!(file, "{generation}\n{manifest_hex}")?;
             file.sync_all()?;
+            #[cfg(unix)]
+            self.require_locked_root(&_publication_lock)?;
             fs::rename(&temp, &active)?;
-            fs::File::open(&self.root)?.sync_all()?;
+            BlobStore::sync_real_authority_directory(&self.root)?;
+            // The durable directory barrier alone cannot attest that the
+            // published pointer, its history, and the referenced immutable
+            // blobs still agree at acknowledgement time.
+            self.finish_generation_publication(store, generation, manifest)?;
+            #[cfg(unix)]
+            self.require_locked_root(&_publication_lock)?;
             Ok(())
         })() {
             let _ = fs::remove_file(&temp);
             return Err(error);
+        }
+        Ok(())
+    }
+
+    // A concurrent filesystem actor may alter a pointer or referenced blob
+    // after preflight but before the final fsync. Never return publication
+    // success without replaying the exact durable generation and blob chain.
+    fn finish_generation_publication(
+        &self,
+        store: &BlobStore,
+        generation: u64,
+        manifest: ArtifactDigest,
+    ) -> io::Result<()> {
+        if self.verified_active_generation(store)? != (generation, manifest) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "published generation differs from the requested authority",
+            ));
         }
         Ok(())
     }
@@ -959,7 +1211,21 @@ impl GenerationIndex {
                 "active generation manifest blob missing",
             ));
         }
+        // The active pointer and history can advance while the historical
+        // blobs are being verified. Never return an earlier authority snapshot
+        // as the verified *active* generation after such a transition.
+        self.finish_verified_generation_replay(active)?;
         Ok(active)
+    }
+
+    fn finish_verified_generation_replay(&self, observed: (u64, ArtifactDigest)) -> io::Result<()> {
+        if self.active_generation()? != observed {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "active generation changed during verified replay",
+            ));
+        }
+        Ok(())
     }
 }
 
@@ -969,6 +1235,225 @@ mod tests {
 
     fn test_root(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn publication_lock_rejects_rebound_or_shared_writable_index_root() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("generation-locked-root-custody");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let index_path = root.join("index");
+        fs::create_dir(&index_path).unwrap();
+        let index = GenerationIndex::new(&index_path);
+        let locked = fs::File::open(&index_path).unwrap();
+        index.require_locked_root(&locked).unwrap();
+
+        // The original directory stays open (and could remain flock-locked),
+        // while the same owner replaces its name with a fresh directory.
+        let detached = root.join("detached-index");
+        fs::rename(&index_path, &detached).unwrap();
+        fs::create_dir(&index_path).unwrap();
+        assert_eq!(
+            index.require_locked_root(&locked).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        fs::remove_dir(&index_path).unwrap();
+        fs::rename(&detached, &index_path).unwrap();
+        index.require_locked_root(&locked).unwrap();
+
+        fs::set_permissions(&index_path, fs::Permissions::from_mode(0o777)).unwrap();
+        assert_eq!(
+            index.require_locked_root(&locked).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::set_permissions(&index_path, fs::Permissions::from_mode(0o700)).unwrap();
+        index.require_locked_root(&locked).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn durability_barrier_rejects_shared_writable_directory_after_open() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("barrier-custody-after-open");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let opened = fs::File::open(&root).unwrap();
+
+        // The opened inode remains the same, but its write custody changes
+        // before fsync. A clean inode match alone cannot attest authority.
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o777)).unwrap();
+        let result = BlobStore::sync_opened_real_directory(&root, &opened);
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(result.unwrap_err().kind(), io::ErrorKind::InvalidData);
+
+        // A trusted sticky parent remains a valid ancestor durability barrier.
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o1777)).unwrap();
+        let sticky_result = BlobStore::sync_opened_real_directory(&root, &opened);
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
+        sticky_result.unwrap();
+
+        // The same sticky shared-writable inode is NOT a valid immutable
+        // authority directory, even though it is a valid trusted ancestor.
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o1777)).unwrap();
+        let authority_result =
+            BlobStore::sync_opened_real_directory_with_custody(&root, &opened, true);
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(
+            authority_result.unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn new_authority_directory_durability_stops_at_existing_private_parent() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = test_root("existing-private-boundary");
+        let _ = fs::remove_dir_all(&root);
+        let no_read = root.join("no-read-ancestor");
+        let private = no_read.join("private");
+        fs::create_dir_all(&private).unwrap();
+        fs::set_permissions(&no_read, fs::Permissions::from_mode(0o311)).unwrap();
+
+        // The private directory already exists and is readable/writable.
+        // An unchanged execute-only ancestor need not be opened for fsync.
+        let store = BlobStore::new(private.join("new/store"));
+        let index = GenerationIndex::new(private.join("new/index"));
+        let manifest = store
+            .put(b"first manifest under existing private parent")
+            .unwrap();
+        index.publish(&store, 1, manifest).unwrap();
+        assert_eq!(
+            index.verified_active_generation(&store).unwrap(),
+            (1, manifest)
+        );
+
+        fs::set_permissions(&no_read, fs::Permissions::from_mode(0o700)).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn newly_installed_blob_must_pass_final_name_custody_readback() {
+        let root = test_root("installed-blob-final-custody");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(&root);
+        let bytes = b"verified-after-atomic-install";
+        let digest = store.put(bytes).unwrap();
+        let path = store.blob_path(digest);
+
+        store.finish_new_blob_installation(&path, digest).unwrap();
+        fs::write(&path, b"tampered-after-install").unwrap();
+        assert_eq!(
+            store
+                .finish_new_blob_installation(&path, digest)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+
+        #[cfg(unix)]
+        {
+            fs::write(&path, bytes).unwrap();
+            let alias = root.join("hardlink-to-installed-blob");
+            fs::hard_link(&path, &alias).unwrap();
+            assert_eq!(
+                store
+                    .finish_new_blob_installation(&path, digest)
+                    .unwrap_err()
+                    .kind(),
+                io::ErrorKind::InvalidData
+            );
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn directory_sync_rejects_redirected_and_nondirectory_components() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("directory-sync-custody");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("real")).unwrap();
+        symlink(root.join("real"), root.join("alias")).unwrap();
+        fs::write(root.join("regular"), b"not a directory").unwrap();
+
+        // The directory durability barrier must never follow a replacement
+        // symlink or silently fsync an attacker-supplied regular file.
+        assert!(BlobStore::sync_directory_chain(&root.join("alias"), &root).is_err());
+        assert!(BlobStore::sync_directory_chain(&root.join("regular"), &root).is_err());
+        assert!(BlobStore::sync_directory_chain(&root.join("real"), &root).is_ok());
+        // Every single-directory fsync used during publication must enforce
+        // the same no-follow, directory-only rule as the ancestor barrier.
+        assert!(BlobStore::sync_real_directory(&root.join("alias")).is_err());
+        assert!(BlobStore::sync_real_directory(&root.join("regular")).is_err());
+        assert!(BlobStore::sync_real_directory(&root.join("real")).is_ok());
+        // Shared sticky ancestors are allowed, but publication directories
+        // with the same mode must not pass the authority fsync barrier.
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(root.join("real"), fs::Permissions::from_mode(0o1777)).unwrap();
+        assert!(BlobStore::sync_real_directory(&root.join("real")).is_ok());
+        assert_eq!(
+            BlobStore::sync_real_authority_directory(&root.join("real"))
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+        fs::set_permissions(root.join("real"), fs::Permissions::from_mode(0o700)).unwrap();
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn opened_directory_durability_rejects_rebound_pathname() {
+        let root = test_root("directory-fsync-opened-inode");
+        let _ = fs::remove_dir_all(&root);
+        let original = root.join("shard");
+        fs::create_dir_all(&original).unwrap();
+        let opened = fs::File::open(&original).unwrap();
+        // The old sync_all-only barrier returns success on a detached inode.
+        fs::rename(&original, root.join("detached")).unwrap();
+        fs::create_dir(&original).unwrap();
+        assert!(opened.sync_all().is_ok());
+        // Reject that descriptor even though the replacement is a directory.
+        assert!(BlobStore::sync_opened_real_directory(&original, &opened).is_err());
+        let replacement = fs::File::open(&original).unwrap();
+        assert!(BlobStore::sync_opened_real_directory(&original, &replacement).is_ok());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn blob_parent_durability_rejects_rebound_shard() {
+        use std::os::unix::fs::symlink;
+
+        let root = test_root("blob-parent-durability");
+        let _ = fs::remove_dir_all(&root);
+        let shard = root.join("blobs/ab");
+        let outside = root.join("outside");
+        fs::create_dir_all(&shard).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        let leaf = shard.join("ab000000");
+
+        // Rebind the shard after the blob installation. The old direct
+        // File::open(parent) barrier follows this alias and reports success,
+        // even though it fsyncs the wrong directory inode.
+        fs::rename(&shard, root.join("saved-shard")).unwrap();
+        symlink(&outside, &shard).unwrap();
+        assert!(fs::File::open(&shard).unwrap().sync_all().is_ok());
+
+        // The publication barrier must reject the replaced shard instead.
+        assert!(BlobStore::sync_published_blob_parent(&leaf).is_err());
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -1010,6 +1495,22 @@ mod tests {
             &before,
             &fs::metadata(&leaf).unwrap()
         ));
+
+        // A pathname chmod leaves inode and byte length unchanged. The
+        // post-read named-file check must still reject the custody change,
+        // even if the opened descriptor was checked immediately before it.
+        use std::os::unix::fs::PermissionsExt;
+        let original_mode = before.mode() & 0o7777;
+        let changed_mode = original_mode ^ 0o200;
+        fs::set_permissions(&leaf, fs::Permissions::from_mode(changed_mode)).unwrap();
+        let named_changed = fs::symlink_metadata(&leaf).unwrap();
+        assert_eq!(before.ino(), named_changed.ino());
+        assert_eq!(before.len(), named_changed.len());
+        assert!(!GenerationIndex::index_leaf_metadata_stable(
+            &before,
+            &named_changed
+        ));
+        fs::set_permissions(&leaf, fs::Permissions::from_mode(original_mode)).unwrap();
 
         fs::write(&leaf, b"second-longer").unwrap();
         let changed = fs::metadata(&leaf).unwrap();
@@ -1590,6 +2091,80 @@ mod tests {
         assert_eq!(
             fs::read_to_string(root.join("index/active-generation")).unwrap(),
             format!("1\n{}", manifest.to_hex())
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn publication_acknowledgement_rechecks_pointer_history_and_manifest_blob() {
+        let root = test_root("generation-final-readback");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let bytes = b"generation-final-readback";
+        let manifest = store.put(bytes).unwrap();
+        index.publish(&store, 3, manifest).unwrap();
+        index
+            .finish_generation_publication(&store, 3, manifest)
+            .unwrap();
+
+        // Preflight and directory fsync could both have passed before a
+        // referenced immutable blob was modified. Acknowledgement must fail.
+        fs::write(store.blob_path(manifest), b"corrupted-after-preflight").unwrap();
+        assert!(
+            index
+                .finish_generation_publication(&store, 3, manifest)
+                .is_err()
+        );
+        fs::write(store.blob_path(manifest), bytes).unwrap();
+
+        // The final active pointer must still name this exact generation.
+        fs::write(
+            root.join("index/active-generation"),
+            format!("2\n{}", manifest.to_hex()),
+        )
+        .unwrap();
+        assert!(
+            index
+                .finish_generation_publication(&store, 3, manifest)
+                .is_err()
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn verified_replay_rechecks_active_pointer_and_history_after_blob_scan() {
+        let root = test_root("generation-replay-final-readback");
+        let _ = fs::remove_dir_all(&root);
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let old = store.put(b"first replay manifest").unwrap();
+        let new = store.put(b"second replay manifest").unwrap();
+        index.publish(&store, 1, old).unwrap();
+        let observed = index.active_generation().unwrap();
+
+        // Model a second publisher advancing the active pointer while a
+        // verified replay is busy scanning its immutable blob chain.
+        index.publish(&store, 2, new).unwrap();
+        assert_eq!(
+            index
+                .finish_verified_generation_replay(observed)
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(index.finish_verified_generation_replay((2, new)).is_ok());
+
+        // An interrupted successor may install durable history before its
+        // pointer. That newer history must also invalidate the old snapshot.
+        let third = store.put(b"third replay manifest").unwrap();
+        fs::write(root.join("index/generations/3.manifest"), third.to_hex()).unwrap();
+        assert_eq!(
+            index
+                .finish_verified_generation_replay((2, new))
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
         );
         fs::remove_dir_all(root).unwrap();
     }
