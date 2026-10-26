@@ -714,13 +714,14 @@ impl GenerationIndex {
     // Enumerate history through the already pinned directory inode. A fresh
     // read_dir(generations) could scan a substituted pathname after flock.
     #[cfg(target_os = "linux")]
-    fn history_names_under_lock(
+    fn for_each_history_name_under_lock(
         locked: &fs::File,
         history_dir: &fs::File,
-    ) -> io::Result<Vec<std::ffi::OsString>> {
-        use std::ffi::{CStr, CString, OsString};
+        mut visit: impl FnMut(&std::ffi::OsStr) -> io::Result<()>,
+    ) -> io::Result<()> {
+        use std::ffi::{CStr, CString, OsStr};
         use std::os::fd::AsRawFd;
-        use std::os::unix::ffi::OsStringExt;
+        use std::os::unix::ffi::OsStrExt;
 
         Self::verify_history_directory_binding(locked, history_dir)?;
         let dot = CString::new(".").expect("static name has no NUL");
@@ -742,7 +743,6 @@ impl GenerationIndex {
             unsafe { libc::close(fd) };
             return Err(error);
         }
-        let mut names = Vec::new();
         let scan = (|| -> io::Result<()> {
             loop {
                 // A null readdir result means EOF only when errno is zero.
@@ -757,7 +757,7 @@ impl GenerationIndex {
                 }
                 let bytes = unsafe { CStr::from_ptr((*entry).d_name.as_ptr()) }.to_bytes();
                 if bytes != b"." && bytes != b".." {
-                    names.push(OsString::from_vec(bytes.to_vec()));
+                    visit(OsStr::from_bytes(bytes))?;
                 }
             }
             Ok(())
@@ -768,7 +768,7 @@ impl GenerationIndex {
             return Err(io::Error::last_os_error());
         }
         Self::verify_history_directory_binding(locked, history_dir)?;
-        Ok(names)
+        Ok(())
     }
 
     // Read the historical digest from the same directory inode used for
@@ -1232,13 +1232,9 @@ impl GenerationIndex {
         // The active pointer may be absent after an interrupted publication.
         // Durable history is still a high-water authority boundary: never
         // activate an older generation when a newer history entry exists.
-        #[cfg(target_os = "linux")]
-        let history_names = Self::history_names_under_lock(&_publication_lock, &history_dir)?;
-        #[cfg(not(target_os = "linux"))]
-        let history_names = fs::read_dir(&generations)?
-            .map(|entry| entry.map(|entry| entry.file_name()))
-            .collect::<io::Result<Vec<_>>>()?;
-        for name in history_names {
+        // Validate each entry as it is read: immutable history must not be
+        // materialized into an unbounded Vec before the high-water check.
+        let validate_history_name = |name: &std::ffi::OsStr| -> io::Result<()> {
             let name = name.to_string_lossy();
             if let Some(number) = name.strip_suffix(".manifest") {
                 let recorded = number.parse::<u64>().map_err(|_| {
@@ -1278,6 +1274,17 @@ impl GenerationIndex {
                     }
                 }
             }
+            Ok(())
+        };
+        #[cfg(target_os = "linux")]
+        Self::for_each_history_name_under_lock(
+            &_publication_lock,
+            &history_dir,
+            validate_history_name,
+        )?;
+        #[cfg(not(target_os = "linux"))]
+        for entry in fs::read_dir(&generations)? {
+            validate_history_name(&entry?.file_name())?;
         }
         let history = generations.join(format!("{generation}.manifest"));
         let manifest_hex = manifest.to_hex();
@@ -1772,23 +1779,45 @@ mod tests {
         fs::write(root.join("generations/1.manifest"), "first").unwrap();
         let locked = fs::File::open(&root).unwrap();
         let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
-        assert_eq!(
-            GenerationIndex::history_names_under_lock(&locked, &history_dir).unwrap(),
-            vec![std::ffi::OsString::from("1.manifest")]
-        );
-        // A second scan must start from the beginning of an independent stream.
-        assert_eq!(
-            GenerationIndex::history_names_under_lock(&locked, &history_dir)
-                .unwrap()
-                .len(),
-            1
-        );
+        let mut first = Vec::new();
+        GenerationIndex::for_each_history_name_under_lock(&locked, &history_dir, |name| {
+            first.push(name.to_os_string());
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(first, vec![std::ffi::OsString::from("1.manifest")]);
+        // Each scan starts at the beginning without materializing all entries.
+        let mut second_count = 0;
+        GenerationIndex::for_each_history_name_under_lock(&locked, &history_dir, |_| {
+            second_count += 1;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(second_count, 1);
+        // A failed validation aborts the stream at the first rejected entry.
+        let mut rejected_count = 0;
+        let error = GenerationIndex::for_each_history_name_under_lock(
+            &locked,
+            &history_dir,
+            |_| {
+                rejected_count += 1;
+                Err(io::Error::new(io::ErrorKind::InvalidData, "rejected history"))
+            },
+        )
+        .unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert_eq!(rejected_count, 1);
 
         fs::rename(root.join("generations"), &detached).unwrap();
         fs::create_dir(root.join("generations")).unwrap();
         fs::write(root.join("generations/99.manifest"), "substitute").unwrap();
         assert_eq!(fs::read_dir(root.join("generations")).unwrap().count(), 1);
-        assert!(GenerationIndex::history_names_under_lock(&locked, &history_dir).is_err());
+        assert!(GenerationIndex::for_each_history_name_under_lock(
+            &locked,
+            &history_dir,
+            |_| Ok(())
+        )
+        .is_err());
         drop(history_dir);
         drop(locked);
         fs::remove_dir_all(root).unwrap();
