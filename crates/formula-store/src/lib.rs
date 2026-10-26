@@ -794,7 +794,10 @@ impl GenerationIndex {
         }
         Self::verify_history_directory_binding(locked, history_dir)?;
         let digest = ArtifactDigest::from_hex(content.trim()).map_err(|_| {
-            io::Error::new(io::ErrorKind::InvalidData, "invalid historical manifest digest")
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "invalid historical manifest digest",
+            )
         })?;
         if content != digest.to_hex() {
             return Err(io::Error::new(
@@ -1236,12 +1239,9 @@ impl GenerationIndex {
         };
         if history_present {
             #[cfg(target_os = "linux")]
-            let recorded = Self::historical_manifest_under_lock(
-                &_publication_lock,
-                &history_dir,
-                generation,
-            )?
-            .to_hex();
+            let recorded =
+                Self::historical_manifest_under_lock(&_publication_lock, &history_dir, generation)?
+                    .to_hex();
             #[cfg(not(target_os = "linux"))]
             let recorded = Self::read_index_leaf(&history, "generation history entry")?;
             if recorded != manifest_hex {
@@ -1724,9 +1724,7 @@ mod tests {
             GenerationIndex::new(&root).historical_manifest(1).unwrap(),
             substituted
         );
-        assert!(
-            GenerationIndex::historical_manifest_under_lock(&locked, &history_dir, 1).is_err()
-        );
+        assert!(GenerationIndex::historical_manifest_under_lock(&locked, &history_dir, 1).is_err());
         drop(history_dir);
         drop(locked);
         fs::remove_dir_all(root).unwrap();
@@ -1743,12 +1741,14 @@ mod tests {
         fs::create_dir_all(root.join("generations")).unwrap();
         let digest = ArtifactDigest::sha256(b"pinned-history-leaf");
         fs::write(root.join("target.manifest"), digest.to_hex()).unwrap();
-        symlink(root.join("target.manifest"), root.join("generations/1.manifest")).unwrap();
+        symlink(
+            root.join("target.manifest"),
+            root.join("generations/1.manifest"),
+        )
+        .unwrap();
         let locked = fs::File::open(&root).unwrap();
         let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
-        assert!(
-            GenerationIndex::historical_manifest_under_lock(&locked, &history_dir, 1).is_err()
-        );
+        assert!(GenerationIndex::historical_manifest_under_lock(&locked, &history_dir, 1).is_err());
         drop(history_dir);
         drop(locked);
         fs::remove_dir_all(root).unwrap();
