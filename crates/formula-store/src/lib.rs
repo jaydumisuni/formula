@@ -1796,15 +1796,15 @@ mod tests {
         assert_eq!(second_count, 1);
         // A failed validation aborts the stream at the first rejected entry.
         let mut rejected_count = 0;
-        let error = GenerationIndex::for_each_history_name_under_lock(
-            &locked,
-            &history_dir,
-            |_| {
+        let error =
+            GenerationIndex::for_each_history_name_under_lock(&locked, &history_dir, |_| {
                 rejected_count += 1;
-                Err(io::Error::new(io::ErrorKind::InvalidData, "rejected history"))
-            },
-        )
-        .unwrap_err();
+                Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "rejected history",
+                ))
+            })
+            .unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
         assert_eq!(rejected_count, 1);
 
@@ -1812,12 +1812,10 @@ mod tests {
         fs::create_dir(root.join("generations")).unwrap();
         fs::write(root.join("generations/99.manifest"), "substitute").unwrap();
         assert_eq!(fs::read_dir(root.join("generations")).unwrap().count(), 1);
-        assert!(GenerationIndex::for_each_history_name_under_lock(
-            &locked,
-            &history_dir,
-            |_| Ok(())
-        )
-        .is_err());
+        assert!(
+            GenerationIndex::for_each_history_name_under_lock(&locked, &history_dir, |_| Ok(()))
+                .is_err()
+        );
         drop(history_dir);
         drop(locked);
         fs::remove_dir_all(root).unwrap();
