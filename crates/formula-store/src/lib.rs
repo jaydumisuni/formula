@@ -721,9 +721,40 @@ impl GenerationIndex {
         locked: &fs::File,
         history_dir: &fs::File,
     ) -> io::Result<()> {
+        Self::sync_history_directory_under_lock_with(locked, history_dir, fs::File::sync_all)
+    }
+
+    // An unrelated writer can change history entries while fsync is in
+    // progress without rebinding the directory inode or respecting flock.
+    // Verify that the directory entry set stayed stable across the barrier
+    // before acknowledging a durable publication.
+    #[cfg(target_os = "linux")]
+    fn sync_history_directory_under_lock_with(
+        locked: &fs::File,
+        history_dir: &fs::File,
+        sync: impl FnOnce(&fs::File) -> io::Result<()>,
+    ) -> io::Result<()> {
+        use std::os::unix::fs::MetadataExt;
+
         Self::verify_history_directory_binding(locked, history_dir)?;
-        history_dir.sync_all()?;
-        Self::verify_history_directory_binding(locked, history_dir)
+        let before = history_dir.metadata()?;
+        sync(history_dir)?;
+        Self::verify_history_directory_binding(locked, history_dir)?;
+        let after = history_dir.metadata()?;
+        if before.dev() != after.dev()
+            || before.ino() != after.ino()
+            || before.len() != after.len()
+            || before.mtime() != after.mtime()
+            || before.mtime_nsec() != after.mtime_nsec()
+            || before.ctime() != after.ctime()
+            || before.ctime_nsec() != after.ctime_nsec()
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "generation history directory mutated during durability barrier",
+            ));
+        }
+        Ok(())
     }
 
     // Enumerate history through the already pinned directory inode. A fresh
@@ -1982,6 +2013,57 @@ mod tests {
                 std::ffi::OsString::from("2.manifest"),
             ]
         );
+        drop(history_dir);
+        drop(locked);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn locked_history_sync_rejects_in_place_entry_mutation_during_barrier() {
+        use std::os::fd::AsRawFd;
+        use std::os::unix::fs::MetadataExt;
+
+        let root = test_root("pinned-history-sync-mutation");
+        let _ = fs::remove_dir_all(&root);
+        let generations = root.join("generations");
+        fs::create_dir_all(&generations).unwrap();
+        fs::write(generations.join("1.manifest"), "first").unwrap();
+        let locked = fs::File::open(&root).unwrap();
+        let history_dir = GenerationIndex::open_history_directory_under_lock(&locked).unwrap();
+
+        // Avoid filesystem timestamp-resolution ambiguity in this
+        // deterministic injection by seeding an old directory mtime.
+        let seeded_times = [
+            libc::timespec {
+                tv_sec: 0,
+                tv_nsec: libc::UTIME_OMIT,
+            },
+            libc::timespec {
+                tv_sec: 946_684_800,
+                tv_nsec: 0,
+            },
+        ];
+        assert_eq!(
+            unsafe { libc::futimens(history_dir.as_raw_fd(), seeded_times.as_ptr()) },
+            0
+        );
+        assert!(history_dir.metadata().unwrap().mtime() <= 946_684_801);
+
+        // A peer ignoring flock inserts an entry during the durability
+        // callback; the directory name and inode do not change.
+        let error =
+            GenerationIndex::sync_history_directory_under_lock_with(&locked, &history_dir, |dir| {
+                fs::write(generations.join("2.manifest"), "second")?;
+                dir.sync_all()
+            })
+            .unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        GenerationIndex::verify_history_directory_binding(&locked, &history_dir).unwrap();
+
+        // Once the directory is stable, the ordinary production barrier
+        // still succeeds without changing the authority contract.
+        GenerationIndex::sync_history_directory_under_lock(&locked, &history_dir).unwrap();
         drop(history_dir);
         drop(locked);
         fs::remove_dir_all(root).unwrap();
