@@ -982,7 +982,7 @@ impl GenerationIndex {
             Ok(stat)
         };
         let before = stat_leaf(&from)?;
-        if (before.st_dev as u64) != metadata.dev() || (before.st_ino as u64) != metadata.ino() {
+        if before.st_dev != metadata.dev() || before.st_ino != metadata.ino() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "history temp is outside the locked history directory",
@@ -1001,10 +1001,7 @@ impl GenerationIndex {
             return Err(io::Error::last_os_error());
         }
         let after = stat_leaf(&to)?;
-        if (after.st_dev as u64) != metadata.dev()
-            || (after.st_ino as u64) != metadata.ino()
-            || after.st_nlink != 1
-        {
+        if after.st_dev != metadata.dev() || after.st_ino != metadata.ino() || after.st_nlink != 1 {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "installed history leaf changed during publication",
@@ -1064,9 +1061,11 @@ impl GenerationIndex {
             Ok(metadata)
         };
         let before = stat_relative(&from)?;
-        if (before.st_dev as u64) != staged_metadata.dev()
-            || (before.st_ino as u64) != staged_metadata.ino()
-        {
+        // libc::dev_t is signed on macOS but u64 on Linux; MetadataExt::dev
+        // is u64 on both. Keep the conversion local to the portable pointer check.
+        #[allow(clippy::unnecessary_cast)]
+        let before_dev = before.st_dev as u64;
+        if before_dev != staged_metadata.dev() || before.st_ino != staged_metadata.ino() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "staged pointer is not within the locked authority root",
@@ -1084,9 +1083,9 @@ impl GenerationIndex {
             return Err(io::Error::last_os_error());
         }
         let after = stat_relative(&to)?;
-        if (after.st_dev as u64) != staged_metadata.dev()
-            || (after.st_ino as u64) != staged_metadata.ino()
-        {
+        #[allow(clippy::unnecessary_cast)]
+        let after_dev = after.st_dev as u64;
+        if after_dev != staged_metadata.dev() || after.st_ino != staged_metadata.ino() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "published pointer no longer names the staged inode",
@@ -1523,7 +1522,7 @@ impl GenerationIndex {
                 )
             })?
         };
-        if let Err(error) = (|| -> io::Result<()> {
+        let publication_result = (|| -> io::Result<()> {
             write!(file, "{generation}\n{manifest_hex}")?;
             file.sync_all()?;
             #[cfg(unix)]
@@ -1539,13 +1538,14 @@ impl GenerationIndex {
             #[cfg(target_os = "linux")]
             Self::verify_history_directory_binding(&_publication_lock, &history_dir)?;
             Ok(())
-        })() {
-            // Preserve failed Unix staging for investigation. A pathname-based
-            // cleanup could delete an unrelated temp in a rebound authority root.
-            #[cfg(not(unix))]
+        })();
+        // Preserve failed Unix staging for investigation. On non-Unix, retain
+        // the existing cleanup behavior before propagating the write failure.
+        #[cfg(not(unix))]
+        if publication_result.is_err() {
             let _ = fs::remove_file(&temp);
-            return Err(error);
         }
+        publication_result?;
         Ok(())
     }
 

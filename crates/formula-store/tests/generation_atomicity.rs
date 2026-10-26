@@ -65,7 +65,7 @@ fn stale_pointer_temp_does_not_block_atomic_publication() {
 }
 
 #[test]
-fn corrupt_historical_manifest_cannot_activate_new_generation() {
+fn noncanonical_historical_manifest_cannot_activate_new_generation() {
     let root = std::env::temp_dir().join(format!("formula-corrupt-history-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
@@ -83,13 +83,46 @@ fn corrupt_historical_manifest_cannot_activate_new_generation() {
     }
     assert_eq!(
         index.publish(&store, 2, second).unwrap_err().kind(),
-        io::ErrorKind::AlreadyExists
+        io::ErrorKind::InvalidData
     );
     assert_eq!(
         index.active_generation().unwrap_err().kind(),
         io::ErrorKind::InvalidData
     );
 
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn canonical_conflicting_history_cannot_activate_new_generation() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-conflicting-history-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let second = store.put(b"second").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    // A well-formed immutable binding to the wrong digest is a conflict,
+    // unlike a noncanonical or corrupt history leaf (InvalidData).
+    let history = root.join("index/generations/2.manifest");
+    fs::write(&history, first.to_hex()).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&history, fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    assert_eq!(
+        index.publish(&store, 2, second).unwrap_err().kind(),
+        io::ErrorKind::AlreadyExists
+    );
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
     fs::remove_dir_all(root).unwrap();
 }
 
