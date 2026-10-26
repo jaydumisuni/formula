@@ -1885,14 +1885,10 @@ mod tests {
         );
         let mut visited = false;
         assert_eq!(
-            GenerationIndex::for_each_history_name_under_lock(
-                &locked,
-                &history_dir,
-                |_| {
-                    visited = true;
-                    Ok(())
-                },
-            )
+            GenerationIndex::for_each_history_name_under_lock(&locked, &history_dir, |_| {
+                visited = true;
+                Ok(())
+            },)
             .unwrap_err()
             .kind(),
             io::ErrorKind::InvalidData
