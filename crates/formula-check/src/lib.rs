@@ -116,7 +116,14 @@ pub fn preflight_contract_membership(
         return Err(ContractPreflightError::InvalidFamily);
     }
     let classes = frozen_contract.admissible_evidence_classes();
-    if classes.is_empty() || classes.iter().any(|class| !valid_evidence_family(class)) {
+    // A policy is a set of exact evidence identities, not a multiset. Reject
+    // duplicate classes even when their redundant serialized digest matches.
+    let mut seen = std::collections::BTreeSet::new();
+    if classes.is_empty()
+        || classes
+            .iter()
+            .any(|class| !valid_evidence_family(class) || !seen.insert(class.as_str()))
+    {
         return Err(ContractPreflightError::InvalidContract);
     }
     if frozen_contract.structural_digest() != recorded_contract_digest {
@@ -738,6 +745,39 @@ mod tests {
         let visible = AuthorityContract::new(vec!["有限証明".to_string()]);
         assert_eq!(
             preflight_contract_membership(visible.structural_digest(), &visible, "有限証明"),
+            Ok(())
+        );
+    }
+
+    #[test]
+    /// Duplicate evidence-class entries make a frozen authority policy
+    /// ambiguous even when the recorded digest matches exactly.
+    fn duplicate_frozen_contract_classes_fail_closed() {
+        for classes in [
+            vec!["finite-exhaustive", "finite-exhaustive"],
+            vec![
+                "finite-exhaustive",
+                "polynomial-identity",
+                "finite-exhaustive",
+            ],
+        ] {
+            let frozen = AuthorityContract::new(classes.iter().map(|s| (*s).to_owned()).collect());
+            assert_eq!(
+                preflight_contract_membership(
+                    frozen.structural_digest(),
+                    &frozen,
+                    "finite-exhaustive"
+                ),
+                Err(ContractPreflightError::InvalidContract),
+                "duplicate evidence classes must not be admitted"
+            );
+        }
+        let valid = AuthorityContract::new(vec![
+            "finite-exhaustive".to_owned(),
+            "polynomial-identity".to_owned(),
+        ]);
+        assert_eq!(
+            preflight_contract_membership(valid.structural_digest(), &valid, "finite-exhaustive"),
             Ok(())
         );
     }
