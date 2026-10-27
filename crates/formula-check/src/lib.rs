@@ -60,6 +60,14 @@ fn is_hidden_family_mark(c: char) -> bool {
     )
 }
 
+/// Unicode noncharacters are permanently reserved code points, not stable
+/// interchange identities. This excludes U+FDD0..FDEF and each plane's
+/// terminal U+FFFE/U+FFFF without rejecting visible Unicode script names.
+fn is_unicode_noncharacter(c: char) -> bool {
+    let scalar = c as u32;
+    (0xfdd0..=0xfdef).contains(&scalar) || (scalar & 0xfffe) == 0xfffe
+}
+
 /// Reject metadata substitution without claiming that evidence is sound.
 ///
 /// The judgement's structural digest commits to its world, proposition, and
@@ -71,10 +79,12 @@ pub fn preflight_evidence_metadata(
 ) -> Result<(), EvidencePreflightError> {
     if frozen.evidence_family.is_empty()
         || frozen.evidence_family.trim() != frozen.evidence_family
-        || frozen
-            .evidence_family
-            .chars()
-            .any(|c| c.is_whitespace() || c.is_control() || is_hidden_family_mark(c))
+        || frozen.evidence_family.chars().any(|c| {
+            c.is_whitespace()
+                || c.is_control()
+                || is_hidden_family_mark(c)
+                || is_unicode_noncharacter(c)
+        })
     {
         return Err(EvidencePreflightError::InvalidFamily);
     }
@@ -455,6 +465,44 @@ mod tests {
             assert_eq!(
                 preflight_evidence_metadata(&recorded, &frozen),
                 Err(EvidencePreflightError::InvalidFamily)
+            );
+        }
+    }
+
+    #[test]
+    /// Unicode noncharacters are reserved for internal use, not stable
+    /// interchange identities, even when both metadata copies match.
+    fn unicode_noncharacters_in_family_fail_closed() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for mark in [
+            '\u{fdd0}',
+            '\u{fdef}',
+            '\u{fffe}',
+            '\u{ffff}',
+            '\u{1fffe}',
+            '\u{1ffff}',
+            '\u{10fffe}',
+            '\u{10ffff}',
+        ] {
+            let family = format!("finite{mark}exhaustive");
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                &family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: &family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily),
+                "noncharacter U+{:04X} must not be an evidence-family identity",
+                mark as u32,
             );
         }
     }
