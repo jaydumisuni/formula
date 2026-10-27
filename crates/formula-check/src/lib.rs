@@ -31,6 +31,7 @@ fn is_hidden_family_mark(c: char) -> bool {
             | '\u{115f}'..='\u{1160}'
             | '\u{17b4}'..='\u{17b5}'
             | '\u{3164}'
+            | '\u{2800}'
             | '\u{ffa0}'
             | '\u{ad}'
             | '\u{180b}'..='\u{180d}'
@@ -467,6 +468,53 @@ mod tests {
                 Err(EvidencePreflightError::InvalidFamily)
             );
         }
+    }
+
+    #[test]
+    /// U+2800 is a blank Braille cell, not Unicode whitespace. Matching
+    /// recorded metadata must not make its visually empty alias admissible.
+    fn braille_blank_family_aliases_fail_closed() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for family in [
+            "finite\u{2800}exhaustive",
+            "\u{2800}finite",
+            "finite\u{2800}",
+        ] {
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily),
+                "blank Braille cell must not alias a family identity",
+            );
+        }
+
+        // A raised Braille dot is visible and remains a valid family character.
+        let visible = "finite\u{2801}exhaustive";
+        let recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            visible,
+            digest(b"proof"),
+            checker,
+        );
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: visible,
+            payload_bytes: b"proof",
+            checker_digest: checker,
+        };
+        assert_eq!(preflight_evidence_metadata(&recorded, &frozen), Ok(()));
     }
 
     #[test]
