@@ -3,10 +3,10 @@
 //! This is an isolated preparation slice, not a certificate checker, promotion
 //! decision, or completion of P1/P2. It only binds a recorded metadata envelope
 //! to the caller's frozen judgement, exact payload bytes, and pinned checker.
-//! Proof semantics, trust-root admission, and authority-contract policy remain
-//! independent unimplemented gates.
+//! Proof semantics, trust-root admission, and full authority-contract policy
+//! remain independent unimplemented gates.
 
-use formula_core::{ArtifactDigest, EvidenceEnvelopeMetadata, Judgement};
+use formula_core::{ArtifactDigest, AuthorityContract, EvidenceEnvelopeMetadata, Judgement};
 
 /// Inputs pinned by the caller before any independent evidence-body checking.
 pub struct FrozenEvidence<'a> {
@@ -79,6 +79,55 @@ fn is_private_use_family_scalar(c: char) -> bool {
     matches!(c as u32, 0xe000..=0xf8ff | 0xf0000..=0xffffd | 0x100000..=0x10fffd)
 }
 
+/// A shared identity check keeps policy membership and metadata preflight
+/// consistent; neither is an independent proof or trust-root admission.
+fn valid_evidence_family(family: &str) -> bool {
+    !family.is_empty()
+        && family.len() <= MAX_EVIDENCE_FAMILY_BYTES
+        && family.trim() == family
+        && !family.chars().any(|c| {
+            c.is_whitespace()
+                || c.is_control()
+                || is_hidden_family_mark(c)
+                || is_unicode_noncharacter(c)
+                || is_private_use_family_scalar(c)
+        })
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ContractPreflightError {
+    InvalidFamily,
+    InvalidContract,
+    ContractMismatch,
+    FamilyNotAdmitted,
+}
+
+/// Check exact frozen policy identity and membership, without certifying evidence.
+///
+/// A matching digest is not proof that the caller's frozen contract is trusted.
+/// This check must be paired with evidence metadata preflight and a future
+/// independent certificate checker; it never grants promotion authority.
+pub fn preflight_contract_membership(
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    evidence_family: &str,
+) -> Result<(), ContractPreflightError> {
+    if !valid_evidence_family(evidence_family) {
+        return Err(ContractPreflightError::InvalidFamily);
+    }
+    let classes = frozen_contract.admissible_evidence_classes();
+    if classes.is_empty() || classes.iter().any(|class| !valid_evidence_family(class)) {
+        return Err(ContractPreflightError::InvalidContract);
+    }
+    if frozen_contract.structural_digest() != recorded_contract_digest {
+        return Err(ContractPreflightError::ContractMismatch);
+    }
+    if !classes.iter().any(|class| class == evidence_family) {
+        return Err(ContractPreflightError::FamilyNotAdmitted);
+    }
+    Ok(())
+}
+
 /// Reject metadata substitution without claiming that evidence is sound.
 ///
 /// The judgement's structural digest commits to its world, proposition, and
@@ -88,17 +137,7 @@ pub fn preflight_evidence_metadata(
     recorded: &EvidenceEnvelopeMetadata,
     frozen: &FrozenEvidence<'_>,
 ) -> Result<(), EvidencePreflightError> {
-    if frozen.evidence_family.is_empty()
-        || frozen.evidence_family.len() > MAX_EVIDENCE_FAMILY_BYTES
-        || frozen.evidence_family.trim() != frozen.evidence_family
-        || frozen.evidence_family.chars().any(|c| {
-            c.is_whitespace()
-                || c.is_control()
-                || is_hidden_family_mark(c)
-                || is_unicode_noncharacter(c)
-                || is_private_use_family_scalar(c)
-        })
-    {
+    if !valid_evidence_family(frozen.evidence_family) {
         return Err(EvidencePreflightError::InvalidFamily);
     }
     let expected = EvidenceEnvelopeMetadata::new(
@@ -637,6 +676,70 @@ mod tests {
             };
             assert_eq!(preflight_evidence_metadata(&recorded, &frozen), Ok(()));
         }
+    }
+
+    #[test]
+    /// Exact contract identity and exact family membership are necessary, never
+    /// sufficient, for independent certification.
+    fn frozen_contract_membership_is_exact_and_non_authoritative() {
+        use formula_core::AuthorityContract;
+
+        let frozen = AuthorityContract::new(vec![
+            "finite-exhaustive".to_string(),
+            "polynomial-identity".to_string(),
+        ]);
+        let recorded = frozen.structural_digest();
+        assert_eq!(
+            preflight_contract_membership(recorded, &frozen, "finite-exhaustive"),
+            Ok(())
+        );
+        assert_eq!(
+            preflight_contract_membership(recorded, &frozen, "finite-exhaustive-v2"),
+            Err(ContractPreflightError::FamilyNotAdmitted)
+        );
+        let downgraded = AuthorityContract::new(vec!["finite-exhaustive".to_string()]);
+        assert_eq!(
+            preflight_contract_membership(
+                downgraded.structural_digest(),
+                &frozen,
+                "finite-exhaustive"
+            ),
+            Err(ContractPreflightError::ContractMismatch)
+        );
+        let unrelated = AuthorityContract::new(vec!["polynomial-identity".to_string()]);
+        assert_eq!(
+            preflight_contract_membership(recorded, &unrelated, "polynomial-identity"),
+            Err(ContractPreflightError::ContractMismatch)
+        );
+        for bad in ["", "finite\u{200b}exhaustive", " finite-exhaustive"] {
+            let permissive = AuthorityContract::new(vec![bad.to_string()]);
+            assert_eq!(
+                preflight_contract_membership(permissive.structural_digest(), &permissive, bad),
+                Err(ContractPreflightError::InvalidFamily)
+            );
+        }
+        let empty = AuthorityContract::new(vec![]);
+        assert_eq!(
+            preflight_contract_membership(empty.structural_digest(), &empty, "finite-exhaustive"),
+            Err(ContractPreflightError::InvalidContract)
+        );
+        let contaminated = AuthorityContract::new(vec![
+            "finite-exhaustive".to_string(),
+            "hidden\u{200b}family".to_string(),
+        ]);
+        assert_eq!(
+            preflight_contract_membership(
+                contaminated.structural_digest(),
+                &contaminated,
+                "finite-exhaustive"
+            ),
+            Err(ContractPreflightError::InvalidContract)
+        );
+        let visible = AuthorityContract::new(vec!["有限証明".to_string()]);
+        assert_eq!(
+            preflight_contract_membership(visible.structural_digest(), &visible, "有限証明"),
+            Ok(())
+        );
     }
 
     #[test]
