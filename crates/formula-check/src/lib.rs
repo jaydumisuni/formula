@@ -28,12 +28,23 @@ fn is_hidden_family_format_mark(c: char) -> bool {
     matches!(
         c,
         '\u{ad}'
+            | '\u{600}'..='\u{605}'
+            | '\u{6dd}'
+            | '\u{70f}'
+            | '\u{890}'..='\u{891}'
+            | '\u{8e2}'
             | '\u{61c}'
             | '\u{180e}'
             | '\u{200b}'..='\u{200f}'
             | '\u{202a}'..='\u{202e}'
             | '\u{2060}'..='\u{206f}'
             | '\u{feff}'
+            | '\u{fff9}'..='\u{fffb}'
+            | '\u{110bd}'
+            | '\u{110cd}'
+            | '\u{13430}'..='\u{1343f}'
+            | '\u{1bca0}'..='\u{1bca3}'
+            | '\u{1d173}'..='\u{1d17a}'
             | '\u{e0001}'
             | '\u{e0020}'..='\u{e007f}'
     )
@@ -243,6 +254,52 @@ mod tests {
                 preflight_evidence_metadata(&recorded, &frozen),
                 Err(EvidencePreflightError::InvalidFamily),
                 "hidden format mark in {family:?} must not be admitted",
+            );
+        }
+    }
+
+    #[test]
+    /// Reject every remaining Unicode 16 Cf family mark, including script-specific controls.
+    fn other_unicode_format_controls_in_family_fail_closed() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for mark in [
+            '\u{600}',
+            '\u{605}',
+            '\u{6dd}',
+            '\u{70f}',
+            '\u{890}',
+            '\u{891}',
+            '\u{8e2}',
+            '\u{fff9}',
+            '\u{fffb}',
+            '\u{110bd}',
+            '\u{110cd}',
+            '\u{13430}',
+            '\u{1343f}',
+            '\u{1bca0}',
+            '\u{1bca3}',
+            '\u{1d173}',
+            '\u{1d17a}',
+        ] {
+            let family = format!("finite{mark}exhaustive");
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                &family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: &family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily),
+                "Unicode format control U+{:04X} must not be admitted",
+                mark as u32,
             );
         }
     }
