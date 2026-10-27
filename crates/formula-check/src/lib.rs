@@ -22,7 +22,7 @@ pub enum EvidencePreflightError {
     BindingMismatch,
 }
 
-/// Invisible Unicode format, combining, and variation-selector marks are not
+/// Invisible Unicode marks and line/paragraph separators are not stable,
 /// visible evidence-family identity. Preserve meaningful visible Unicode names.
 fn is_hidden_family_mark(c: char) -> bool {
     matches!(
@@ -45,6 +45,7 @@ fn is_hidden_family_mark(c: char) -> bool {
             | '\u{61c}'
             | '\u{180e}'
             | '\u{200b}'..='\u{200f}'
+            | '\u{2028}'..='\u{2029}'
             | '\u{202a}'..='\u{202e}'
             | '\u{2060}'..='\u{206f}'
             | '\u{feff}'
@@ -349,6 +350,34 @@ mod tests {
                 preflight_evidence_metadata(&recorded, &frozen),
                 Err(EvidencePreflightError::InvalidFamily),
                 "default-ignorable mark U+{:04X} must not be admitted",
+                mark as u32,
+            );
+        }
+    }
+
+    #[test]
+    /// Unicode line/paragraph separators must not create multi-line family aliases.
+    fn line_separator_family_aliases_fail_even_with_matching_metadata() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for mark in ['\u{2028}', '\u{2029}'] {
+            let family = format!("finite{mark}exhaustive");
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                &family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: &family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily),
+                "line separator U+{:04X} must not be admitted",
                 mark as u32,
             );
         }
