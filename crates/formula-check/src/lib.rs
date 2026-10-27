@@ -159,6 +159,37 @@ pub fn preflight_evidence_metadata(
     Ok(())
 }
 
+/// Non-authoritative paired preflight result. Neither branch certifies a proof,
+/// establishes the contract trust root, or grants promotion authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EvidenceBundlePreflightError {
+    Contract(ContractPreflightError),
+    Metadata(EvidencePreflightError),
+}
+
+/// Require both frozen policy membership and exact evidence-metadata binding.
+///
+/// A metadata envelope can match its payload, checker, and judgement while
+/// naming an evidence class not admitted by the frozen authority contract.
+/// Callers preparing P2 evidence must not mistake that metadata-only match for
+/// policy admission. This helper composes the two necessary checks, but is
+/// deliberately NOT an independent evidence-body checker or certification.
+pub fn preflight_frozen_evidence_bundle(
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), EvidenceBundlePreflightError> {
+    preflight_contract_membership(
+        recorded_contract_digest,
+        frozen_contract,
+        frozen.evidence_family,
+    )
+    .map_err(EvidenceBundlePreflightError::Contract)?;
+    preflight_evidence_metadata(recorded_metadata, frozen)
+        .map_err(EvidenceBundlePreflightError::Metadata)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -825,5 +856,89 @@ mod tests {
             };
             assert_eq!(preflight_evidence_metadata(&recorded, &frozen), Ok(()));
         }
+    }
+
+    #[test]
+    /// A metadata-only match does not establish frozen policy membership.
+    /// The paired preflight must reject nonmember, downgraded, and invalid
+    /// contracts before any independent certificate checker is considered.
+    fn paired_frozen_evidence_preflight_requires_both_bindings() {
+        let j = judgement(digest(b"world"), vec![digest(b"dependency")]);
+        let checker = digest(b"checker");
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: "polynomial-identity",
+            payload_bytes: b"frozen-evidence",
+            checker_digest: checker,
+        };
+        let metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(frozen.payload_bytes),
+            checker,
+        );
+        let admitted = AuthorityContract::new(vec![
+            "finite-exhaustive".to_owned(),
+            "polynomial-identity".to_owned(),
+        ]);
+        let admitted_digest = admitted.structural_digest();
+        assert_eq!(preflight_evidence_metadata(&metadata, &frozen), Ok(()));
+        assert_eq!(
+            preflight_frozen_evidence_bundle(admitted_digest, &admitted, &metadata, &frozen),
+            Ok(())
+        );
+
+        let nonmember = AuthorityContract::new(vec!["finite-exhaustive".to_owned()]);
+        assert_eq!(
+            preflight_frozen_evidence_bundle(
+                nonmember.structural_digest(),
+                &nonmember,
+                &metadata,
+                &frozen
+            ),
+            Err(EvidenceBundlePreflightError::Contract(
+                ContractPreflightError::FamilyNotAdmitted
+            ))
+        );
+        assert_eq!(
+            preflight_frozen_evidence_bundle(
+                nonmember.structural_digest(),
+                &admitted,
+                &metadata,
+                &frozen
+            ),
+            Err(EvidenceBundlePreflightError::Contract(
+                ContractPreflightError::ContractMismatch
+            ))
+        );
+
+        let duplicate = AuthorityContract::new(vec![
+            "polynomial-identity".to_owned(),
+            "polynomial-identity".to_owned(),
+        ]);
+        assert_eq!(
+            preflight_frozen_evidence_bundle(
+                duplicate.structural_digest(),
+                &duplicate,
+                &metadata,
+                &frozen
+            ),
+            Err(EvidenceBundlePreflightError::Contract(
+                ContractPreflightError::InvalidContract
+            ))
+        );
+
+        let wrong_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(b"substituted-body"),
+            checker,
+        );
+        assert_eq!(
+            preflight_frozen_evidence_bundle(admitted_digest, &admitted, &wrong_metadata, &frozen),
+            Err(EvidenceBundlePreflightError::Metadata(
+                EvidencePreflightError::BindingMismatch
+            ))
+        );
     }
 }
