@@ -34,6 +34,8 @@ fn is_hidden_family_format_mark(c: char) -> bool {
             | '\u{202a}'..='\u{202e}'
             | '\u{2060}'..='\u{206f}'
             | '\u{feff}'
+            | '\u{e0001}'
+            | '\u{e0020}'..='\u{e007f}'
     )
 }
 
@@ -220,6 +222,10 @@ mod tests {
             "finite\u{202e}exhaustive",
             "finite\u{2066}exhaustive",
             "finite\u{feff}exhaustive",
+            "finite\u{e0001}exhaustive",
+            "finite\u{e0020}exhaustive",
+            "finite\u{e0061}exhaustive",
+            "finite\u{e007f}exhaustive",
         ] {
             let recorded = EvidenceEnvelopeMetadata::new(
                 j.structural_digest(),
