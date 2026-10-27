@@ -22,8 +22,9 @@ pub enum EvidencePreflightError {
     BindingMismatch,
 }
 
-/// Hidden Unicode marks and line/paragraph separators cannot serve as stable
-/// visible evidence-family identity. Preserve meaningful visible Unicode names.
+/// Hidden Unicode marks, including reserved Default_Ignorable_Code_Point
+/// ranges in Unicode 16, cannot serve as stable visible evidence-family identity.
+/// Preserve meaningful visible Unicode names.
 fn is_hidden_family_mark(c: char) -> bool {
     matches!(
         c,
@@ -37,7 +38,6 @@ fn is_hidden_family_mark(c: char) -> bool {
             | '\u{180b}'..='\u{180d}'
             | '\u{180f}'
             | '\u{fe00}'..='\u{fe0f}'
-            | '\u{e0100}'..='\u{e01ef}'
             | '\u{600}'..='\u{605}'
             | '\u{6dd}'
             | '\u{70f}'
@@ -56,8 +56,8 @@ fn is_hidden_family_mark(c: char) -> bool {
             | '\u{13430}'..='\u{1343f}'
             | '\u{1bca0}'..='\u{1bca3}'
             | '\u{1d173}'..='\u{1d17a}'
-            | '\u{e0001}'
-            | '\u{e0020}'..='\u{e007f}'
+            | '\u{fff0}'..='\u{fff8}'
+            | '\u{e0000}'..='\u{e0fff}'
     )
 }
 
@@ -551,6 +551,36 @@ mod tests {
                 Err(EvidencePreflightError::InvalidFamily),
                 "noncharacter U+{:04X} must not be an evidence-family identity",
                 mark as u32,
+            );
+        }
+    }
+
+    #[test]
+    /// Unicode 16 Default_Ignorable_Code_Point also reserves unassigned
+    /// scalars. Exact matching metadata must not make those aliases valid.
+    fn reserved_default_ignorable_family_codepoints_fail_closed() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for scalar in [
+            0xfff0, 0xfff8, 0xe0000, 0xe001f, 0xe0080, 0xe00ff, 0xe01f0, 0xe0fff,
+        ] {
+            let family = format!("finite-{}-exhaustive", char::from_u32(scalar).unwrap());
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                &family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: &family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily),
+                "reserved default-ignorable U+{scalar:04X} must be rejected",
             );
         }
     }
