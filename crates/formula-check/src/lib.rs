@@ -28,6 +28,10 @@ fn is_hidden_family_mark(c: char) -> bool {
     matches!(
         c,
         '\u{34f}'
+            | '\u{115f}'..='\u{1160}'
+            | '\u{17b4}'..='\u{17b5}'
+            | '\u{3164}'
+            | '\u{ffa0}'
             | '\u{ad}'
             | '\u{180b}'..='\u{180d}'
             | '\u{180f}'
@@ -315,6 +319,12 @@ mod tests {
         let j = judgement(digest(b"world"), vec![]);
         let checker = digest(b"checker");
         for mark in [
+            '\u{115f}',  // Hangul choseong filler
+            '\u{1160}',  // Hangul jungseong filler
+            '\u{17b4}',  // Khmer inherent vowel sign aq
+            '\u{17b5}',  // Khmer inherent vowel sign aa
+            '\u{3164}',  // Hangul filler
+            '\u{ffa0}',  // halfwidth Hangul filler
             '\u{34f}',   // combining grapheme joiner
             '\u{180b}',  // Mongolian free variation selector one
             '\u{180f}',  // Mongolian free variation selector four
