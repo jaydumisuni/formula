@@ -73,6 +73,12 @@ fn is_unicode_noncharacter(c: char) -> bool {
     (0xfdd0..=0xfdef).contains(&scalar) || (scalar & 0xfffe) == 0xfffe
 }
 
+/// Private-use scalars have no public, stable glyph/semantic identity.
+/// Exclude them from durable evidence-family labels across all three PUA planes.
+fn is_private_use_family_scalar(c: char) -> bool {
+    matches!(c as u32, 0xe000..=0xf8ff | 0xf0000..=0xffffd | 0x100000..=0x10fffd)
+}
+
 /// Reject metadata substitution without claiming that evidence is sound.
 ///
 /// The judgement's structural digest commits to its world, proposition, and
@@ -90,6 +96,7 @@ pub fn preflight_evidence_metadata(
                 || c.is_control()
                 || is_hidden_family_mark(c)
                 || is_unicode_noncharacter(c)
+                || is_private_use_family_scalar(c)
         })
     {
         return Err(EvidencePreflightError::InvalidFamily);
@@ -625,6 +632,51 @@ mod tests {
             let frozen = FrozenEvidence {
                 judgement: &j,
                 evidence_family: &family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(preflight_evidence_metadata(&recorded, &frozen), Ok(()));
+        }
+    }
+
+    #[test]
+    /// Private-use Unicode scalars have no standardized interchange meaning.
+    /// Matching metadata must not turn font-local glyphs into durable family IDs.
+    fn private_use_family_scalars_fail_closed() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for scalar in [0xe000, 0xf8ff, 0xf0000, 0xffffd, 0x100000, 0x10fffd] {
+            let family = format!("finite-{}-exhaustive", char::from_u32(scalar).unwrap());
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                &family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: &family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily),
+                "private-use U+{scalar:04X} must not be an evidence-family identity",
+            );
+        }
+
+        // The adjacent standardized visible scalars remain accepted.
+        for family in ["évidence", "有限証明"] {
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: family,
                 payload_bytes: b"proof",
                 checker_digest: checker,
             };
