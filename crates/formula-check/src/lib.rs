@@ -22,7 +22,7 @@ pub enum EvidencePreflightError {
     BindingMismatch,
 }
 
-/// Invisible Unicode marks and line/paragraph separators are not stable,
+/// Hidden Unicode marks and line/paragraph separators cannot serve as stable
 /// visible evidence-family identity. Preserve meaningful visible Unicode names.
 fn is_hidden_family_mark(c: char) -> bool {
     matches!(
@@ -74,7 +74,7 @@ pub fn preflight_evidence_metadata(
         || frozen
             .evidence_family
             .chars()
-            .any(|c| c.is_control() || is_hidden_family_mark(c))
+            .any(|c| c.is_whitespace() || c.is_control() || is_hidden_family_mark(c))
     {
         return Err(EvidencePreflightError::InvalidFamily);
     }
@@ -379,6 +379,40 @@ mod tests {
                 Err(EvidencePreflightError::InvalidFamily),
                 "line separator U+{:04X} must not be admitted",
                 mark as u32,
+            );
+        }
+    }
+
+    #[test]
+    /// Internal whitespace can disguise distinct evidence-family identities even
+    /// when the recorded and frozen envelopes carry identical bytes.
+    fn internal_whitespace_family_aliases_fail_closed() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for family in [
+            "finite exhaustive",
+            "finite\u{a0}exhaustive",   // no-break space
+            "finite\u{1680}exhaustive", // ogham space mark
+            "finite\u{2007}exhaustive", // figure space
+            "finite\u{202f}exhaustive", // narrow no-break space
+            "finite\u{3000}exhaustive", // ideographic space
+        ] {
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily),
+                "internal whitespace in {family:?} must not be admitted",
             );
         }
     }
