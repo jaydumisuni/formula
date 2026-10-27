@@ -22,12 +22,17 @@ pub enum EvidencePreflightError {
     BindingMismatch,
 }
 
-/// Unicode formatting marks are not visible evidence-family identity.
-/// Keep meaningful Unicode letters while rejecting hidden/reordering markers.
-fn is_hidden_family_format_mark(c: char) -> bool {
+/// Invisible Unicode format, combining, and variation-selector marks are not
+/// visible evidence-family identity. Preserve meaningful visible Unicode names.
+fn is_hidden_family_mark(c: char) -> bool {
     matches!(
         c,
-        '\u{ad}'
+        '\u{34f}'
+            | '\u{ad}'
+            | '\u{180b}'..='\u{180d}'
+            | '\u{180f}'
+            | '\u{fe00}'..='\u{fe0f}'
+            | '\u{e0100}'..='\u{e01ef}'
             | '\u{600}'..='\u{605}'
             | '\u{6dd}'
             | '\u{70f}'
@@ -64,7 +69,7 @@ pub fn preflight_evidence_metadata(
         || frozen
             .evidence_family
             .chars()
-            .any(|c| c.is_control() || is_hidden_family_format_mark(c))
+            .any(|c| c.is_control() || is_hidden_family_mark(c))
     {
         return Err(EvidencePreflightError::InvalidFamily);
     }
@@ -299,6 +304,41 @@ mod tests {
                 preflight_evidence_metadata(&recorded, &frozen),
                 Err(EvidencePreflightError::InvalidFamily),
                 "Unicode format control U+{:04X} must not be admitted",
+                mark as u32,
+            );
+        }
+    }
+
+    #[test]
+    /// Invisible combining controls and variation selectors must not alias family identity.
+    fn default_ignorable_non_format_marks_in_family_fail_closed() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for mark in [
+            '\u{34f}',   // combining grapheme joiner
+            '\u{180b}',  // Mongolian free variation selector one
+            '\u{180f}',  // Mongolian free variation selector four
+            '\u{fe0f}',  // variation selector 16
+            '\u{e0100}', // supplementary variation selector 17
+            '\u{e01ef}', // supplementary variation selector 256
+        ] {
+            let family = format!("finite{mark}exhaustive");
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                &family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: &family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily),
+                "default-ignorable mark U+{:04X} must not be admitted",
                 mark as u32,
             );
         }
