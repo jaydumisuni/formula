@@ -22,6 +22,10 @@ pub enum EvidencePreflightError {
     BindingMismatch,
 }
 
+// Evidence families are short identity labels, not arbitrary unbounded payloads.
+// Bound serialized UTF-8 bytes before constructing the expected envelope.
+const MAX_EVIDENCE_FAMILY_BYTES: usize = 256;
+
 /// Hidden Unicode marks, including reserved Default_Ignorable_Code_Point
 /// ranges in Unicode 16, cannot serve as stable visible evidence-family identity.
 /// Preserve meaningful visible Unicode names.
@@ -79,6 +83,7 @@ pub fn preflight_evidence_metadata(
     frozen: &FrozenEvidence<'_>,
 ) -> Result<(), EvidencePreflightError> {
     if frozen.evidence_family.is_empty()
+        || frozen.evidence_family.len() > MAX_EVIDENCE_FAMILY_BYTES
         || frozen.evidence_family.trim() != frozen.evidence_family
         || frozen.evidence_family.chars().any(|c| {
             c.is_whitespace()
@@ -582,6 +587,48 @@ mod tests {
                 Err(EvidencePreflightError::InvalidFamily),
                 "reserved default-ignorable U+{scalar:04X} must be rejected",
             );
+        }
+    }
+
+    #[test]
+    /// A matching metadata envelope must not turn an unbounded label into
+    /// accepted evidence identity. Bound UTF-8 bytes, not Unicode scalars.
+    fn bounded_family_identity_bytes_fail_closed() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        for family in ["a".repeat(257), "é".repeat(129)] {
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                &family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: &family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(
+                preflight_evidence_metadata(&recorded, &frozen),
+                Err(EvidencePreflightError::InvalidFamily),
+                "oversized UTF-8 family must be rejected",
+            );
+        }
+        for family in ["a".repeat(256), "é".repeat(128)] {
+            let recorded = EvidenceEnvelopeMetadata::new(
+                j.structural_digest(),
+                &family,
+                digest(b"proof"),
+                checker,
+            );
+            let frozen = FrozenEvidence {
+                judgement: &j,
+                evidence_family: &family,
+                payload_bytes: b"proof",
+                checker_digest: checker,
+            };
+            assert_eq!(preflight_evidence_metadata(&recorded, &frozen), Ok(()));
         }
     }
 }
