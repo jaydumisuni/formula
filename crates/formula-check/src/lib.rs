@@ -941,4 +941,77 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    /// Visually equivalent Unicode spellings remain distinct exact frozen
+    /// identities. Neither contract membership nor metadata binding may
+    /// silently normalize a producer's evidence-family label.
+    fn unicode_canonical_equivalents_remain_distinct_frozen_identities() {
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker");
+        let composed = "évidence";
+        let decomposed = "e\u{301}vidence";
+        assert_ne!(composed.as_bytes(), decomposed.as_bytes());
+
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: decomposed,
+            payload_bytes: b"proof",
+            checker_digest: checker,
+        };
+        let recorded_composed = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            composed,
+            digest(frozen.payload_bytes),
+            checker,
+        );
+        let decomposed_policy = AuthorityContract::new(vec![decomposed.to_owned()]);
+        assert_eq!(
+            preflight_contract_membership(
+                decomposed_policy.structural_digest(),
+                &decomposed_policy,
+                decomposed,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            preflight_frozen_evidence_bundle(
+                decomposed_policy.structural_digest(),
+                &decomposed_policy,
+                &recorded_composed,
+                &frozen,
+            ),
+            Err(EvidenceBundlePreflightError::Metadata(
+                EvidencePreflightError::BindingMismatch
+            ))
+        );
+
+        let composed_policy = AuthorityContract::new(vec![composed.to_owned()]);
+        let recorded_decomposed = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            decomposed,
+            digest(frozen.payload_bytes),
+            checker,
+        );
+        assert_eq!(
+            preflight_frozen_evidence_bundle(
+                composed_policy.structural_digest(),
+                &composed_policy,
+                &recorded_decomposed,
+                &frozen,
+            ),
+            Err(EvidenceBundlePreflightError::Contract(
+                ContractPreflightError::FamilyNotAdmitted
+            ))
+        );
+        assert_eq!(
+            preflight_frozen_evidence_bundle(
+                decomposed_policy.structural_digest(),
+                &decomposed_policy,
+                &recorded_decomposed,
+                &frozen,
+            ),
+            Ok(())
+        );
+    }
 }
