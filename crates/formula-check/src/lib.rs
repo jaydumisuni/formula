@@ -305,6 +305,68 @@ pub fn preflight_frozen_polynomial_evidence_bundle(
         .map_err(PolynomialBundlePreflightError::Body)
 }
 
+/// Non-authoritative frozen-policy, metadata, and exact product-body preflight.
+/// The evidence-family identity is distinct from polynomial-identity and sum.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialProductBundlePreflightError {
+    Bundle(EvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialProductError),
+}
+
+/// Independently check the *same frozen bytes* after exact contract and
+/// metadata preflight. This never establishes theorem judgement semantics,
+/// checker trust-root authority, certificate validity, or promotion.
+pub fn preflight_frozen_polynomial_product_evidence_bundle(
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PolynomialProductBundlePreflightError> {
+    preflight_frozen_evidence_bundle(
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PolynomialProductBundlePreflightError::Bundle)?;
+    if frozen.evidence_family != "polynomial-product" {
+        return Err(PolynomialProductBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_product(frozen.payload_bytes)
+        .map_err(PolynomialProductBundlePreflightError::Body)
+}
+
+/// Non-authoritative frozen-policy, metadata, and exact sum-body preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialSumBundlePreflightError {
+    Bundle(EvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialSumError),
+}
+
+/// Independently check bounded polynomial addition after binding the exact
+/// frozen policy and bytes. This is preparation, never certificate authority.
+pub fn preflight_frozen_polynomial_sum_evidence_bundle(
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PolynomialSumBundlePreflightError> {
+    preflight_frozen_evidence_bundle(
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PolynomialSumBundlePreflightError::Bundle)?;
+    if frozen.evidence_family != "polynomial-sum" {
+        return Err(PolynomialSumBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_sum(frozen.payload_bytes)
+        .map_err(PolynomialSumBundlePreflightError::Body)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -405,6 +467,181 @@ mod tests {
                 &wrong_frozen,
             ),
             Err(PolynomialBundlePreflightError::WrongEvidenceFamily)
+        );
+    }
+
+    fn polynomial_triple_frame(a: &[i64], b: &[i64], result: &[i64]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for coefficients in [a, b, result] {
+            bytes.push(coefficients.len() as u8);
+            for coefficient in coefficients {
+                bytes.extend_from_slice(&coefficient.to_be_bytes());
+            }
+        }
+        bytes
+    }
+
+    #[test]
+    fn frozen_polynomial_product_bundle_requires_bound_metadata_and_exact_arithmetic() {
+        let j = judgement(
+            digest(b"product-world"),
+            vec![digest(b"product-dependency")],
+        );
+        let checker = digest(b"checker-polynomial-product-v0");
+        let family = "polynomial-product";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        let body = polynomial_triple_frame(&[2, -3], &[4, 5], &[8, -2, -15]);
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), checker);
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_product_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen,
+            ),
+            Ok(())
+        );
+
+        let forged = polynomial_triple_frame(&[2, -3], &[4, 5], &[8, -2, -14]);
+        let forged_frozen = FrozenEvidence {
+            payload_bytes: &forged,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_product_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &forged_frozen,
+            ),
+            Err(PolynomialProductBundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Metadata(EvidencePreflightError::BindingMismatch)
+            ))
+        );
+        let forged_recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&forged), checker);
+        assert_eq!(
+            preflight_frozen_polynomial_product_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &forged_recorded,
+                &forged_frozen,
+            ),
+            Err(PolynomialProductBundlePreflightError::Body(
+                polynomial_identity::PolynomialProductError::CoefficientMismatch {
+                    power: 2,
+                    expected: -15,
+                    actual: -14,
+                }
+            ))
+        );
+        let other_family = "polynomial-identity";
+        let other_policy = AuthorityContract::new(vec![other_family.to_owned()]);
+        let other_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            other_family,
+            digest(&forged),
+            checker,
+        );
+        let other_frozen = FrozenEvidence {
+            evidence_family: other_family,
+            ..forged_frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_product_evidence_bundle(
+                other_policy.structural_digest(),
+                &other_policy,
+                &other_recorded,
+                &other_frozen,
+            ),
+            Err(PolynomialProductBundlePreflightError::WrongEvidenceFamily)
+        );
+    }
+
+    #[test]
+    fn frozen_polynomial_sum_bundle_requires_bound_metadata_and_exact_arithmetic() {
+        let j = judgement(digest(b"sum-world"), vec![digest(b"sum-dependency")]);
+        let checker = digest(b"checker-polynomial-sum-v0");
+        let family = "polynomial-sum";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        let body = polynomial_triple_frame(&[2, -3], &[4, 5], &[6, 2]);
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), checker);
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_sum_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen,
+            ),
+            Ok(())
+        );
+        let forged = polynomial_triple_frame(&[2, -3], &[4, 5], &[6, 3]);
+        let forged_frozen = FrozenEvidence {
+            payload_bytes: &forged,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_sum_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &forged_frozen,
+            ),
+            Err(PolynomialSumBundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Metadata(EvidencePreflightError::BindingMismatch)
+            ))
+        );
+        let forged_recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&forged), checker);
+        assert_eq!(
+            preflight_frozen_polynomial_sum_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &forged_recorded,
+                &forged_frozen,
+            ),
+            Err(PolynomialSumBundlePreflightError::Body(
+                polynomial_identity::PolynomialSumError::CoefficientMismatch {
+                    power: 1,
+                    expected: 2,
+                    actual: 3,
+                }
+            ))
+        );
+        let other_family = "polynomial-product";
+        let other_policy = AuthorityContract::new(vec![other_family.to_owned()]);
+        let other_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            other_family,
+            digest(&forged),
+            checker,
+        );
+        let other_frozen = FrozenEvidence {
+            evidence_family: other_family,
+            ..forged_frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_sum_evidence_bundle(
+                other_policy.structural_digest(),
+                &other_policy,
+                &other_recorded,
+                &other_frozen,
+            ),
+            Err(PolynomialSumBundlePreflightError::WrongEvidenceFamily)
         );
     }
 
