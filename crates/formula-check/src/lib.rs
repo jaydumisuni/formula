@@ -6,6 +6,7 @@
 //! Proof semantics, trust-root admission, and full authority-contract policy
 //! remain independent unimplemented gates.
 
+pub mod gf2_normal_form;
 pub mod gf2_semantics;
 pub mod u8_semantics;
 
@@ -232,6 +233,7 @@ pub enum Gf2BundlePreflightError {
     Bundle(EvidenceBundlePreflightError),
     WrongEvidenceFamily,
     Body(gf2_semantics::Gf2WitnessError),
+    Algebraic(gf2_normal_form::NormalFormError),
 }
 
 /// Require exact frozen policy and evidence bytes before checking a bounded
@@ -255,7 +257,20 @@ pub fn preflight_frozen_gf2_evidence_bundle(
         return Err(Gf2BundlePreflightError::WrongEvidenceFamily);
     }
     gf2_semantics::check_frozen_boolean_gf2_witness(frozen.payload_bytes)
-        .map_err(Gf2BundlePreflightError::Body)
+        .map_err(Gf2BundlePreflightError::Body)?;
+    // Independently interpret the same bounded terms as GF(2) normal forms.
+    // Agreement is preparatory corroboration, never certificate authority.
+    let first = frozen
+        .payload_bytes
+        .get(..2)
+        .ok_or(Gf2BundlePreflightError::Body(
+            gf2_semantics::Gf2WitnessError::InvalidFrame,
+        ))?;
+    let boolean_len = usize::from(u16::from_be_bytes([first[0], first[1]]));
+    let boolean = &frozen.payload_bytes[2..2 + boolean_len];
+    let gf2 = &frozen.payload_bytes[4 + boolean_len..];
+    gf2_normal_form::check_frozen_boolean_gf2_normal_form(boolean, gf2)
+        .map_err(Gf2BundlePreflightError::Algebraic)
 }
 
 #[cfg(test)]
