@@ -8,6 +8,7 @@
 
 pub mod gf2_normal_form;
 pub mod gf2_semantics;
+pub mod polynomial_identity;
 pub mod u8_semantics;
 
 use formula_core::{ArtifactDigest, AuthorityContract, EvidenceEnvelopeMetadata, Judgement};
@@ -273,9 +274,139 @@ pub fn preflight_frozen_gf2_evidence_bundle(
         .map_err(Gf2BundlePreflightError::Algebraic)
 }
 
+/// Non-authoritative frozen-policy, metadata, and exact polynomial-body preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialBundlePreflightError {
+    Bundle(EvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialIdentityError),
+}
+
+/// Require frozen metadata and policy membership before checking canonical
+/// integer-polynomial coefficient identity. This is NOT certificate authority:
+/// judgement semantics, checker trust root and promotion remain separate gates.
+pub fn preflight_frozen_polynomial_evidence_bundle(
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PolynomialBundlePreflightError> {
+    preflight_frozen_evidence_bundle(
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PolynomialBundlePreflightError::Bundle)?;
+    if frozen.evidence_family != "polynomial-identity" {
+        return Err(PolynomialBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_identity(frozen.payload_bytes)
+        .map_err(PolynomialBundlePreflightError::Body)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn frozen_polynomial_preflight_binds_family_policy_metadata_and_exact_coefficients() {
+        fn body(left: &[i64], right: &[i64]) -> Vec<u8> {
+            let mut bytes = Vec::new();
+            for coefficients in [left, right] {
+                bytes.push(coefficients.len() as u8);
+                for coefficient in coefficients {
+                    bytes.extend_from_slice(&coefficient.to_be_bytes());
+                }
+            }
+            bytes
+        }
+        let j = judgement(digest(b"poly-world"), vec![digest(b"poly-dependency")]);
+        let checker = digest(b"checker-polynomial-v0");
+        let family = "polynomial-identity";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        let exact_body = body(&[2, -3, 5], &[2, -3, 5]);
+        let recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            family,
+            digest(&exact_body),
+            checker,
+        );
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &exact_body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen,
+            ),
+            Ok(())
+        );
+
+        let false_body = body(&[2, -3, 5], &[2, -3, 5, 1]);
+        let false_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            family,
+            digest(&false_body),
+            checker,
+        );
+        let false_frozen = FrozenEvidence {
+            payload_bytes: &false_body,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &false_recorded,
+                &false_frozen,
+            ),
+            Err(PolynomialBundlePreflightError::Body(
+                polynomial_identity::PolynomialIdentityError::CoefficientMismatch {
+                    power: 3,
+                    left: 0,
+                    right: 1,
+                }
+            ))
+        );
+        assert_eq!(
+            preflight_frozen_polynomial_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &false_frozen,
+            ),
+            Err(PolynomialBundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Metadata(EvidencePreflightError::BindingMismatch)
+            ))
+        );
+        let wrong_family = "finite-exhaustive";
+        let wrong_policy = AuthorityContract::new(vec![wrong_family.to_owned()]);
+        let wrong_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            wrong_family,
+            digest(&exact_body),
+            checker,
+        );
+        let wrong_frozen = FrozenEvidence {
+            evidence_family: wrong_family,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_evidence_bundle(
+                wrong_policy.structural_digest(),
+                &wrong_policy,
+                &wrong_recorded,
+                &wrong_frozen,
+            ),
+            Err(PolynomialBundlePreflightError::WrongEvidenceFamily)
+        );
+    }
 
     /// Derive a deterministic fixture digest without reusing a production trust root.
     fn digest(tag: &[u8]) -> ArtifactDigest {
