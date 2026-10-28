@@ -6,6 +6,8 @@
 //! Proof semantics, trust-root admission, and full authority-contract policy
 //! remain independent unimplemented gates.
 
+pub mod u8_semantics;
+
 use formula_core::{ArtifactDigest, AuthorityContract, EvidenceEnvelopeMetadata, Judgement};
 
 /// Inputs pinned by the caller before any independent evidence-body checking.
