@@ -277,6 +277,71 @@ pub fn check_frozen_polynomial_difference(body: &[u8]) -> Result<(), PolynomialD
     Ok(())
 }
 
+// Wire v0 scalar witness: signed big-endian i64 scalar followed by two
+// canonical coefficient vectors (operand and claimed scalar product).
+// This bounded Z[n] check is preparation, never certificate authority.
+const MAX_SCALE_FRAME_BYTES: usize = 8 + 2 + 2 * MAX_COEFFICIENTS * 8;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialScaleError {
+    InvalidFrame,
+    NonCanonicalOperand,
+    NonCanonicalResult,
+    CoefficientOutOfRange,
+    CoefficientMismatch {
+        power: u8,
+        expected: i64,
+        actual: i64,
+    },
+}
+
+/// Check exact scalar multiplication against the frozen bytes, not samples.
+/// The enclosing Judgement, trust root, and promotion remain unqualified.
+pub fn check_frozen_polynomial_scale(body: &[u8]) -> Result<(), PolynomialScaleError> {
+    if body.len() > MAX_SCALE_FRAME_BYTES {
+        return Err(PolynomialScaleError::InvalidFrame);
+    }
+    let scalar_bytes: [u8; 8] = body
+        .get(..8)
+        .ok_or(PolynomialScaleError::InvalidFrame)?
+        .try_into()
+        .map_err(|_| PolynomialScaleError::InvalidFrame)?;
+    let scalar = i128::from(i64::from_be_bytes(scalar_bytes));
+    let mut cursor = 8;
+    let operand = read_coefficients(body, &mut cursor).ok_or(PolynomialScaleError::InvalidFrame)?;
+    let claimed = read_coefficients(body, &mut cursor).ok_or(PolynomialScaleError::InvalidFrame)?;
+    if cursor != body.len() {
+        return Err(PolynomialScaleError::InvalidFrame);
+    }
+    if operand.len() > 1 && operand.last() == Some(&0) {
+        return Err(PolynomialScaleError::NonCanonicalOperand);
+    }
+    if claimed.len() > 1 && claimed.last() == Some(&0) {
+        return Err(PolynomialScaleError::NonCanonicalResult);
+    }
+    let mut expected = Vec::with_capacity(operand.len());
+    for coefficient in operand {
+        let exact = scalar * i128::from(coefficient);
+        expected
+            .push(i64::try_from(exact).map_err(|_| PolynomialScaleError::CoefficientOutOfRange)?);
+    }
+    while expected.len() > 1 && expected.last() == Some(&0) {
+        expected.pop();
+    }
+    for power in 0..expected.len().max(claimed.len()) {
+        let expected_coefficient = expected.get(power).copied().unwrap_or(0);
+        let actual = claimed.get(power).copied().unwrap_or(0);
+        if expected_coefficient != actual {
+            return Err(PolynomialScaleError::CoefficientMismatch {
+                power: power as u8,
+                expected: expected_coefficient,
+                actual,
+            });
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -502,6 +567,75 @@ mod tests {
         assert_eq!(
             check_frozen_polynomial_difference(&trailing),
             Err(PolynomialDifferenceError::InvalidFrame)
+        );
+    }
+
+    fn scale_frame(scalar: i64, operand: &[i64], claimed: &[i64]) -> Vec<u8> {
+        let mut out = scalar.to_be_bytes().to_vec();
+        for coefficients in [operand, claimed] {
+            out.push(coefficients.len() as u8);
+            for coefficient in coefficients {
+                out.extend_from_slice(&coefficient.to_be_bytes());
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn frozen_scalar_witness_is_exact_and_canonical() {
+        assert_eq!(
+            check_frozen_polynomial_scale(&scale_frame(-2, &[2, -3], &[-4, 6])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_scale(&scale_frame(0, &[1, 2], &[0])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_scale(&scale_frame(1, &[i64::MIN], &[i64::MIN])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_scale(&scale_frame(-2, &[2, -3], &[-4, 5])),
+            Err(PolynomialScaleError::CoefficientMismatch {
+                power: 1,
+                expected: 6,
+                actual: 5
+            })
+        );
+        assert_eq!(
+            check_frozen_polynomial_scale(&scale_frame(-1, &[i64::MIN], &[0])),
+            Err(PolynomialScaleError::CoefficientOutOfRange)
+        );
+    }
+
+    #[test]
+    fn frozen_scalar_witness_rejects_noncanonical_and_malformed_frames() {
+        assert_eq!(
+            check_frozen_polynomial_scale(&scale_frame(1, &[1, 0], &[1])),
+            Err(PolynomialScaleError::NonCanonicalOperand)
+        );
+        assert_eq!(
+            check_frozen_polynomial_scale(&scale_frame(0, &[1], &[0, 0])),
+            Err(PolynomialScaleError::NonCanonicalResult)
+        );
+        assert_eq!(
+            check_frozen_polynomial_scale(&scale_frame(2, &[1; 17], &[2])),
+            Err(PolynomialScaleError::InvalidFrame)
+        );
+        let valid = scale_frame(-2, &[1, -2], &[-2, 4]);
+        for end in 0..valid.len() {
+            assert_eq!(
+                check_frozen_polynomial_scale(&valid[..end]),
+                Err(PolynomialScaleError::InvalidFrame),
+                "truncated at {end}"
+            );
+        }
+        let mut trailing = valid;
+        trailing.push(0);
+        assert_eq!(
+            check_frozen_polynomial_scale(&trailing),
+            Err(PolynomialScaleError::InvalidFrame)
         );
     }
 

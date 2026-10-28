@@ -367,6 +367,36 @@ pub fn preflight_frozen_polynomial_sum_evidence_bundle(
         .map_err(PolynomialSumBundlePreflightError::Body)
 }
 
+/// Non-authoritative frozen-policy, metadata, and exact scalar-body preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialScaleBundlePreflightError {
+    Bundle(EvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialScaleError),
+}
+
+/// Bind exact policy and payload bytes before checking a bounded Z[n] scalar
+/// product. This cannot certify the enclosing Judgement or admit authority.
+pub fn preflight_frozen_polynomial_scale_evidence_bundle(
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PolynomialScaleBundlePreflightError> {
+    preflight_frozen_evidence_bundle(
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PolynomialScaleBundlePreflightError::Bundle)?;
+    if frozen.evidence_family != "polynomial-scale" {
+        return Err(PolynomialScaleBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_scale(frozen.payload_bytes)
+        .map_err(PolynomialScaleBundlePreflightError::Body)
+}
+
 /// Non-authoritative frozen-policy, metadata, and exact difference-body preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PolynomialDifferenceBundlePreflightError {
@@ -757,6 +787,93 @@ mod tests {
                 &other_frozen
             ),
             Err(PolynomialDifferenceBundlePreflightError::WrongEvidenceFamily)
+        );
+    }
+
+    #[test]
+    fn frozen_polynomial_scale_bundle_binds_policy_bytes_and_exact_scalar() {
+        let j = judgement(digest(b"scale-world"), vec![digest(b"scale-dependency")]);
+        let checker = digest(b"checker-polynomial-scale-v0");
+        let family = "polynomial-scale";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        let mut body = (-2_i64).to_be_bytes().to_vec();
+        for coefficients in [&[2_i64, -3][..], &[-4_i64, 6][..]] {
+            body.push(coefficients.len() as u8);
+            for coefficient in coefficients {
+                body.extend_from_slice(&coefficient.to_be_bytes());
+            }
+        }
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), checker);
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_scale_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Ok(())
+        );
+        let mut forged = body.clone();
+        *forged.last_mut().unwrap() = 5;
+        let forged_frozen = FrozenEvidence {
+            payload_bytes: &forged,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_scale_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &forged_frozen
+            ),
+            Err(PolynomialScaleBundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Metadata(EvidencePreflightError::BindingMismatch)
+            ))
+        );
+        let forged_recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&forged), checker);
+        assert_eq!(
+            preflight_frozen_polynomial_scale_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &forged_recorded,
+                &forged_frozen
+            ),
+            Err(PolynomialScaleBundlePreflightError::Body(
+                polynomial_identity::PolynomialScaleError::CoefficientMismatch {
+                    power: 1,
+                    expected: 6,
+                    actual: 5
+                }
+            ))
+        );
+        let other_family = "polynomial-sum";
+        let other_policy = AuthorityContract::new(vec![other_family.to_owned()]);
+        let other_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            other_family,
+            digest(&body),
+            checker,
+        );
+        let other_frozen = FrozenEvidence {
+            evidence_family: other_family,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_scale_evidence_bundle(
+                other_policy.structural_digest(),
+                &other_policy,
+                &other_recorded,
+                &other_frozen
+            ),
+            Err(PolynomialScaleBundlePreflightError::WrongEvidenceFamily)
         );
     }
 
