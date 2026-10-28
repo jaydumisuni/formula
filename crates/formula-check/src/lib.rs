@@ -196,6 +196,7 @@ pub fn preflight_frozen_evidence_bundle(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum U8BundlePreflightError {
     Bundle(EvidenceBundlePreflightError),
+    WrongEvidenceFamily,
     Body(u8_semantics::U8EvidenceBodyError),
 }
 
@@ -215,6 +216,11 @@ pub fn preflight_frozen_u8_evidence_bundle(
         frozen,
     )
     .map_err(U8BundlePreflightError::Bundle)?;
+    // This bounded checker understands only the finite-exhaustive U8 grammar.
+    // A different admitted evidence class must not borrow its semantic result.
+    if frozen.evidence_family != "finite-exhaustive" {
+        return Err(U8BundlePreflightError::WrongEvidenceFamily);
+    }
     u8_semantics::check_frozen_u8_evidence_body(frozen.payload_bytes)
         .map_err(U8BundlePreflightError::Body)
 }
@@ -231,6 +237,34 @@ mod tests {
     /// Construct a fixture judgement with explicit world and dependency identity.
     fn judgement(world: ArtifactDigest, dependencies: Vec<ArtifactDigest>) -> Judgement {
         Judgement::new(world, "finite-exact", b"x == x".to_vec(), dependencies)
+    }
+
+    #[test]
+    fn frozen_u8_preflight_rejects_unrelated_admitted_evidence_family() {
+        // An unrelated family can be admitted by its own contract and carry a
+        // digest-matched U8 body; it must not acquire the U8 checker result.
+        let j = judgement(digest(b"world"), vec![]);
+        let checker = digest(b"checker-u8-v0");
+        let body = vec![0, 1, 0, 0, 1, 0]; // x == x
+        let family = "polynomial-identity";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), checker);
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_frozen_u8_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Err(U8BundlePreflightError::WrongEvidenceFamily)
+        );
     }
 
     #[test]
