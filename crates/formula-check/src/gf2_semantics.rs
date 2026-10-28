@@ -238,6 +238,86 @@ mod tests {
     }
 
     #[test]
+    fn all_two_input_boolean_functions_have_exact_gf2_normal_forms() {
+        // Independent truth-table construction: Boolean minterms use NOT/AND/OR,
+        // while the GF(2) side uses the algebraic normal form over XOR/AND.
+        // The four truth-table bits are ordered (0,0), (0,1), (1,0), (1,1).
+        // This is bounded P2 witness coverage, never certificate authority.
+        fn boolean_dnf(mask: u8) -> Vec<u8> {
+            let mut out = Vec::new();
+            let mut count = 0;
+            for x in 0..2 {
+                for y in 0..2 {
+                    if mask & (1 << (2 * x + y)) == 0 {
+                        continue;
+                    }
+                    out.push(0);
+                    if x == 0 {
+                        out.push(4);
+                    }
+                    out.push(1);
+                    if y == 0 {
+                        out.push(4);
+                    }
+                    out.push(5);
+                    if count > 0 {
+                        out.push(6);
+                    }
+                    count += 1;
+                }
+            }
+            if count == 0 { vec![2] } else { out }
+        }
+
+        fn gf2_anf(mask: u8, flip_xy: bool) -> Vec<u8> {
+            let f00 = mask & 1 != 0;
+            let f01 = mask & 2 != 0;
+            let f10 = mask & 4 != 0;
+            let f11 = mask & 8 != 0;
+            let coefficients = [
+                (f00, &[3][..]),
+                (f10 ^ f00, &[0][..]),
+                (f01 ^ f00, &[1][..]),
+                (f11 ^ f10 ^ f01 ^ f00 ^ flip_xy, &[0, 1, 5][..]),
+            ];
+            let mut out = Vec::new();
+            let mut count = 0;
+            for (enabled, monomial) in coefficients {
+                if enabled {
+                    out.extend_from_slice(monomial);
+                    if count > 0 {
+                        out.push(4); // XOR
+                    }
+                    count += 1;
+                }
+            }
+            if count == 0 { vec![2] } else { out }
+        }
+
+        for mask in 0..16u8 {
+            let boolean = boolean_dnf(mask);
+            let gf2 = gf2_anf(mask, false);
+            assert_eq!(
+                check_frozen_boolean_gf2_witness(&frame(&boolean, &gf2)),
+                Ok(()),
+                "truth table {mask:04b} must match its algebraic normal form"
+            );
+            // Alter only the xy coefficient: the first three assignments must
+            // still match, with the sole counterexample at (true, true).
+            assert_eq!(
+                check_frozen_boolean_gf2_witness(&frame(&boolean, &gf2_anf(mask, true))),
+                Err(Gf2WitnessError::Counterexample {
+                    x: true,
+                    y: true,
+                    boolean: mask & 8 != 0,
+                    gf2: mask & 8 == 0,
+                }),
+                "truth table {mask:04b} must reject a forged xy coefficient"
+            );
+        }
+    }
+
+    #[test]
     fn maximum_valid_term_size_is_bounded() {
         let mut boolean = vec![0];
         boolean.extend(std::iter::repeat_n(4, 1023));
