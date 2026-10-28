@@ -147,6 +147,69 @@ pub fn check_frozen_polynomial_product(body: &[u8]) -> Result<(), PolynomialProd
     Ok(())
 }
 
+// Wire v0 sum witness: three canonical vectors (left, right, claimed sum).
+// This is exact Z[n] addition, not a proof of the enclosing Judgement.
+const MAX_SUM_FRAME_BYTES: usize = 3 + 3 * MAX_COEFFICIENTS * 8;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialSumError {
+    InvalidFrame,
+    NonCanonicalOperand,
+    NonCanonicalSum,
+    CoefficientOutOfRange,
+    CoefficientMismatch {
+        power: u8,
+        expected: i64,
+        actual: i64,
+    },
+}
+
+/// Check a frozen, bounded polynomial-addition witness independently of its
+/// producer. i128 intermediates prevent signed i64 wrapping; cancellation
+/// must yield a canonical zero or trimmed-degree polynomial. This does not
+/// certify a theorem, admit a checker trust root, or grant promotion.
+pub fn check_frozen_polynomial_sum(body: &[u8]) -> Result<(), PolynomialSumError> {
+    if body.len() > MAX_SUM_FRAME_BYTES {
+        return Err(PolynomialSumError::InvalidFrame);
+    }
+    let mut cursor = 0;
+    let left = read_coefficients(body, &mut cursor).ok_or(PolynomialSumError::InvalidFrame)?;
+    let right = read_coefficients(body, &mut cursor).ok_or(PolynomialSumError::InvalidFrame)?;
+    let claimed = read_coefficients(body, &mut cursor).ok_or(PolynomialSumError::InvalidFrame)?;
+    if cursor != body.len() {
+        return Err(PolynomialSumError::InvalidFrame);
+    }
+    if (left.len() > 1 && left.last() == Some(&0)) || (right.len() > 1 && right.last() == Some(&0))
+    {
+        return Err(PolynomialSumError::NonCanonicalOperand);
+    }
+    if claimed.len() > 1 && claimed.last() == Some(&0) {
+        return Err(PolynomialSumError::NonCanonicalSum);
+    }
+
+    let mut expected = Vec::with_capacity(left.len().max(right.len()));
+    for power in 0..left.len().max(right.len()) {
+        let exact = i128::from(left.get(power).copied().unwrap_or(0))
+            + i128::from(right.get(power).copied().unwrap_or(0));
+        expected.push(i64::try_from(exact).map_err(|_| PolynomialSumError::CoefficientOutOfRange)?);
+    }
+    while expected.len() > 1 && expected.last() == Some(&0) {
+        expected.pop();
+    }
+    for power in 0..expected.len().max(claimed.len()) {
+        let exact = expected.get(power).copied().unwrap_or(0);
+        let actual = claimed.get(power).copied().unwrap_or(0);
+        if exact != actual {
+            return Err(PolynomialSumError::CoefficientMismatch {
+                power: power as u8,
+                expected: exact,
+                actual,
+            });
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -310,6 +373,80 @@ mod tests {
         assert_eq!(
             check_frozen_polynomial_identity(&frame(&[1; 17], &[1])),
             Err(PolynomialIdentityError::InvalidFrame)
+        );
+    }
+
+    #[test]
+    fn frozen_sum_witness_checks_exact_coefficients_and_cancellation() {
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[2, -3], &[4, 5], &[6, 2])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[2, -3], &[-2, 3], &[0])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[i64::MIN], &[0], &[i64::MIN])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[2, -3], &[4, 5], &[6, 3])),
+            Err(PolynomialSumError::CoefficientMismatch {
+                power: 1,
+                expected: 2,
+                actual: 3,
+            })
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[1; 16], &[-1; 16], &[0])),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn frozen_sum_witness_rejects_overflow_noncanonical_and_malformed_frames() {
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[i64::MAX], &[1], &[0])),
+            Err(PolynomialSumError::CoefficientOutOfRange)
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[i64::MIN], &[-1], &[0])),
+            Err(PolynomialSumError::CoefficientOutOfRange)
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[1, 0], &[1], &[2])),
+            Err(PolynomialSumError::NonCanonicalOperand)
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[1], &[0], &[1, 0])),
+            Err(PolynomialSumError::NonCanonicalSum)
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[1], &[0], &[0])),
+            Err(PolynomialSumError::CoefficientMismatch {
+                power: 0,
+                expected: 1,
+                actual: 0,
+            })
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&[1; 17], &[0], &[1])),
+            Err(PolynomialSumError::InvalidFrame)
+        );
+        let valid = product_frame(&[1, -2], &[2, 1], &[3, -1]);
+        for end in 0..valid.len() {
+            assert_eq!(
+                check_frozen_polynomial_sum(&valid[..end]),
+                Err(PolynomialSumError::InvalidFrame),
+                "truncated at {end}"
+            );
+        }
+        let mut trailing = valid;
+        trailing.push(0);
+        assert_eq!(
+            check_frozen_polynomial_sum(&trailing),
+            Err(PolynomialSumError::InvalidFrame)
         );
     }
 }
