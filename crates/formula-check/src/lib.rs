@@ -116,13 +116,13 @@ pub fn preflight_contract_membership(
         return Err(ContractPreflightError::InvalidFamily);
     }
     let classes = frozen_contract.admissible_evidence_classes();
-    // A policy is a set of exact evidence identities, not a multiset. Reject
-    // duplicate classes even when their redundant serialized digest matches.
-    let mut seen = std::collections::BTreeSet::new();
+    // A policy is a set of exact evidence identities. The frozen encoding
+    // preserves class order, so require strictly increasing byte-exact names:
+    // reordered or duplicate sets cannot masquerade as distinct valid policies.
+    // This is a fail-closed preflight rule, not a change to frozen core encoding.
     if classes.is_empty()
-        || classes
-            .iter()
-            .any(|class| !valid_evidence_family(class) || !seen.insert(class.as_str()))
+        || classes.iter().any(|class| !valid_evidence_family(class))
+        || classes.windows(2).any(|pair| pair[0] >= pair[1])
     {
         return Err(ContractPreflightError::InvalidContract);
     }
@@ -777,6 +777,37 @@ mod tests {
         assert_eq!(
             preflight_contract_membership(visible.structural_digest(), &visible, "有限証明"),
             Ok(())
+        );
+    }
+
+    #[test]
+    /// A policy is a set of exact identities: two orderings of the same
+    /// classes must not both be accepted as distinct frozen contract encodings.
+    fn noncanonical_frozen_contract_order_fails_closed() {
+        let canonical = AuthorityContract::new(vec![
+            "finite-exhaustive".to_owned(),
+            "polynomial-identity".to_owned(),
+        ]);
+        let reordered = AuthorityContract::new(vec![
+            "polynomial-identity".to_owned(),
+            "finite-exhaustive".to_owned(),
+        ]);
+        assert_ne!(canonical.structural_digest(), reordered.structural_digest());
+        assert_eq!(
+            preflight_contract_membership(
+                reordered.structural_digest(),
+                &reordered,
+                "finite-exhaustive",
+            ),
+            Err(ContractPreflightError::InvalidContract),
+        );
+        assert_eq!(
+            preflight_contract_membership(
+                canonical.structural_digest(),
+                &canonical,
+                "finite-exhaustive",
+            ),
+            Ok(()),
         );
     }
 
