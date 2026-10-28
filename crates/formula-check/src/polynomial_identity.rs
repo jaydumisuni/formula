@@ -70,6 +70,83 @@ pub fn check_frozen_polynomial_identity(body: &[u8]) -> Result<(), PolynomialIde
     Ok(())
 }
 
+// Wire v0 product witness: three canonical coefficient vectors (factor A,
+// factor B, claimed product). The bound is deliberately small and never
+// delegates arithmetic or authority to the producer.
+const MAX_PRODUCT_FRAME_BYTES: usize = 3 + 3 * MAX_COEFFICIENTS * 8;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialProductError {
+    InvalidFrame,
+    NonCanonicalFactor,
+    NonCanonicalProduct,
+    DegreeOutOfBounds,
+    ArithmeticOverflow,
+    CoefficientOutOfRange,
+    CoefficientMismatch {
+        power: u8,
+        expected: i64,
+        actual: i64,
+    },
+}
+
+/// Independently check a bounded Z[n] multiplication witness with exact
+/// integer arithmetic. No samples, wrapping, certificate issuance, or
+/// promotion authority are involved.
+pub fn check_frozen_polynomial_product(body: &[u8]) -> Result<(), PolynomialProductError> {
+    if body.len() > MAX_PRODUCT_FRAME_BYTES {
+        return Err(PolynomialProductError::InvalidFrame);
+    }
+    let mut cursor = 0;
+    let a = read_coefficients(body, &mut cursor).ok_or(PolynomialProductError::InvalidFrame)?;
+    let b = read_coefficients(body, &mut cursor).ok_or(PolynomialProductError::InvalidFrame)?;
+    let claimed =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialProductError::InvalidFrame)?;
+    if cursor != body.len() {
+        return Err(PolynomialProductError::InvalidFrame);
+    }
+    if (a.len() > 1 && a.last() == Some(&0)) || (b.len() > 1 && b.last() == Some(&0)) {
+        return Err(PolynomialProductError::NonCanonicalFactor);
+    }
+    if claimed.len() > 1 && claimed.last() == Some(&0) {
+        return Err(PolynomialProductError::NonCanonicalProduct);
+    }
+    let zero = a == [0] || b == [0];
+    let expected_len = if zero { 1 } else { a.len() + b.len() - 1 };
+    if expected_len > MAX_COEFFICIENTS {
+        return Err(PolynomialProductError::DegreeOutOfBounds);
+    }
+    let mut coefficients = vec![0_i128; expected_len];
+    for (i, &left) in a.iter().enumerate() {
+        for (j, &right) in b.iter().enumerate() {
+            if left == 0 || right == 0 {
+                continue;
+            }
+            let term = i128::from(left)
+                .checked_mul(i128::from(right))
+                .ok_or(PolynomialProductError::ArithmeticOverflow)?;
+            coefficients[i + j] = coefficients[i + j]
+                .checked_add(term)
+                .ok_or(PolynomialProductError::ArithmeticOverflow)?;
+        }
+    }
+    if claimed.len() != expected_len {
+        return Err(PolynomialProductError::NonCanonicalProduct);
+    }
+    for (power, (&exact, &actual)) in coefficients.iter().zip(&claimed).enumerate() {
+        let expected =
+            i64::try_from(exact).map_err(|_| PolynomialProductError::CoefficientOutOfRange)?;
+        if expected != actual {
+            return Err(PolynomialProductError::CoefficientMismatch {
+                power: power as u8,
+                expected,
+                actual,
+            });
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,6 +160,83 @@ mod tests {
             }
         }
         out
+    }
+
+    fn product_frame(a: &[i64], b: &[i64], product: &[i64]) -> Vec<u8> {
+        let mut out = Vec::new();
+        for coefficients in [a, b, product] {
+            out.push(coefficients.len() as u8);
+            for coefficient in coefficients {
+                out.extend_from_slice(&coefficient.to_be_bytes());
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn frozen_product_witness_uses_exact_convolution_not_samples() {
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(&[2, -3], &[4, 5], &[8, -2, -15])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(&[0], &[1, 2], &[0])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(&[i64::MAX], &[1], &[i64::MAX])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(&[2, -3], &[4, 5], &[8, -2, -14])),
+            Err(PolynomialProductError::CoefficientMismatch {
+                power: 2,
+                expected: -15,
+                actual: -14,
+            })
+        );
+    }
+
+    #[test]
+    fn frozen_product_witness_rejects_overflow_and_noncanonical_frames() {
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(&[i64::MAX], &[2], &[0])),
+            Err(PolynomialProductError::CoefficientOutOfRange)
+        );
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(
+                &[i64::MAX; 3],
+                &[i64::MAX; 3],
+                &[0, 0, 0, 0, 1],
+            )),
+            Err(PolynomialProductError::ArithmeticOverflow)
+        );
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(&[1; 16], &[1, 1], &[1])),
+            Err(PolynomialProductError::DegreeOutOfBounds)
+        );
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(&[1, 0], &[1], &[1])),
+            Err(PolynomialProductError::NonCanonicalFactor)
+        );
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(&[1], &[1], &[1, 0])),
+            Err(PolynomialProductError::NonCanonicalProduct)
+        );
+        let valid = product_frame(&[1, -2], &[2, 1], &[2, -3, -2]);
+        for end in 0..valid.len() {
+            assert_eq!(
+                check_frozen_polynomial_product(&valid[..end]),
+                Err(PolynomialProductError::InvalidFrame),
+                "truncated at {end}"
+            );
+        }
+        let mut trailing = valid;
+        trailing.push(0);
+        assert_eq!(
+            check_frozen_polynomial_product(&trailing),
+            Err(PolynomialProductError::InvalidFrame)
+        );
     }
 
     #[test]
