@@ -6,6 +6,7 @@
 //! Proof semantics, trust-root admission, and full authority-contract policy
 //! remain independent unimplemented gates.
 
+pub mod gf2_semantics;
 pub mod u8_semantics;
 
 use formula_core::{ArtifactDigest, AuthorityContract, EvidenceEnvelopeMetadata, Judgement};
@@ -225,6 +226,38 @@ pub fn preflight_frozen_u8_evidence_bundle(
         .map_err(U8BundlePreflightError::Body)
 }
 
+/// Non-authoritative frozen-policy, metadata, and Boolean/GF(2) witness preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Gf2BundlePreflightError {
+    Bundle(EvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(gf2_semantics::Gf2WitnessError),
+}
+
+/// Require exact frozen policy and evidence bytes before checking a bounded
+/// two-variable Boolean-to-GF(2) translation witness. This does NOT establish
+/// that the Judgement names the two terms, issue a certificate, admit a trust
+/// root, or grant promotion authority.
+pub fn preflight_frozen_gf2_evidence_bundle(
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), Gf2BundlePreflightError> {
+    preflight_frozen_evidence_bundle(
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(Gf2BundlePreflightError::Bundle)?;
+    if frozen.evidence_family != "boolean-gf2-translation" {
+        return Err(Gf2BundlePreflightError::WrongEvidenceFamily);
+    }
+    gf2_semantics::check_frozen_boolean_gf2_witness(frozen.payload_bytes)
+        .map_err(Gf2BundlePreflightError::Body)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,6 +270,98 @@ mod tests {
     /// Construct a fixture judgement with explicit world and dependency identity.
     fn judgement(world: ArtifactDigest, dependencies: Vec<ArtifactDigest>) -> Judgement {
         Judgement::new(world, "finite-exact", b"x == x".to_vec(), dependencies)
+    }
+
+    #[test]
+    fn frozen_gf2_witness_requires_policy_metadata_and_semantic_agreement() {
+        let j = judgement(digest(b"gf2-world"), vec![digest(b"gf2-dependency")]);
+        let checker = digest(b"checker-gf2-v0");
+        let family = "boolean-gf2-translation";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        // Boolean x OR y, GF(2) x + y + xy.
+        let body = vec![0, 3, 0, 1, 6, 0, 7, 0, 1, 4, 0, 1, 5, 4];
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), checker);
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_frozen_gf2_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen,
+            ),
+            Ok(())
+        );
+        let forged = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            family,
+            digest(b"not-the-frozen-body"),
+            checker,
+        );
+        assert_eq!(
+            preflight_frozen_gf2_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &forged,
+                &frozen,
+            ),
+            Err(Gf2BundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Metadata(EvidencePreflightError::BindingMismatch)
+            ))
+        );
+        let false_body = vec![0, 3, 0, 1, 6, 0, 3, 0, 1, 4];
+        let false_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            family,
+            digest(&false_body),
+            checker,
+        );
+        let false_frozen = FrozenEvidence {
+            payload_bytes: &false_body,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_gf2_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &false_recorded,
+                &false_frozen,
+            ),
+            Err(Gf2BundlePreflightError::Body(
+                gf2_semantics::Gf2WitnessError::Counterexample {
+                    x: true,
+                    y: true,
+                    boolean: true,
+                    gf2: false,
+                }
+            ))
+        );
+        let other_family = "finite-exhaustive";
+        let other_policy = AuthorityContract::new(vec![other_family.to_owned()]);
+        let other_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            other_family,
+            digest(&body),
+            checker,
+        );
+        let other_frozen = FrozenEvidence {
+            evidence_family: other_family,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_gf2_evidence_bundle(
+                other_policy.structural_digest(),
+                &other_policy,
+                &other_recorded,
+                &other_frozen,
+            ),
+            Err(Gf2BundlePreflightError::WrongEvidenceFamily)
+        );
     }
 
     #[test]
