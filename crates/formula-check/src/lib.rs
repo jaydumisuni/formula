@@ -192,6 +192,33 @@ pub fn preflight_frozen_evidence_bundle(
         .map_err(EvidenceBundlePreflightError::Metadata)
 }
 
+/// Non-authoritative frozen-policy, metadata, and U8-body preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum U8BundlePreflightError {
+    Bundle(EvidenceBundlePreflightError),
+    Body(u8_semantics::U8EvidenceBodyError),
+}
+
+/// First bind the exact frozen bytes and policy; then check the bounded U8
+/// pair in those same bytes. This does NOT establish that the Judgement names
+/// those terms, issue a certificate, admit a trust root, or promote authority.
+pub fn preflight_frozen_u8_evidence_bundle(
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), U8BundlePreflightError> {
+    preflight_frozen_evidence_bundle(
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(U8BundlePreflightError::Bundle)?;
+    u8_semantics::check_frozen_u8_evidence_body(frozen.payload_bytes)
+        .map_err(U8BundlePreflightError::Body)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -204,6 +231,94 @@ mod tests {
     /// Construct a fixture judgement with explicit world and dependency identity.
     fn judgement(world: ArtifactDigest, dependencies: Vec<ArtifactDigest>) -> Judgement {
         Judgement::new(world, "finite-exact", b"x == x".to_vec(), dependencies)
+    }
+
+    #[test]
+    fn frozen_u8_body_preflight_requires_exact_policy_metadata_and_semantics() {
+        let j = judgement(digest(b"world"), vec![digest(b"dependency")]);
+        let checker = digest(b"checker-u8-v0");
+        let policy = AuthorityContract::new(vec!["finite-exhaustive".to_owned()]);
+        let body = vec![0, 3, 0, 0, 2, 0, 4, 0, 1, 2, 4];
+        let recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            "finite-exhaustive",
+            digest(&body),
+            checker,
+        );
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: "finite-exhaustive",
+            payload_bytes: &body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_frozen_u8_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Ok(())
+        );
+        let wrong = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            "finite-exhaustive",
+            digest(b"other"),
+            checker,
+        );
+        assert_eq!(
+            preflight_frozen_u8_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &wrong,
+                &frozen
+            ),
+            Err(U8BundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Metadata(EvidencePreflightError::BindingMismatch)
+            ))
+        );
+        let excluded = AuthorityContract::new(vec!["polynomial-identity".to_owned()]);
+        assert_eq!(
+            preflight_frozen_u8_evidence_bundle(
+                excluded.structural_digest(),
+                &excluded,
+                &recorded,
+                &frozen
+            ),
+            Err(U8BundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Contract(ContractPreflightError::FamilyNotAdmitted)
+            ))
+        );
+
+        // Rebinding the digest to a false equality cannot turn it into evidence.
+        let false_body = vec![0, 1, 0, 0, 4, 0, 1, 1, 2];
+        let false_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            "finite-exhaustive",
+            digest(&false_body),
+            checker,
+        );
+        let false_frozen = FrozenEvidence {
+            payload_bytes: &false_body,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_u8_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &false_recorded,
+                &false_frozen
+            ),
+            Err(U8BundlePreflightError::Body(
+                u8_semantics::U8EvidenceBodyError::Semantics(
+                    u8_semantics::U8EquivalenceError::Counterexample {
+                        input: 0,
+                        left: 0,
+                        right: 1
+                    }
+                )
+            ))
+        );
     }
 
     #[test]

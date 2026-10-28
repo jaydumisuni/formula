@@ -94,6 +94,41 @@ pub fn check_frozen_u8_equivalence(
     Ok(())
 }
 
+/// Local, non-authoritative U8 pair framing: two big-endian u16 lengths,
+/// each followed by that many frozen postfix bytes. The exact body is bound
+/// separately by the evidence metadata preflight. This is NOT a certificate.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum U8EvidenceBodyError {
+    InvalidFrame,
+    Semantics(U8EquivalenceError),
+}
+
+/// Check the complete, strictly framed frozen body; reject trailing bytes,
+/// missing fields and oversized terms before evaluating either expression.
+/// Equality here does not prove that either term expresses the Judgement.
+pub fn check_frozen_u8_evidence_body(body: &[u8]) -> Result<(), U8EvidenceBodyError> {
+    if body.len() > 4 + 2 * MAX_TERM_BYTES {
+        return Err(U8EvidenceBodyError::InvalidFrame);
+    }
+    let first = body.get(..2).ok_or(U8EvidenceBodyError::InvalidFrame)?;
+    let left_len = usize::from(u16::from_be_bytes([first[0], first[1]]));
+    if !(1..=MAX_TERM_BYTES).contains(&left_len) {
+        return Err(U8EvidenceBodyError::InvalidFrame);
+    }
+    let left = body
+        .get(2..2 + left_len)
+        .ok_or(U8EvidenceBodyError::InvalidFrame)?;
+    let second = body
+        .get(2 + left_len..4 + left_len)
+        .ok_or(U8EvidenceBodyError::InvalidFrame)?;
+    let right_len = usize::from(u16::from_be_bytes([second[0], second[1]]));
+    if !(1..=MAX_TERM_BYTES).contains(&right_len) || body.len() != 4 + left_len + right_len {
+        return Err(U8EvidenceBodyError::InvalidFrame);
+    }
+    let right = &body[4 + left_len..];
+    check_frozen_u8_equivalence(left, right).map_err(U8EvidenceBodyError::Semantics)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -164,6 +199,87 @@ mod tests {
                 Err(U8EquivalenceError::MalformedRight)
             );
         }
+    }
+
+    fn frame(left: &[u8], right: &[u8]) -> Vec<u8> {
+        let mut body = Vec::new();
+        body.extend_from_slice(&(left.len() as u16).to_be_bytes());
+        body.extend_from_slice(left);
+        body.extend_from_slice(&(right.len() as u16).to_be_bytes());
+        body.extend_from_slice(right);
+        body
+    }
+
+    #[test]
+    fn framed_body_checks_exact_u8_semantics() {
+        assert_eq!(
+            check_frozen_u8_evidence_body(&frame(&[0, 0, 2], &[0, 1, 2, 4])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_u8_evidence_body(&frame(&[0], &[0, 1, 1, 2])),
+            Err(U8EvidenceBodyError::Semantics(
+                U8EquivalenceError::Counterexample {
+                    input: 0,
+                    left: 0,
+                    right: 1,
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn framed_body_rejects_ambiguity_and_malformed_terms() {
+        let valid = frame(&[0], &[0]);
+        for malformed in [
+            vec![],
+            vec![0],
+            vec![0, 0, 0, 1, 0],
+            vec![0, 1, 0],
+            vec![0, 1, 0, 0],
+            vec![0, 1, 0, 0, 0],
+            vec![0, 1, 0, 0, 2, 0],
+            vec![0, 1, 0, 4, 1, 0],
+            vec![0, 4, 1, 0, 0, 1, 0],
+            vec![0; 2053],
+        ] {
+            assert_eq!(
+                check_frozen_u8_evidence_body(&malformed),
+                Err(U8EvidenceBodyError::InvalidFrame),
+                "invalid length or framing must fail closed: {malformed:?}",
+            );
+        }
+        let mut trailing = valid.clone();
+        trailing.push(0);
+        assert_eq!(
+            check_frozen_u8_evidence_body(&trailing),
+            Err(U8EvidenceBodyError::InvalidFrame)
+        );
+        assert_eq!(
+            check_frozen_u8_evidence_body(&frame(&[0, 0], &[0])),
+            Err(U8EvidenceBodyError::Semantics(
+                U8EquivalenceError::MalformedLeft
+            ))
+        );
+        assert_eq!(
+            check_frozen_u8_evidence_body(&frame(&[0], &[0xff])),
+            Err(U8EvidenceBodyError::Semantics(
+                U8EquivalenceError::MalformedRight
+            ))
+        );
+    }
+
+    #[test]
+    fn framed_body_accepts_exact_maximum_size_only() {
+        let mut left = vec![0];
+        left.extend(std::iter::repeat_n(8, 1023));
+        let mut right = left.clone();
+        assert_eq!(check_frozen_u8_evidence_body(&frame(&left, &right)), Ok(()));
+        right.push(8);
+        assert_eq!(
+            check_frozen_u8_evidence_body(&frame(&left, &right)),
+            Err(U8EvidenceBodyError::InvalidFrame)
+        );
     }
 
     #[test]
