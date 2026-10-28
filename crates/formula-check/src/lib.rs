@@ -367,6 +367,37 @@ pub fn preflight_frozen_polynomial_sum_evidence_bundle(
         .map_err(PolynomialSumBundlePreflightError::Body)
 }
 
+/// Non-authoritative frozen-policy, metadata, and exact difference-body preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialDifferenceBundlePreflightError {
+    Bundle(EvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialDifferenceError),
+}
+
+/// Check bounded integer-polynomial subtraction only after exact frozen policy
+/// and payload-byte binding. The caller must separately establish judgement
+/// semantics, checker trust and certification before granting authority.
+pub fn preflight_frozen_polynomial_difference_evidence_bundle(
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PolynomialDifferenceBundlePreflightError> {
+    preflight_frozen_evidence_bundle(
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PolynomialDifferenceBundlePreflightError::Bundle)?;
+    if frozen.evidence_family != "polynomial-difference" {
+        return Err(PolynomialDifferenceBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_difference(frozen.payload_bytes)
+        .map_err(PolynomialDifferenceBundlePreflightError::Body)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -642,6 +673,90 @@ mod tests {
                 &other_frozen,
             ),
             Err(PolynomialSumBundlePreflightError::WrongEvidenceFamily)
+        );
+    }
+
+    #[test]
+    fn frozen_polynomial_difference_bundle_binds_policy_bytes_and_arithmetic() {
+        let j = judgement(
+            digest(b"difference-world"),
+            vec![digest(b"difference-dependency")],
+        );
+        let checker = digest(b"checker-polynomial-difference-v0");
+        let family = "polynomial-difference";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        let body = polynomial_triple_frame(&[5, -3], &[2, -5], &[3, 2]);
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), checker);
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_difference_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Ok(())
+        );
+
+        let forged = polynomial_triple_frame(&[5, -3], &[2, -5], &[3, 3]);
+        let forged_frozen = FrozenEvidence {
+            payload_bytes: &forged,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_difference_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &forged_frozen
+            ),
+            Err(PolynomialDifferenceBundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Metadata(EvidencePreflightError::BindingMismatch)
+            ))
+        );
+        let forged_recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&forged), checker);
+        assert_eq!(
+            preflight_frozen_polynomial_difference_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &forged_recorded,
+                &forged_frozen
+            ),
+            Err(PolynomialDifferenceBundlePreflightError::Body(
+                polynomial_identity::PolynomialDifferenceError::CoefficientMismatch {
+                    power: 1,
+                    expected: 2,
+                    actual: 3
+                }
+            ))
+        );
+        let other_family = "polynomial-sum";
+        let other_policy = AuthorityContract::new(vec![other_family.to_owned()]);
+        let other_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            other_family,
+            digest(&body),
+            checker,
+        );
+        let other_frozen = FrozenEvidence {
+            evidence_family: other_family,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_difference_evidence_bundle(
+                other_policy.structural_digest(),
+                &other_policy,
+                &other_recorded,
+                &other_frozen
+            ),
+            Err(PolynomialDifferenceBundlePreflightError::WrongEvidenceFamily)
         );
     }
 

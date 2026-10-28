@@ -210,6 +210,73 @@ pub fn check_frozen_polynomial_sum(body: &[u8]) -> Result<(), PolynomialSumError
     Ok(())
 }
 
+// Wire v0 difference witness: canonical left, right, and claimed left-right.
+// The signed arithmetic is exact over Z[n], not wrapping i64 subtraction.
+const MAX_DIFFERENCE_FRAME_BYTES: usize = 3 + 3 * MAX_COEFFICIENTS * 8;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialDifferenceError {
+    InvalidFrame,
+    NonCanonicalOperand,
+    NonCanonicalDifference,
+    CoefficientOutOfRange,
+    CoefficientMismatch {
+        power: u8,
+        expected: i64,
+        actual: i64,
+    },
+}
+
+/// Check a frozen bounded subtraction witness, including signed boundaries,
+/// cancellation, and canonical degree. This is non-authoritative P2 preparation;
+/// it cannot certify that the enclosing Judgement denotes these polynomials.
+pub fn check_frozen_polynomial_difference(body: &[u8]) -> Result<(), PolynomialDifferenceError> {
+    if body.len() > MAX_DIFFERENCE_FRAME_BYTES {
+        return Err(PolynomialDifferenceError::InvalidFrame);
+    }
+    let mut cursor = 0;
+    let left =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialDifferenceError::InvalidFrame)?;
+    let right =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialDifferenceError::InvalidFrame)?;
+    let claimed =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialDifferenceError::InvalidFrame)?;
+    if cursor != body.len() {
+        return Err(PolynomialDifferenceError::InvalidFrame);
+    }
+    if (left.len() > 1 && left.last() == Some(&0)) || (right.len() > 1 && right.last() == Some(&0))
+    {
+        return Err(PolynomialDifferenceError::NonCanonicalOperand);
+    }
+    if claimed.len() > 1 && claimed.last() == Some(&0) {
+        return Err(PolynomialDifferenceError::NonCanonicalDifference);
+    }
+
+    let mut expected = Vec::with_capacity(left.len().max(right.len()));
+    for power in 0..left.len().max(right.len()) {
+        let exact = i128::from(left.get(power).copied().unwrap_or(0))
+            - i128::from(right.get(power).copied().unwrap_or(0));
+        expected.push(
+            i64::try_from(exact).map_err(|_| PolynomialDifferenceError::CoefficientOutOfRange)?,
+        );
+    }
+    while expected.len() > 1 && expected.last() == Some(&0) {
+        expected.pop();
+    }
+    for power in 0..expected.len().max(claimed.len()) {
+        let exact = expected.get(power).copied().unwrap_or(0);
+        let actual = claimed.get(power).copied().unwrap_or(0);
+        if exact != actual {
+            return Err(PolynomialDifferenceError::CoefficientMismatch {
+                power: power as u8,
+                expected: exact,
+                actual,
+            });
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -373,6 +440,68 @@ mod tests {
         assert_eq!(
             check_frozen_polynomial_identity(&frame(&[1; 17], &[1])),
             Err(PolynomialIdentityError::InvalidFrame)
+        );
+    }
+
+    #[test]
+    fn frozen_difference_witness_checks_signed_cancellation_and_exact_bounds() {
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&[5, -3], &[2, -5], &[3, 2])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&[1, 2], &[1, 2], &[0])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&[i64::MIN], &[0], &[i64::MIN])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&[0], &[i64::MIN], &[0])),
+            Err(PolynomialDifferenceError::CoefficientOutOfRange)
+        );
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&[1, 2], &[1, 1], &[1, 1])),
+            Err(PolynomialDifferenceError::CoefficientMismatch {
+                power: 0,
+                expected: 0,
+                actual: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn frozen_difference_rejects_noncanonical_and_malformed_frames() {
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&[1, 0], &[1], &[0])),
+            Err(PolynomialDifferenceError::NonCanonicalOperand)
+        );
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&[1], &[0], &[1, 0])),
+            Err(PolynomialDifferenceError::NonCanonicalDifference)
+        );
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&[1; 17], &[0], &[1])),
+            Err(PolynomialDifferenceError::InvalidFrame)
+        );
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&[0], &[1], &[-1])),
+            Ok(())
+        );
+        let valid = product_frame(&[1, -2], &[2, 1], &[-1, -3]);
+        for end in 0..valid.len() {
+            assert_eq!(
+                check_frozen_polynomial_difference(&valid[..end]),
+                Err(PolynomialDifferenceError::InvalidFrame),
+                "truncated at {end}"
+            );
+        }
+        let mut trailing = valid;
+        trailing.push(0);
+        assert_eq!(
+            check_frozen_polynomial_difference(&trailing),
+            Err(PolynomialDifferenceError::InvalidFrame)
         );
     }
 
