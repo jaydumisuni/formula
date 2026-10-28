@@ -1045,4 +1045,79 @@ mod tests {
             Ok(())
         );
     }
+
+    #[test]
+    /// P2 negative producer cases must fail at the *paired* entry point, even
+    /// when the original recorded metadata and frozen policy are self-consistent.
+    /// This is structural custody only, never semantic certificate acceptance.
+    fn paired_frozen_evidence_preflight_rejects_post_freeze_substitutions() {
+        let world = digest(b"world");
+        let dependency = digest(b"dependency");
+        let original = judgement(world, vec![dependency]);
+        let changed_world = judgement(digest(b"other-world"), vec![dependency]);
+        let changed_dependency = judgement(world, vec![digest(b"other-dependency")]);
+        let changed_proposition =
+            Judgement::new(world, "finite-exact", b"x != x".to_vec(), vec![dependency]);
+        let checker = digest(b"checker-v1");
+        let payload = b"certificate-body";
+        let policy = AuthorityContract::new(vec!["finite-exhaustive".to_owned()]);
+        let recorded = EvidenceEnvelopeMetadata::new(
+            original.structural_digest(),
+            "finite-exhaustive",
+            digest(payload),
+            checker,
+        );
+        let frozen = FrozenEvidence {
+            judgement: &original,
+            evidence_family: "finite-exhaustive",
+            payload_bytes: payload,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_frozen_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen,
+            ),
+            Ok(())
+        );
+
+        let substituted = [
+            FrozenEvidence {
+                judgement: &changed_world,
+                ..frozen
+            },
+            FrozenEvidence {
+                judgement: &changed_dependency,
+                ..frozen
+            },
+            FrozenEvidence {
+                judgement: &changed_proposition,
+                ..frozen
+            },
+            FrozenEvidence {
+                payload_bytes: b"certificate-body-after-freeze",
+                ..frozen
+            },
+            FrozenEvidence {
+                checker_digest: digest(b"checker-v2"),
+                ..frozen
+            },
+        ];
+        for changed in substituted {
+            assert_eq!(
+                preflight_frozen_evidence_bundle(
+                    policy.structural_digest(),
+                    &policy,
+                    &recorded,
+                    &changed,
+                ),
+                Err(EvidenceBundlePreflightError::Metadata(
+                    EvidencePreflightError::BindingMismatch
+                )),
+                "a post-freeze world, dependency, proposition, body, or checker change must fail",
+            );
+        }
+    }
 }
