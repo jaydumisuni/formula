@@ -492,6 +492,73 @@ mod tests {
         );
     }
 
+    // A degree-eight polynomial can vanish at eight sampled inputs while
+    // remaining nonzero. None of the independent arithmetic witnesses may
+    // substitute that finite agreement for exact coefficient custody.
+    #[test]
+    fn finite_sample_collision_cannot_forge_polynomial_arithmetic_witnesses() {
+        let vanishing = [0, -5040, 13068, -13132, 6769, -1960, 322, -28, 1];
+        for x in 0_i128..8 {
+            assert_eq!(
+                vanishing.iter().rev().fold(0_i128, |acc, &coefficient| {
+                    acc * x + i128::from(coefficient)
+                }),
+                0,
+                "fixture must vanish at sampled x={x}"
+            );
+        }
+
+        // All four correct frozen witnesses are admissible as bounded
+        // arithmetic checks; no judgement/certificate authority follows.
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(&vanishing, &[1], &vanishing)),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&vanishing, &[0], &vanishing)),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&vanishing, &[0], &vanishing)),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_scale(&scale_frame(1, &vanishing, &vanishing)),
+            Ok(())
+        );
+
+        // A producer claiming the zero polynomial would pass all eight
+        // samples, but each exact checker must reject the same forged claim.
+        assert_eq!(
+            check_frozen_polynomial_product(&product_frame(&vanishing, &[1], &[0])),
+            Err(PolynomialProductError::NonCanonicalProduct)
+        );
+        assert_eq!(
+            check_frozen_polynomial_sum(&product_frame(&vanishing, &[0], &[0])),
+            Err(PolynomialSumError::CoefficientMismatch {
+                power: 1,
+                expected: -5040,
+                actual: 0
+            })
+        );
+        assert_eq!(
+            check_frozen_polynomial_difference(&product_frame(&vanishing, &[0], &[0])),
+            Err(PolynomialDifferenceError::CoefficientMismatch {
+                power: 1,
+                expected: -5040,
+                actual: 0
+            })
+        );
+        assert_eq!(
+            check_frozen_polynomial_scale(&scale_frame(1, &vanishing, &[0])),
+            Err(PolynomialScaleError::CoefficientMismatch {
+                power: 1,
+                expected: -5040,
+                actual: 0
+            })
+        );
+    }
+
     #[test]
     fn malformed_and_noncanonical_frozen_frames_fail_closed() {
         for invalid in [vec![], vec![0], vec![1], vec![1, 0], vec![17], vec![255]] {
