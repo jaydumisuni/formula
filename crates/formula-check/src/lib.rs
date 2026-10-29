@@ -197,6 +197,35 @@ pub fn preflight_frozen_realization_metadata(
     Ok(())
 }
 
+/// Bind actual frozen realization artifact bytes to independently authenticated
+/// implementation/evidence digests as well as the recorded four-part envelope.
+///
+/// This is a structural custody preflight, not semantic equivalence checking,
+/// observer authentication, a certificate, or permission to promote. All four
+/// pins must originate outside the producer-controlled metadata.
+pub fn preflight_frozen_realization_artifacts(
+    recorded: &RealizationMetadata,
+    frozen_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    independently_pinned_implementation: ArtifactDigest,
+    independently_pinned_evidence: ArtifactDigest,
+    implementation_bytes: &[u8],
+    evidence_bytes: &[u8],
+) -> Result<(), RealizationPreflightError> {
+    if ArtifactDigest::sha256(implementation_bytes) != independently_pinned_implementation
+        || ArtifactDigest::sha256(evidence_bytes) != independently_pinned_evidence
+    {
+        return Err(RealizationPreflightError::BindingMismatch);
+    }
+    preflight_frozen_realization_metadata(
+        recorded,
+        frozen_semantic_target,
+        independently_pinned_observer,
+        independently_pinned_implementation,
+        independently_pinned_evidence,
+    )
+}
+
 /// Non-authoritative paired preflight result. Neither branch certifies a proof,
 /// establishes the contract trust root, or grants promotion authority.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -3266,6 +3295,96 @@ mod tests {
             Err(PinnedEvidenceBundlePreflightError::Bundle(
                 EvidenceBundlePreflightError::Contract(ContractPreflightError::FamilyNotAdmitted)
             ))
+        );
+    }
+
+    #[test]
+    /// Frozen realization hashes must also bind the actual implementation and
+    /// observer-evidence bytes. Producer-side metadata rehash cannot replace
+    /// separately pinned artifact identities.
+    fn frozen_realization_artifacts_reject_rebound_and_substituted_bytes() {
+        let target = digest(b"target");
+        let observer = digest(b"observer");
+        let implementation = b"implementation-v1";
+        let evidence = b"observer-evidence-v1";
+        let implementation_pin = digest(implementation);
+        let evidence_pin = digest(evidence);
+        let recorded = RealizationMetadata::new(target, observer, implementation_pin, evidence_pin);
+        assert_eq!(
+            preflight_frozen_realization_artifacts(
+                &recorded,
+                target,
+                observer,
+                implementation_pin,
+                evidence_pin,
+                implementation,
+                evidence,
+            ),
+            Ok(())
+        );
+
+        for (changed_implementation, changed_evidence) in [
+            (b"implementation-v2".as_slice(), evidence.as_slice()),
+            (
+                implementation.as_slice(),
+                b"observer-evidence-v2".as_slice(),
+            ),
+        ] {
+            assert_eq!(
+                preflight_frozen_realization_artifacts(
+                    &recorded,
+                    target,
+                    observer,
+                    implementation_pin,
+                    evidence_pin,
+                    changed_implementation,
+                    changed_evidence,
+                ),
+                Err(RealizationPreflightError::BindingMismatch)
+            );
+        }
+
+        let forged = RealizationMetadata::new(
+            target,
+            observer,
+            digest(b"implementation-v2"),
+            digest(b"observer-evidence-v2"),
+        );
+        assert_eq!(
+            preflight_frozen_realization_artifacts(
+                &forged,
+                target,
+                observer,
+                implementation_pin,
+                evidence_pin,
+                b"implementation-v2",
+                b"observer-evidence-v2",
+            ),
+            Err(RealizationPreflightError::BindingMismatch)
+        );
+        assert_eq!(
+            preflight_frozen_realization_artifacts(
+                &recorded,
+                digest(b"other-target"),
+                observer,
+                implementation_pin,
+                evidence_pin,
+                implementation,
+                evidence,
+            ),
+            Err(RealizationPreflightError::BindingMismatch)
+        );
+        assert_eq!(
+            preflight_frozen_realization_artifacts(
+                &recorded,
+                target,
+                digest(b"other-observer"),
+                implementation_pin,
+                evidence_pin,
+                implementation,
+                evidence,
+            ),
+            Err(RealizationPreflightError::BindingMismatch)
         );
     }
 
