@@ -532,6 +532,40 @@ pub fn preflight_frozen_polynomial_scale_evidence_bundle(
         .map_err(PolynomialScaleBundlePreflightError::Body)
 }
 
+/// Non-authoritative composition of a caller-authenticated checker pin,
+/// exact frozen policy/metadata, and bounded integer-polynomial scaling.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PinnedPolynomialScaleBundlePreflightError {
+    Pinned(PinnedEvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialScaleError),
+}
+
+/// Reject producer-side checker substitution and rehashed false scalar products
+/// on the same frozen evidence bytes. The caller must authenticate the pin
+/// independently; this does not grant certificate or promotion authority.
+pub fn preflight_pinned_frozen_polynomial_scale_evidence_bundle(
+    independently_pinned_checker_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PinnedPolynomialScaleBundlePreflightError> {
+    preflight_pinned_frozen_evidence_bundle(
+        independently_pinned_checker_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PinnedPolynomialScaleBundlePreflightError::Pinned)?;
+    if frozen.evidence_family != "polynomial-scale" {
+        return Err(PinnedPolynomialScaleBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_scale(frozen.payload_bytes)
+        .map_err(PinnedPolynomialScaleBundlePreflightError::Body)
+}
+
 /// Non-authoritative frozen-policy, metadata, and exact difference-body preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PolynomialDifferenceBundlePreflightError {
@@ -1663,6 +1697,108 @@ mod tests {
                 &other_frozen
             ),
             Err(PolynomialScaleBundlePreflightError::WrongEvidenceFamily)
+        );
+    }
+
+    #[test]
+    fn pinned_polynomial_scale_preflight_rejects_checker_swap_and_rehashed_false_product() {
+        let j = judgement(digest(b"pinned-scale-world"), vec![]);
+        let pinned = digest(b"independent-scale-checker");
+        let producer = digest(b"producer-scale-checker");
+        let family = "polynomial-scale";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        let mut body = (-2_i64).to_be_bytes().to_vec();
+        for coefficients in [&[2_i64, -3][..], &[-4_i64, 6][..]] {
+            body.push(coefficients.len() as u8);
+            for coefficient in coefficients {
+                body.extend_from_slice(&coefficient.to_be_bytes());
+            }
+        }
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: pinned,
+        };
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), pinned);
+        let preflight = preflight_pinned_frozen_polynomial_scale_evidence_bundle;
+        assert_eq!(
+            preflight(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Ok(())
+        );
+
+        let swapped = FrozenEvidence {
+            checker_digest: producer,
+            ..frozen
+        };
+        let swapped_recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), producer);
+        assert_eq!(
+            preflight(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &swapped_recorded,
+                &swapped
+            ),
+            Err(PinnedPolynomialScaleBundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
+            ))
+        );
+
+        let mut wrong = body.clone();
+        *wrong.last_mut().expect("nonempty scale frame") = 5;
+        let wrong_frozen = FrozenEvidence {
+            payload_bytes: &wrong,
+            ..frozen
+        };
+        let wrong_recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&wrong), pinned);
+        assert_eq!(
+            preflight(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &wrong_recorded,
+                &wrong_frozen
+            ),
+            Err(PinnedPolynomialScaleBundlePreflightError::Body(
+                polynomial_identity::PolynomialScaleError::CoefficientMismatch {
+                    power: 1,
+                    expected: 6,
+                    actual: 5
+                }
+            ))
+        );
+
+        let other_family = "polynomial-product";
+        let other_policy = AuthorityContract::new(vec![other_family.to_owned()]);
+        let other_frozen = FrozenEvidence {
+            evidence_family: other_family,
+            ..frozen
+        };
+        let other_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            other_family,
+            digest(&body),
+            pinned,
+        );
+        assert_eq!(
+            preflight(
+                pinned,
+                other_policy.structural_digest(),
+                &other_policy,
+                &other_recorded,
+                &other_frozen
+            ),
+            Err(PinnedPolynomialScaleBundlePreflightError::WrongEvidenceFamily)
         );
     }
 
