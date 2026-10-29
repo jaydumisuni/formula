@@ -459,6 +459,39 @@ mod tests {
         );
     }
 
+    // Eight coincident sample values are not an identity certificate.
+    // This degree-eight polynomial vanishes at x=0..7 but is not zero in Z[x].
+    #[test]
+    fn finite_sample_agreement_cannot_substitute_for_exact_polynomial_identity() {
+        let vanishing = [0, -5040, 13068, -13132, 6769, -1960, 322, -28, 1];
+        for x in 0_i128..8 {
+            let evaluated = vanishing.iter().rev().fold(0_i128, |acc, &coefficient| {
+                acc * x + i128::from(coefficient)
+            });
+            assert_eq!(evaluated, 0, "counterexample fixture must vanish at x={x}");
+        }
+        assert_eq!(
+            check_frozen_polynomial_identity(&frame(&vanishing, &vanishing)),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_identity(&frame(&[0], &vanishing)),
+            Err(PolynomialIdentityError::CoefficientMismatch {
+                power: 1,
+                left: 0,
+                right: -5040,
+            })
+        );
+        assert_eq!(
+            check_frozen_polynomial_identity(&frame(&vanishing, &[0])),
+            Err(PolynomialIdentityError::CoefficientMismatch {
+                power: 1,
+                left: -5040,
+                right: 0,
+            })
+        );
+    }
+
     #[test]
     fn malformed_and_noncanonical_frozen_frames_fail_closed() {
         for invalid in [vec![], vec![0], vec![1], vec![1, 0], vec![17], vec![255]] {
