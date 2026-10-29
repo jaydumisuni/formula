@@ -526,6 +526,40 @@ pub fn preflight_frozen_polynomial_derivative_evidence_bundle(
         .map_err(PolynomialDerivativeBundlePreflightError::Body)
 }
 
+/// Non-authoritative composition of an independently authenticated checker pin,
+/// exact frozen policy/metadata, and the bounded formal derivative body.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PinnedPolynomialDerivativeBundlePreflightError {
+    Pinned(PinnedEvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialDerivativeError),
+}
+
+/// Reject a self-consistent producer-side checker substitution even when its
+/// derivative arithmetic is valid. The pin must be authenticated by the caller;
+/// this is neither certificate issuance nor judgement/promotion authority.
+pub fn preflight_pinned_frozen_polynomial_derivative_evidence_bundle(
+    independently_pinned_checker_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PinnedPolynomialDerivativeBundlePreflightError> {
+    preflight_pinned_frozen_evidence_bundle(
+        independently_pinned_checker_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PinnedPolynomialDerivativeBundlePreflightError::Pinned)?;
+    if frozen.evidence_family != "polynomial-derivative" {
+        return Err(PinnedPolynomialDerivativeBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_derivative(frozen.payload_bytes)
+        .map_err(PinnedPolynomialDerivativeBundlePreflightError::Body)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -732,6 +766,115 @@ mod tests {
                 &wrong_frozen,
             ),
             Err(PolynomialDerivativeBundlePreflightError::WrongEvidenceFamily)
+        );
+    }
+
+    #[test]
+    fn pinned_derivative_preflight_rejects_checker_substitution_before_body_admission() {
+        fn frame(operand: &[i64], derivative: &[i64]) -> Vec<u8> {
+            let mut bytes = Vec::new();
+            for coefficients in [operand, derivative] {
+                bytes.push(coefficients.len() as u8);
+                for coefficient in coefficients {
+                    bytes.extend_from_slice(&coefficient.to_be_bytes());
+                }
+            }
+            bytes
+        }
+        let judgement = judgement(digest(b"derivative-world"), vec![digest(b"dependency")]);
+        let checker = digest(b"independently-pinned-derivative-checker");
+        let replacement_checker = digest(b"producer-replacement-checker");
+        let family = "polynomial-derivative";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        let body = frame(&[7, -3, 2], &[-3, 4]);
+        let recorded = EvidenceEnvelopeMetadata::new(
+            judgement.structural_digest(),
+            family,
+            digest(&body),
+            checker,
+        );
+        let frozen = FrozenEvidence {
+            judgement: &judgement,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_derivative_evidence_bundle(
+                checker,
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen,
+            ),
+            Ok(())
+        );
+
+        let replacement_recorded = EvidenceEnvelopeMetadata::new(
+            judgement.structural_digest(),
+            family,
+            digest(&body),
+            replacement_checker,
+        );
+        let replacement = FrozenEvidence {
+            checker_digest: replacement_checker,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_derivative_evidence_bundle(
+                checker,
+                policy.structural_digest(),
+                &policy,
+                &replacement_recorded,
+                &replacement,
+            ),
+            Err(PinnedPolynomialDerivativeBundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
+            ))
+        );
+
+        let forged_body = frame(&[7, -3, 2], &[-3, 5]);
+        let forged_recorded = EvidenceEnvelopeMetadata::new(
+            judgement.structural_digest(),
+            family,
+            digest(&forged_body),
+            checker,
+        );
+        let forged = FrozenEvidence {
+            payload_bytes: &forged_body,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_derivative_evidence_bundle(
+                checker,
+                policy.structural_digest(),
+                &policy,
+                &forged_recorded,
+                &forged,
+            ),
+            Err(PinnedPolynomialDerivativeBundlePreflightError::Body(
+                polynomial_identity::PolynomialDerivativeError::CoefficientMismatch {
+                    power: 1,
+                    expected: 4,
+                    actual: 5,
+                }
+            ))
+        );
+
+        let wrong_policy = AuthorityContract::new(vec!["polynomial-identity".to_owned()]);
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_derivative_evidence_bundle(
+                checker,
+                wrong_policy.structural_digest(),
+                &wrong_policy,
+                &recorded,
+                &frozen,
+            ),
+            Err(PinnedPolynomialDerivativeBundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::Bundle(EvidenceBundlePreflightError::Contract(
+                    ContractPreflightError::FamilyNotAdmitted
+                ))
+            ))
         );
     }
 
