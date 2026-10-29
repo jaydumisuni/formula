@@ -259,6 +259,40 @@ pub fn preflight_frozen_u8_evidence_bundle(
         .map_err(U8BundlePreflightError::Body)
 }
 
+/// Non-authoritative checker-pin, frozen-policy, metadata and U8-body preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PinnedU8BundlePreflightError {
+    Pinned(PinnedEvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(u8_semantics::U8EvidenceBodyError),
+}
+
+/// Bind the caller's independently authenticated checker identity before
+/// evaluating all 256 inputs of the exact frozen U8 evidence body. A producer
+/// cannot substitute a self-consistent checker version or rehash false equality.
+/// This does not establish judgement semantics, a trust root or a certificate.
+pub fn preflight_pinned_frozen_u8_evidence_bundle(
+    independently_pinned_checker_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PinnedU8BundlePreflightError> {
+    preflight_pinned_frozen_evidence_bundle(
+        independently_pinned_checker_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PinnedU8BundlePreflightError::Pinned)?;
+    if frozen.evidence_family != "finite-exhaustive" {
+        return Err(PinnedU8BundlePreflightError::WrongEvidenceFamily);
+    }
+    u8_semantics::check_frozen_u8_evidence_body(frozen.payload_bytes)
+        .map_err(PinnedU8BundlePreflightError::Body)
+}
+
 /// Non-authoritative frozen-policy, metadata, and Boolean/GF(2) witness preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Gf2BundlePreflightError {
@@ -1901,6 +1935,131 @@ mod tests {
                 &other_frozen,
             ),
             Err(Gf2BundlePreflightError::WrongEvidenceFamily)
+        );
+    }
+
+    #[test]
+    /// P2 U8 preflight must bind the independently supplied checker identity
+    /// before policy, exact metadata and exhaustive frozen-body verification.
+    /// This is preparation only; the caller still owns checker trust and certificates.
+    fn pinned_u8_preflight_rejects_checker_substitution_and_false_evidence() {
+        let j = judgement(digest(b"pinned-u8-world"), vec![digest(b"dependency")]);
+        let pinned = digest(b"independent-u8-checker");
+        let producer = digest(b"producer-u8-checker");
+        let policy = AuthorityContract::new(vec!["finite-exhaustive".to_owned()]);
+        let body = vec![0, 1, 0, 0, 1, 0]; // x == x
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: "finite-exhaustive",
+            payload_bytes: &body,
+            checker_digest: pinned,
+        };
+        let recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(&body),
+            pinned,
+        );
+        let preflight = preflight_pinned_frozen_u8_evidence_bundle;
+        assert_eq!(
+            preflight(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Ok(())
+        );
+
+        let substituted = FrozenEvidence {
+            checker_digest: producer,
+            ..frozen
+        };
+        let forged_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(&body),
+            producer,
+        );
+        assert_eq!(
+            preflight(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &forged_metadata,
+                &substituted
+            ),
+            Err(PinnedU8BundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
+            ))
+        );
+
+        // Even rehashed producer evidence cannot turn a false equality into proof.
+        let false_body = vec![0, 1, 0, 0, 4, 0, 1, 1, 2]; // x != x + 1
+        let false_frozen = FrozenEvidence {
+            payload_bytes: &false_body,
+            ..frozen
+        };
+        let false_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(&false_body),
+            pinned,
+        );
+        assert_eq!(
+            preflight(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &false_metadata,
+                &false_frozen
+            ),
+            Err(PinnedU8BundlePreflightError::Body(
+                u8_semantics::U8EvidenceBodyError::Semantics(
+                    u8_semantics::U8EquivalenceError::Counterexample {
+                        input: 0,
+                        left: 0,
+                        right: 1
+                    }
+                )
+            ))
+        );
+
+        let other_policy = AuthorityContract::new(vec!["polynomial-identity".to_owned()]);
+        let other_frozen = FrozenEvidence {
+            evidence_family: "polynomial-identity",
+            ..frozen
+        };
+        let other_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            other_frozen.evidence_family,
+            digest(&body),
+            pinned,
+        );
+        assert_eq!(
+            preflight(
+                pinned,
+                other_policy.structural_digest(),
+                &other_policy,
+                &other_metadata,
+                &other_frozen
+            ),
+            Err(PinnedU8BundlePreflightError::WrongEvidenceFamily)
+        );
+        assert_eq!(
+            preflight(
+                pinned,
+                other_policy.structural_digest(),
+                &other_policy,
+                &recorded,
+                &frozen
+            ),
+            Err(PinnedU8BundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::Bundle(EvidenceBundlePreflightError::Contract(
+                    ContractPreflightError::FamilyNotAdmitted
+                ))
+            ))
         );
     }
 
