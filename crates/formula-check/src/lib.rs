@@ -563,6 +563,40 @@ pub fn preflight_frozen_polynomial_difference_evidence_bundle(
         .map_err(PolynomialDifferenceBundlePreflightError::Body)
 }
 
+/// Non-authoritative checker-pin, frozen-policy, and exact difference-body preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PinnedPolynomialDifferenceBundlePreflightError {
+    Pinned(PinnedEvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialDifferenceError),
+}
+
+/// Require a caller-authenticated checker pin before independently checking
+/// exact bounded Z[n] subtraction on the same frozen payload. A producer's
+/// self-consistent checker swap or rehashed false result cannot satisfy this
+/// preflight. The caller still owns trust-root, judgement, and certificate gates.
+pub fn preflight_pinned_frozen_polynomial_difference_evidence_bundle(
+    independently_pinned_checker_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PinnedPolynomialDifferenceBundlePreflightError> {
+    preflight_pinned_frozen_evidence_bundle(
+        independently_pinned_checker_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PinnedPolynomialDifferenceBundlePreflightError::Pinned)?;
+    if frozen.evidence_family != "polynomial-difference" {
+        return Err(PinnedPolynomialDifferenceBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_difference(frozen.payload_bytes)
+        .map_err(PinnedPolynomialDifferenceBundlePreflightError::Body)
+}
+
 /// Non-authoritative frozen-policy, metadata, and exact formal-derivative preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PolynomialDerivativeBundlePreflightError {
@@ -631,6 +665,126 @@ pub fn preflight_pinned_frozen_polynomial_derivative_evidence_bundle(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    /// A producer-controlled, digest-rebound subtraction witness cannot replace
+    /// the independently pinned checker or the exact frozen arithmetic body.
+    fn pinned_polynomial_difference_preflight_rejects_substitution() {
+        fn frame(vectors: &[&[i64]]) -> Vec<u8> {
+            let mut bytes = Vec::new();
+            for coefficients in vectors {
+                bytes.push(coefficients.len() as u8);
+                for coefficient in *coefficients {
+                    bytes.extend_from_slice(&coefficient.to_be_bytes());
+                }
+            }
+            bytes
+        }
+        let j = judgement(digest(b"pinned-difference-world"), vec![]);
+        let pinned = digest(b"independent-difference-checker");
+        let producer = digest(b"producer-checker");
+        let policy = AuthorityContract::new(vec!["polynomial-difference".to_owned()]);
+        let valid = frame(&[&[5, 3], &[2, 1], &[3, 2]]);
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: "polynomial-difference",
+            payload_bytes: &valid,
+            checker_digest: pinned,
+        };
+        let recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(&valid),
+            pinned,
+        );
+        let preflight = preflight_pinned_frozen_polynomial_difference_evidence_bundle;
+        assert_eq!(
+            preflight(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Ok(())
+        );
+
+        // Matching producer metadata cannot substitute its own checker identity.
+        let forged = FrozenEvidence {
+            checker_digest: producer,
+            ..frozen
+        };
+        let forged_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            forged.evidence_family,
+            digest(&valid),
+            producer,
+        );
+        assert_eq!(
+            preflight(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &forged_metadata,
+                &forged
+            ),
+            Err(PinnedPolynomialDifferenceBundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
+            ))
+        );
+
+        // Rehashing a false subtraction result still fails the exact body check.
+        let wrong = frame(&[&[5, 3], &[2, 1], &[4, 2]]);
+        let wrong_frozen = FrozenEvidence {
+            payload_bytes: &wrong,
+            ..frozen
+        };
+        let wrong_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(&wrong),
+            pinned,
+        );
+        assert_eq!(
+            preflight(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &wrong_metadata,
+                &wrong_frozen
+            ),
+            Err(PinnedPolynomialDifferenceBundlePreflightError::Body(
+                polynomial_identity::PolynomialDifferenceError::CoefficientMismatch {
+                    power: 0,
+                    expected: 3,
+                    actual: 4
+                }
+            ))
+        );
+
+        // Even an admitted, pinned polynomial-sum family cannot borrow subtraction.
+        let other_policy = AuthorityContract::new(vec!["polynomial-sum".to_owned()]);
+        let other_frozen = FrozenEvidence {
+            evidence_family: "polynomial-sum",
+            ..frozen
+        };
+        let other_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            other_frozen.evidence_family,
+            digest(&valid),
+            pinned,
+        );
+        assert_eq!(
+            preflight(
+                pinned,
+                other_policy.structural_digest(),
+                &other_policy,
+                &other_metadata,
+                &other_frozen
+            ),
+            Err(PinnedPolynomialDifferenceBundlePreflightError::WrongEvidenceFamily)
+        );
+    }
 
     #[test]
     fn frozen_polynomial_preflight_binds_family_policy_metadata_and_exact_coefficients() {
