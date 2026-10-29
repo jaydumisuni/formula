@@ -342,6 +342,71 @@ pub fn check_frozen_polynomial_scale(body: &[u8]) -> Result<(), PolynomialScaleE
     Ok(())
 }
 
+// Wire v0 formal derivative witness: two canonical coefficient vectors
+// (operand and claimed derivative). Coefficients are ascending powers.
+// This checks exact bounded Z[n] arithmetic, not a theorem certificate.
+const MAX_DERIVATIVE_FRAME_BYTES: usize = 2 + 2 * MAX_COEFFICIENTS * 8;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialDerivativeError {
+    InvalidFrame,
+    NonCanonicalOperand,
+    NonCanonicalDerivative,
+    CoefficientOutOfRange,
+    CoefficientMismatch {
+        power: u8,
+        expected: i64,
+        actual: i64,
+    },
+}
+
+/// Independently check the formal derivative d/dn of a frozen polynomial.
+/// Reject overflow instead of wrapping or accepting a producer's sample values.
+/// Judgement binding, checker trust and certificate authority remain separate.
+pub fn check_frozen_polynomial_derivative(body: &[u8]) -> Result<(), PolynomialDerivativeError> {
+    if body.len() > MAX_DERIVATIVE_FRAME_BYTES {
+        return Err(PolynomialDerivativeError::InvalidFrame);
+    }
+    let mut cursor = 0;
+    let operand =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialDerivativeError::InvalidFrame)?;
+    let claimed =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialDerivativeError::InvalidFrame)?;
+    if cursor != body.len() {
+        return Err(PolynomialDerivativeError::InvalidFrame);
+    }
+    if operand.len() > 1 && operand.last() == Some(&0) {
+        return Err(PolynomialDerivativeError::NonCanonicalOperand);
+    }
+    if claimed.len() > 1 && claimed.last() == Some(&0) {
+        return Err(PolynomialDerivativeError::NonCanonicalDerivative);
+    }
+    let mut expected = Vec::with_capacity(operand.len().saturating_sub(1).max(1));
+    if operand.len() == 1 {
+        expected.push(0);
+    } else {
+        for (power, &coefficient) in operand.iter().enumerate().skip(1) {
+            let exact = i128::from(coefficient) * power as i128;
+            expected.push(
+                i64::try_from(exact)
+                    .map_err(|_| PolynomialDerivativeError::CoefficientOutOfRange)?,
+            );
+        }
+    }
+    for power in 0..expected.len().max(claimed.len()) {
+        let correct = expected.get(power).copied().unwrap_or(0);
+        let actual = claimed.get(power).copied().unwrap_or(0);
+        if correct != actual {
+            return Err(PolynomialDerivativeError::CoefficientMismatch {
+                power: power as u8,
+                expected: correct,
+                actual,
+            });
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -810,6 +875,68 @@ mod tests {
         assert_eq!(
             check_frozen_polynomial_sum(&trailing),
             Err(PolynomialSumError::InvalidFrame)
+        );
+    }
+
+    #[test]
+    fn frozen_derivative_witness_checks_exact_formal_derivative() {
+        assert_eq!(
+            check_frozen_polynomial_derivative(&frame(&[7, -3, 2], &[-3, 4])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_derivative(&frame(&[i64::MIN], &[0])),
+            Ok(())
+        );
+        let mut highest = vec![0; 16];
+        highest[15] = 1;
+        let mut expected = vec![0; 15];
+        expected[14] = 15;
+        assert_eq!(
+            check_frozen_polynomial_derivative(&frame(&highest, &expected)),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_derivative(&frame(&[7, -3, 2], &[-3, 5])),
+            Err(PolynomialDerivativeError::CoefficientMismatch {
+                power: 1,
+                expected: 4,
+                actual: 5,
+            })
+        );
+        assert_eq!(
+            check_frozen_polynomial_derivative(&frame(&[0, 0, i64::MAX], &[0])),
+            Err(PolynomialDerivativeError::CoefficientOutOfRange)
+        );
+    }
+
+    #[test]
+    fn frozen_derivative_witness_rejects_malformed_and_noncanonical_frames() {
+        assert_eq!(
+            check_frozen_polynomial_derivative(&frame(&[1, 0], &[0])),
+            Err(PolynomialDerivativeError::NonCanonicalOperand)
+        );
+        assert_eq!(
+            check_frozen_polynomial_derivative(&frame(&[3], &[0, 0])),
+            Err(PolynomialDerivativeError::NonCanonicalDerivative)
+        );
+        assert_eq!(
+            check_frozen_polynomial_derivative(&frame(&[1; 17], &[0])),
+            Err(PolynomialDerivativeError::InvalidFrame)
+        );
+        let valid = frame(&[3, -2, 1], &[-2, 2]);
+        for end in 0..valid.len() {
+            assert_eq!(
+                check_frozen_polynomial_derivative(&valid[..end]),
+                Err(PolynomialDerivativeError::InvalidFrame),
+                "truncated at {end}"
+            );
+        }
+        let mut trailing = valid;
+        trailing.push(0);
+        assert_eq!(
+            check_frozen_polynomial_derivative(&trailing),
+            Err(PolynomialDerivativeError::InvalidFrame)
         );
     }
 }
