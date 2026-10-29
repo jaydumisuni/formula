@@ -495,6 +495,37 @@ pub fn preflight_frozen_polynomial_difference_evidence_bundle(
         .map_err(PolynomialDifferenceBundlePreflightError::Body)
 }
 
+/// Non-authoritative frozen-policy, metadata, and exact formal-derivative preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialDerivativeBundlePreflightError {
+    Bundle(EvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialDerivativeError),
+}
+
+/// Bind the frozen contract and payload identity before independently checking
+/// the bounded Z[n] derivative. This does not certify the Judgement, establish
+/// checker trust, or authorize mathematical promotion.
+pub fn preflight_frozen_polynomial_derivative_evidence_bundle(
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PolynomialDerivativeBundlePreflightError> {
+    preflight_frozen_evidence_bundle(
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PolynomialDerivativeBundlePreflightError::Bundle)?;
+    if frozen.evidence_family != "polynomial-derivative" {
+        return Err(PolynomialDerivativeBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_derivative(frozen.payload_bytes)
+        .map_err(PolynomialDerivativeBundlePreflightError::Body)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -607,6 +638,101 @@ mod tests {
             }
         }
         bytes
+    }
+
+    #[test]
+    fn frozen_polynomial_derivative_bundle_requires_bound_policy_and_exact_arithmetic() {
+        fn pair(operand: &[i64], derivative: &[i64]) -> Vec<u8> {
+            let mut body = Vec::new();
+            for coefficients in [operand, derivative] {
+                body.push(coefficients.len() as u8);
+                for coefficient in coefficients {
+                    body.extend_from_slice(&coefficient.to_be_bytes());
+                }
+            }
+            body
+        }
+        let j = judgement(
+            digest(b"derivative-world"),
+            vec![digest(b"derivative-dependency")],
+        );
+        let checker = digest(b"checker-polynomial-derivative-v0");
+        let family = "polynomial-derivative";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        let body = pair(&[7, -3, 2], &[-3, 4]);
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), checker);
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_derivative_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen,
+            ),
+            Ok(())
+        );
+
+        let forged = pair(&[7, -3, 2], &[-3, 5]);
+        let forged_frozen = FrozenEvidence {
+            payload_bytes: &forged,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_derivative_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &forged_frozen,
+            ),
+            Err(PolynomialDerivativeBundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Metadata(EvidencePreflightError::BindingMismatch)
+            ))
+        );
+        let forged_recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&forged), checker);
+        assert_eq!(
+            preflight_frozen_polynomial_derivative_evidence_bundle(
+                policy.structural_digest(),
+                &policy,
+                &forged_recorded,
+                &forged_frozen,
+            ),
+            Err(PolynomialDerivativeBundlePreflightError::Body(
+                polynomial_identity::PolynomialDerivativeError::CoefficientMismatch {
+                    power: 1,
+                    expected: 4,
+                    actual: 5,
+                }
+            ))
+        );
+
+        let wrong_family = "polynomial-identity";
+        let wrong_policy = AuthorityContract::new(vec![wrong_family.to_owned()]);
+        let wrong_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            wrong_family,
+            digest(&body),
+            checker,
+        );
+        let wrong_frozen = FrozenEvidence {
+            evidence_family: wrong_family,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_frozen_polynomial_derivative_evidence_bundle(
+                wrong_policy.structural_digest(),
+                &wrong_policy,
+                &wrong_recorded,
+                &wrong_frozen,
+            ),
+            Err(PolynomialDerivativeBundlePreflightError::WrongEvidenceFamily)
+        );
     }
 
     #[test]
