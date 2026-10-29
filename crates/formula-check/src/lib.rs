@@ -11,7 +11,9 @@ pub mod gf2_semantics;
 pub mod polynomial_identity;
 pub mod u8_semantics;
 
-use formula_core::{ArtifactDigest, AuthorityContract, EvidenceEnvelopeMetadata, Judgement};
+use formula_core::{
+    ArtifactDigest, AuthorityContract, EvidenceEnvelopeMetadata, Judgement, RealizationMetadata,
+};
 
 /// Inputs pinned by the caller before any independent evidence-body checking.
 pub struct FrozenEvidence<'a> {
@@ -160,6 +162,37 @@ pub fn preflight_evidence_metadata(
     );
     if recorded.canonical_bytes() != expected.canonical_bytes() {
         return Err(EvidencePreflightError::BindingMismatch);
+    }
+    Ok(())
+}
+
+/// Structural-only P2 realization evidence custody. A match is NOT a
+/// realization-equivalence proof or an authenticated observer admission.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RealizationPreflightError {
+    BindingMismatch,
+}
+
+/// Compare recorded realization metadata with four independently frozen
+/// identities, including the semantic target and observer. The caller must
+/// authenticate those pins and bind the implementation/evidence digests to
+/// actual frozen artifacts outside this helper. Producer-controlled pins are
+/// insufficient. No certificate, semantic equivalence or promotion follows.
+pub fn preflight_frozen_realization_metadata(
+    recorded: &RealizationMetadata,
+    frozen_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    frozen_implementation: ArtifactDigest,
+    frozen_realization_evidence: ArtifactDigest,
+) -> Result<(), RealizationPreflightError> {
+    let expected = RealizationMetadata::new(
+        frozen_semantic_target,
+        independently_pinned_observer,
+        frozen_implementation,
+        frozen_realization_evidence,
+    );
+    if recorded.canonical_bytes() != expected.canonical_bytes() {
+        return Err(RealizationPreflightError::BindingMismatch);
     }
     Ok(())
 }
@@ -3233,6 +3266,64 @@ mod tests {
             Err(PinnedEvidenceBundlePreflightError::Bundle(
                 EvidenceBundlePreflightError::Contract(ContractPreflightError::FamilyNotAdmitted)
             ))
+        );
+    }
+
+    #[test]
+    /// P2 realization preparation must bind all four frozen identities. A
+    /// self-consistent producer rehash is not independent observer authority.
+    fn frozen_realization_metadata_rejects_target_observer_and_artifact_swaps() {
+        use formula_core::RealizationMetadata;
+        let target = digest(b"independent-semantic-target");
+        let observer = digest(b"independent-observer");
+        let implementation = digest(b"frozen-implementation");
+        let evidence = digest(b"frozen-realization-evidence");
+        let recorded = RealizationMetadata::new(target, observer, implementation, evidence);
+        assert_eq!(
+            preflight_frozen_realization_metadata(
+                &recorded,
+                target,
+                observer,
+                implementation,
+                evidence
+            ),
+            Ok(())
+        );
+        let substitutions = [
+            RealizationMetadata::new(digest(b"other-target"), observer, implementation, evidence),
+            RealizationMetadata::new(target, digest(b"other-observer"), implementation, evidence),
+            RealizationMetadata::new(target, observer, digest(b"other-implementation"), evidence),
+            RealizationMetadata::new(target, observer, implementation, digest(b"other-evidence")),
+        ];
+        for forged in &substitutions {
+            assert_eq!(
+                preflight_frozen_realization_metadata(
+                    forged,
+                    target,
+                    observer,
+                    implementation,
+                    evidence
+                ),
+                Err(RealizationPreflightError::BindingMismatch)
+            );
+        }
+        // Even a matching producer-rehashed record cannot replace the
+        // independently frozen target and observer supplied to this check.
+        let forged = RealizationMetadata::new(
+            digest(b"other-target"),
+            digest(b"other-observer"),
+            implementation,
+            evidence,
+        );
+        assert_eq!(
+            preflight_frozen_realization_metadata(
+                &forged,
+                target,
+                observer,
+                implementation,
+                evidence
+            ),
+            Err(RealizationPreflightError::BindingMismatch)
         );
     }
 
