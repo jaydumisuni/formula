@@ -336,6 +336,42 @@ pub fn preflight_frozen_polynomial_evidence_bundle(
         .map_err(PolynomialBundlePreflightError::Body)
 }
 
+/// A caller-supplied, separately authenticated checker pin must be checked
+/// alongside the frozen policy, metadata, and exact polynomial identity body.
+/// This still cannot establish judgement semantics or certificate authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PinnedPolynomialBundlePreflightError {
+    Pinned(PinnedEvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialIdentityError),
+}
+
+/// Compose the independent checker identity pin and exact Z[n] identity
+/// preflight on the same frozen bytes, so neither step can be omitted by a
+/// caller of this helper. The caller must authenticate the pin independently;
+/// no promotion or certificate is issued by this non-authoritative check.
+pub fn preflight_pinned_frozen_polynomial_evidence_bundle(
+    independently_pinned_checker_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PinnedPolynomialBundlePreflightError> {
+    preflight_pinned_frozen_evidence_bundle(
+        independently_pinned_checker_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PinnedPolynomialBundlePreflightError::Pinned)?;
+    if frozen.evidence_family != "polynomial-identity" {
+        return Err(PinnedPolynomialBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_identity(frozen.payload_bytes)
+        .map_err(PinnedPolynomialBundlePreflightError::Body)
+}
+
 /// Non-authoritative frozen-policy, metadata, and exact product-body preflight.
 /// The evidence-family identity is distinct from polynomial-identity and sum.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1809,6 +1845,137 @@ mod tests {
             };
             assert_eq!(preflight_evidence_metadata(&recorded, &frozen), Ok(()));
         }
+    }
+
+    #[test]
+    fn pinned_polynomial_identity_preflight_binds_pin_policy_metadata_and_exact_body() {
+        fn pair(left: i64, right: i64) -> Vec<u8> {
+            let mut bytes = vec![1];
+            bytes.extend_from_slice(&left.to_be_bytes());
+            bytes.push(1);
+            bytes.extend_from_slice(&right.to_be_bytes());
+            bytes
+        }
+        let j = judgement(digest(b"pinned-poly-world"), vec![digest(b"dependency")]);
+        let pinned = digest(b"independently-authorized-checker");
+        let unreviewed = digest(b"producer-supplied-checker");
+        let policy = AuthorityContract::new(vec!["polynomial-identity".to_owned()]);
+        let policy_digest = policy.structural_digest();
+        let valid_body = pair(3, 3);
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: "polynomial-identity",
+            payload_bytes: &valid_body,
+            checker_digest: pinned,
+        };
+        let recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(&valid_body),
+            pinned,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_evidence_bundle(
+                pinned,
+                policy_digest,
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Ok(())
+        );
+
+        // A self-consistent producer-controlled checker version is not the pin.
+        let forged = FrozenEvidence {
+            checker_digest: unreviewed,
+            ..frozen
+        };
+        let forged_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(&valid_body),
+            unreviewed,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_evidence_bundle(
+                pinned,
+                policy_digest,
+                &policy,
+                &forged_metadata,
+                &forged
+            ),
+            Err(PinnedPolynomialBundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
+            ))
+        );
+
+        // A digest-matched, policy-admitted payload still needs exact body checking.
+        let invalid_body = pair(3, 4);
+        let invalid = FrozenEvidence {
+            payload_bytes: &invalid_body,
+            ..frozen
+        };
+        let invalid_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(&invalid_body),
+            pinned,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_evidence_bundle(
+                pinned,
+                policy_digest,
+                &policy,
+                &invalid_metadata,
+                &invalid
+            ),
+            Err(PinnedPolynomialBundlePreflightError::Body(
+                polynomial_identity::PolynomialIdentityError::CoefficientMismatch {
+                    power: 0,
+                    left: 3,
+                    right: 4
+                }
+            ))
+        );
+
+        // A policy-admitted non-identity family cannot select this body checker.
+        let other_policy = AuthorityContract::new(vec!["polynomial-sum".to_owned()]);
+        let wrong_family = FrozenEvidence {
+            evidence_family: "polynomial-sum",
+            ..frozen
+        };
+        let wrong_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            wrong_family.evidence_family,
+            digest(&valid_body),
+            pinned,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_evidence_bundle(
+                pinned,
+                other_policy.structural_digest(),
+                &other_policy,
+                &wrong_metadata,
+                &wrong_family
+            ),
+            Err(PinnedPolynomialBundlePreflightError::WrongEvidenceFamily)
+        );
+
+        let excluded = AuthorityContract::new(vec!["finite-exhaustive".to_owned()]);
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_evidence_bundle(
+                pinned,
+                excluded.structural_digest(),
+                &excluded,
+                &recorded,
+                &frozen
+            ),
+            Err(PinnedPolynomialBundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::Bundle(EvidenceBundlePreflightError::Contract(
+                    ContractPreflightError::FamilyNotAdmitted
+                ))
+            ))
+        );
     }
 
     #[test]
