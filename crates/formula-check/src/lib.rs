@@ -404,6 +404,40 @@ pub fn preflight_frozen_polynomial_product_evidence_bundle(
         .map_err(PolynomialProductBundlePreflightError::Body)
 }
 
+/// Non-authoritative checker-pin, frozen-policy, and exact product-body preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PinnedPolynomialProductBundlePreflightError {
+    Pinned(PinnedEvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialProductError),
+}
+
+/// Bind a caller-authenticated checker identity before independently checking
+/// exact bounded Z[n] multiplication on the same frozen evidence bytes.
+/// The pin must originate outside the producer; this does not certify the
+/// Judgement, authenticate a trust root, or authorize promotion.
+pub fn preflight_pinned_frozen_polynomial_product_evidence_bundle(
+    independently_pinned_checker_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PinnedPolynomialProductBundlePreflightError> {
+    preflight_pinned_frozen_evidence_bundle(
+        independently_pinned_checker_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PinnedPolynomialProductBundlePreflightError::Pinned)?;
+    if frozen.evidence_family != "polynomial-product" {
+        return Err(PinnedPolynomialProductBundlePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_product(frozen.payload_bytes)
+        .map_err(PinnedPolynomialProductBundlePreflightError::Body)
+}
+
 /// Non-authoritative frozen-policy, metadata, and exact sum-body preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PolynomialSumBundlePreflightError {
@@ -871,6 +905,114 @@ mod tests {
                 &frozen,
             ),
             Err(PinnedPolynomialDerivativeBundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::Bundle(EvidenceBundlePreflightError::Contract(
+                    ContractPreflightError::FamilyNotAdmitted
+                ))
+            ))
+        );
+    }
+
+    #[test]
+    fn pinned_product_preflight_rejects_checker_substitution_and_forged_arithmetic() {
+        fn frame(a: &[i64], b: &[i64], product: &[i64]) -> Vec<u8> {
+            let mut bytes = Vec::new();
+            for coefficients in [a, b, product] {
+                bytes.push(coefficients.len() as u8);
+                for coefficient in coefficients {
+                    bytes.extend_from_slice(&coefficient.to_be_bytes());
+                }
+            }
+            bytes
+        }
+        let j = judgement(
+            digest(b"product-world"),
+            vec![digest(b"product-dependency")],
+        );
+        let checker = digest(b"independently-pinned-product-checker");
+        let substituted_checker = digest(b"producer-controlled-product-checker");
+        let family = "polynomial-product";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        let body = frame(&[2, -3], &[4, 5], &[8, -2, -15]);
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), checker);
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: checker,
+        };
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_product_evidence_bundle(
+                checker,
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Ok(())
+        );
+
+        let replaced_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            family,
+            digest(&body),
+            substituted_checker,
+        );
+        let replaced = FrozenEvidence {
+            checker_digest: substituted_checker,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_product_evidence_bundle(
+                checker,
+                policy.structural_digest(),
+                &policy,
+                &replaced_recorded,
+                &replaced
+            ),
+            Err(PinnedPolynomialProductBundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
+            ))
+        );
+
+        let forged_body = frame(&[2, -3], &[4, 5], &[8, -2, -14]);
+        let forged_recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            family,
+            digest(&forged_body),
+            checker,
+        );
+        let forged = FrozenEvidence {
+            payload_bytes: &forged_body,
+            ..frozen
+        };
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_product_evidence_bundle(
+                checker,
+                policy.structural_digest(),
+                &policy,
+                &forged_recorded,
+                &forged
+            ),
+            Err(PinnedPolynomialProductBundlePreflightError::Body(
+                polynomial_identity::PolynomialProductError::CoefficientMismatch {
+                    power: 2,
+                    expected: -15,
+                    actual: -14,
+                }
+            ))
+        );
+
+        let wrong_policy = AuthorityContract::new(vec!["polynomial-identity".to_owned()]);
+        assert_eq!(
+            preflight_pinned_frozen_polynomial_product_evidence_bundle(
+                checker,
+                wrong_policy.structural_digest(),
+                &wrong_policy,
+                &recorded,
+                &frozen
+            ),
+            Err(PinnedPolynomialProductBundlePreflightError::Pinned(
                 PinnedEvidenceBundlePreflightError::Bundle(EvidenceBundlePreflightError::Contract(
                     ContractPreflightError::FamilyNotAdmitted
                 ))
