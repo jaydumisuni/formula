@@ -319,6 +319,12 @@ pub fn preflight_frozen_gf2_evidence_bundle(
         frozen,
     )
     .map_err(Gf2BundlePreflightError::Bundle)?;
+    check_frozen_gf2_body(frozen)
+}
+
+/// Shared frozen-body checker: both entry points use identical semantics and
+/// normal-form corroboration after their respective authority-neutral preflights.
+fn check_frozen_gf2_body(frozen: &FrozenEvidence<'_>) -> Result<(), Gf2BundlePreflightError> {
     if frozen.evidence_family != "boolean-gf2-translation" {
         return Err(Gf2BundlePreflightError::WrongEvidenceFamily);
     }
@@ -337,6 +343,35 @@ pub fn preflight_frozen_gf2_evidence_bundle(
     let gf2 = &frozen.payload_bytes[4 + boolean_len..];
     gf2_normal_form::check_frozen_boolean_gf2_normal_form(boolean, gf2)
         .map_err(Gf2BundlePreflightError::Algebraic)
+}
+
+/// Non-authoritative checker-pin, frozen-policy, metadata and GF(2) preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PinnedGf2BundlePreflightError {
+    Pinned(PinnedEvidenceBundlePreflightError),
+    Gf2(Gf2BundlePreflightError),
+}
+
+/// Bind a separately authenticated checker digest before inspecting the exact
+/// frozen Boolean/GF(2) witness. This is a necessary preparation check only:
+/// neither this function nor the supplied digest authenticates a trust root,
+/// certifies a Judgement or grants promotion authority.
+pub fn preflight_pinned_frozen_gf2_evidence_bundle(
+    independently_pinned_checker_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PinnedGf2BundlePreflightError> {
+    preflight_pinned_frozen_evidence_bundle(
+        independently_pinned_checker_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PinnedGf2BundlePreflightError::Pinned)?;
+    check_frozen_gf2_body(frozen).map_err(PinnedGf2BundlePreflightError::Gf2)
 }
 
 /// Non-authoritative frozen-policy, metadata, and exact polynomial-body preflight.
@@ -1935,6 +1970,112 @@ mod tests {
                 &other_frozen,
             ),
             Err(Gf2BundlePreflightError::WrongEvidenceFamily)
+        );
+    }
+
+    #[test]
+    fn pinned_gf2_preflight_binds_checker_policy_and_exact_semantics() {
+        let j = judgement(digest(b"pinned-gf2-world"), vec![digest(b"gf2-dependency")]);
+        let pinned = digest(b"independently-authenticated-gf2-checker");
+        let producer = digest(b"producer-controlled-gf2-checker");
+        let family = "boolean-gf2-translation";
+        let policy = AuthorityContract::new(vec![family.to_owned()]);
+        // x OR y == x + y + xy over GF(2).
+        let body = vec![0, 3, 0, 1, 6, 0, 7, 0, 1, 4, 0, 1, 5, 4];
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: family,
+            payload_bytes: &body,
+            checker_digest: pinned,
+        };
+        let recorded =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), pinned);
+        let check = preflight_pinned_frozen_gf2_evidence_bundle;
+        assert_eq!(
+            check(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Ok(())
+        );
+
+        // Rehashing a producer-selected checker and matching envelope is not
+        // independent checker authentication.
+        let replaced = FrozenEvidence {
+            checker_digest: producer,
+            ..frozen
+        };
+        let replaced_metadata =
+            EvidenceEnvelopeMetadata::new(j.structural_digest(), family, digest(&body), producer);
+        assert_eq!(
+            check(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &replaced_metadata,
+                &replaced
+            ),
+            Err(PinnedGf2BundlePreflightError::Pinned(
+                PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
+            ))
+        );
+
+        // Even a matching frozen envelope cannot authorize a false GF(2) witness.
+        let false_body = vec![0, 3, 0, 1, 6, 0, 3, 0, 1, 4];
+        let false_frozen = FrozenEvidence {
+            payload_bytes: &false_body,
+            ..frozen
+        };
+        let false_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            family,
+            digest(&false_body),
+            pinned,
+        );
+        assert_eq!(
+            check(
+                pinned,
+                policy.structural_digest(),
+                &policy,
+                &false_metadata,
+                &false_frozen
+            ),
+            Err(PinnedGf2BundlePreflightError::Gf2(
+                Gf2BundlePreflightError::Body(gf2_semantics::Gf2WitnessError::Counterexample {
+                    x: true,
+                    y: true,
+                    boolean: true,
+                    gf2: false,
+                })
+            ))
+        );
+
+        let other_family = "finite-exhaustive";
+        let other_policy = AuthorityContract::new(vec![other_family.to_owned()]);
+        let other_frozen = FrozenEvidence {
+            evidence_family: other_family,
+            ..frozen
+        };
+        let other_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            other_family,
+            digest(&body),
+            pinned,
+        );
+        assert_eq!(
+            check(
+                pinned,
+                other_policy.structural_digest(),
+                &other_policy,
+                &other_metadata,
+                &other_frozen
+            ),
+            Err(PinnedGf2BundlePreflightError::Gf2(
+                Gf2BundlePreflightError::WrongEvidenceFamily
+            ))
         );
     }
 
