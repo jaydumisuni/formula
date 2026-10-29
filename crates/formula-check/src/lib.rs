@@ -195,6 +195,37 @@ pub fn preflight_frozen_evidence_bundle(
         .map_err(EvidenceBundlePreflightError::Metadata)
 }
 
+/// A separately supplied checker identity is a necessary P2 input, not a
+/// trust root. The caller must authenticate the pin outside this preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PinnedEvidenceBundlePreflightError {
+    CheckerDigestMismatch,
+    Bundle(EvidenceBundlePreflightError),
+}
+
+/// Reject a producer's self-consistent checker-version substitution before
+/// evaluating the frozen policy and exact evidence metadata. This additional
+/// pin must come from an independent authority; a producer-controlled pin
+/// would provide no security. No certificate or promotion is issued here.
+pub fn preflight_pinned_frozen_evidence_bundle(
+    independently_pinned_checker_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), PinnedEvidenceBundlePreflightError> {
+    if frozen.checker_digest != independently_pinned_checker_digest {
+        return Err(PinnedEvidenceBundlePreflightError::CheckerDigestMismatch);
+    }
+    preflight_frozen_evidence_bundle(
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(PinnedEvidenceBundlePreflightError::Bundle)
+}
+
 /// Non-authoritative frozen-policy, metadata, and U8-body preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum U8BundlePreflightError {
@@ -1778,6 +1809,106 @@ mod tests {
             };
             assert_eq!(preflight_evidence_metadata(&recorded, &frozen), Ok(()));
         }
+    }
+
+    #[test]
+    /// A producer may rehash a forged checker version and matching envelope.
+    /// A separately supplied checker pin must reject that self-consistent swap.
+    fn independently_pinned_checker_digest_rejects_producer_version_swap() {
+        let j = judgement(digest(b"world"), vec![digest(b"dependency")]);
+        let pinned = digest(b"independent-checker-v1");
+        let producer = digest(b"unreviewed-checker-v2");
+        let policy = AuthorityContract::new(vec!["polynomial-identity".to_owned()]);
+        let body = b"frozen-body";
+        let frozen = FrozenEvidence {
+            judgement: &j,
+            evidence_family: "polynomial-identity",
+            payload_bytes: body,
+            checker_digest: pinned,
+        };
+        let recorded = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(body),
+            pinned,
+        );
+        let policy_digest = policy.structural_digest();
+        assert_eq!(
+            preflight_pinned_frozen_evidence_bundle(
+                pinned,
+                policy_digest,
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Ok(())
+        );
+
+        let substituted = FrozenEvidence {
+            checker_digest: producer,
+            ..frozen
+        };
+        let forged_metadata = EvidenceEnvelopeMetadata::new(
+            j.structural_digest(),
+            frozen.evidence_family,
+            digest(body),
+            producer,
+        );
+        // Existing metadata/policy custody alone cannot distinguish the swap.
+        assert_eq!(
+            preflight_frozen_evidence_bundle(
+                policy_digest,
+                &policy,
+                &forged_metadata,
+                &substituted
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            preflight_pinned_frozen_evidence_bundle(
+                pinned,
+                policy_digest,
+                &policy,
+                &forged_metadata,
+                &substituted
+            ),
+            Err(PinnedEvidenceBundlePreflightError::CheckerDigestMismatch)
+        );
+        assert_eq!(
+            preflight_pinned_frozen_evidence_bundle(
+                producer,
+                policy_digest,
+                &policy,
+                &recorded,
+                &frozen
+            ),
+            Err(PinnedEvidenceBundlePreflightError::CheckerDigestMismatch)
+        );
+        assert_eq!(
+            preflight_pinned_frozen_evidence_bundle(
+                pinned,
+                policy_digest,
+                &policy,
+                &forged_metadata,
+                &frozen
+            ),
+            Err(PinnedEvidenceBundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Metadata(EvidencePreflightError::BindingMismatch)
+            ))
+        );
+        let unrelated = AuthorityContract::new(vec!["finite-exhaustive".to_owned()]);
+        assert_eq!(
+            preflight_pinned_frozen_evidence_bundle(
+                pinned,
+                unrelated.structural_digest(),
+                &unrelated,
+                &recorded,
+                &frozen
+            ),
+            Err(PinnedEvidenceBundlePreflightError::Bundle(
+                EvidenceBundlePreflightError::Contract(ContractPreflightError::FamilyNotAdmitted)
+            ))
+        );
     }
 
     #[test]
