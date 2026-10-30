@@ -300,6 +300,7 @@ pub fn preflight_frozen_realization_judgement_artifacts(
 pub enum SharedRealizationEvidencePreflightError {
     Realization(RealizationPreflightError),
     CrossEnvelopeMismatch,
+    ContractPinMismatch,
     Evidence(PinnedEvidenceBundlePreflightError),
 }
 
@@ -349,6 +350,49 @@ pub fn preflight_shared_frozen_realization_evidence_bundle(
         frozen_evidence,
     )
     .map_err(SharedRealizationEvidencePreflightError::Evidence)
+}
+
+/// Require an independently authenticated policy identity before composing the
+/// shared realization and certificate envelopes. A producer can otherwise
+/// substitute both the policy and its self-consistent recorded digest while
+/// keeping the same realization bytes and target. This preflight checks only
+/// structural custody; it does not authenticate the caller's pin, validate
+/// certificate semantics, or authorize promotion.
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_independently_pinned_shared_realization_evidence_bundle(
+    independently_pinned_contract_digest: ArtifactDigest,
+    recorded_realization: &RealizationMetadata,
+    frozen_judgement: &Judgement,
+    independently_pinned_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    independently_pinned_implementation: ArtifactDigest,
+    independently_pinned_realization_evidence: ArtifactDigest,
+    artifacts: FrozenRealizationArtifactBytes<'_>,
+    independently_pinned_checker: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_evidence: &EvidenceEnvelopeMetadata,
+    frozen_evidence: &FrozenEvidence<'_>,
+) -> Result<(), SharedRealizationEvidencePreflightError> {
+    if independently_pinned_contract_digest != recorded_contract_digest
+        || frozen_contract.structural_digest() != independently_pinned_contract_digest
+    {
+        return Err(SharedRealizationEvidencePreflightError::ContractPinMismatch);
+    }
+    preflight_shared_frozen_realization_evidence_bundle(
+        recorded_realization,
+        frozen_judgement,
+        independently_pinned_semantic_target,
+        independently_pinned_observer,
+        independently_pinned_implementation,
+        independently_pinned_realization_evidence,
+        artifacts,
+        independently_pinned_checker,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_evidence,
+        frozen_evidence,
+    )
 }
 
 /// Non-authoritative paired preflight result. Neither branch certifies a proof,
@@ -4008,6 +4052,106 @@ mod tests {
                 artifacts(),
             ),
             Err(RealizationPreflightError::BindingMismatch)
+        );
+    }
+
+    #[test]
+    /// A producer can self-consistently rehash a weaker contract and evidence
+    /// family. That must not replace the independently frozen policy identity.
+    fn shared_realization_bundle_requires_independent_contract_pin() {
+        let target = judgement(digest(b"world"), vec![digest(b"dependency")]);
+        let target_pin = target.structural_digest();
+        let observer = b"observer";
+        let implementation = b"implementation";
+        let evidence = b"shared-evidence";
+        let observer_pin = digest(observer);
+        let implementation_pin = digest(implementation);
+        let evidence_pin = digest(evidence);
+        let checker_pin = digest(b"checker");
+        let realization =
+            RealizationMetadata::new(target_pin, observer_pin, implementation_pin, evidence_pin);
+        let artifacts = || FrozenRealizationArtifactBytes {
+            observer,
+            implementation,
+            evidence,
+        };
+        let original_policy = AuthorityContract::new(vec!["finite-exhaustive".to_owned()]);
+        let substituted_policy = AuthorityContract::new(vec!["polynomial-identity".to_owned()]);
+        let substituted_frozen = FrozenEvidence {
+            judgement: &target,
+            evidence_family: "polynomial-identity",
+            payload_bytes: evidence,
+            checker_digest: checker_pin,
+        };
+        let substituted_metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            substituted_frozen.evidence_family,
+            evidence_pin,
+            checker_pin,
+        );
+        // The earlier structural preflight has no independent policy input.
+        assert_eq!(
+            preflight_shared_frozen_realization_evidence_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+                checker_pin,
+                substituted_policy.structural_digest(),
+                &substituted_policy,
+                &substituted_metadata,
+                &substituted_frozen,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            preflight_independently_pinned_shared_realization_evidence_bundle(
+                original_policy.structural_digest(),
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+                checker_pin,
+                substituted_policy.structural_digest(),
+                &substituted_policy,
+                &substituted_metadata,
+                &substituted_frozen,
+            ),
+            Err(SharedRealizationEvidencePreflightError::ContractPinMismatch)
+        );
+        let admitted_frozen = FrozenEvidence {
+            evidence_family: "finite-exhaustive",
+            ..substituted_frozen
+        };
+        let admitted_metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            admitted_frozen.evidence_family,
+            evidence_pin,
+            checker_pin,
+        );
+        assert_eq!(
+            preflight_independently_pinned_shared_realization_evidence_bundle(
+                original_policy.structural_digest(),
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+                checker_pin,
+                original_policy.structural_digest(),
+                &original_policy,
+                &admitted_metadata,
+                &admitted_frozen,
+            ),
+            Ok(())
         );
     }
 
