@@ -462,9 +462,223 @@ pub fn check_frozen_polynomial_evaluation(body: &[u8]) -> Result<(), PolynomialE
     Ok(())
 }
 
+// Wire v0 composition witness: three canonical coefficient vectors (outer
+// polynomial, inner polynomial, claimed composition), ascending powers.
+// This is a bounded Z[x] arithmetic check, not a certificate or promotion.
+const MAX_COMPOSITION_FRAME_BYTES: usize = 3 + 3 * MAX_COEFFICIENTS * 8;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialCompositionError {
+    InvalidFrame,
+    NonCanonicalOuter,
+    NonCanonicalInner,
+    NonCanonicalClaim,
+    DegreeOutOfBounds,
+    ArithmeticOverflow,
+    CoefficientOutOfRange,
+    CoefficientMismatch {
+        power: u8,
+        expected: i64,
+        actual: i64,
+    },
+}
+
+/// Check a frozen polynomial composition exactly by bounded coefficient Horner
+/// arithmetic. No finite sampling, producer-computed result, or mathematical
+/// authority can substitute for independent coefficient equality.
+pub fn check_frozen_polynomial_composition(body: &[u8]) -> Result<(), PolynomialCompositionError> {
+    if body.len() > MAX_COMPOSITION_FRAME_BYTES {
+        return Err(PolynomialCompositionError::InvalidFrame);
+    }
+    let mut cursor = 0;
+    let outer =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialCompositionError::InvalidFrame)?;
+    let inner =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialCompositionError::InvalidFrame)?;
+    let claimed =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialCompositionError::InvalidFrame)?;
+    if cursor != body.len() {
+        return Err(PolynomialCompositionError::InvalidFrame);
+    }
+    if outer.len() > 1 && outer.last() == Some(&0) {
+        return Err(PolynomialCompositionError::NonCanonicalOuter);
+    }
+    if inner.len() > 1 && inner.last() == Some(&0) {
+        return Err(PolynomialCompositionError::NonCanonicalInner);
+    }
+    if claimed.len() > 1 && claimed.last() == Some(&0) {
+        return Err(PolynomialCompositionError::NonCanonicalClaim);
+    }
+
+    let mut acc = vec![0_i128];
+    for &coefficient in outer.iter().rev() {
+        let zero_acc = acc == [0];
+        let zero_inner = inner == [0];
+        let next_len = if zero_acc || zero_inner {
+            1
+        } else {
+            acc.len() + inner.len() - 1
+        };
+        if next_len > MAX_COEFFICIENTS {
+            return Err(PolynomialCompositionError::DegreeOutOfBounds);
+        }
+        let mut next = vec![0_i128; next_len];
+        if !zero_acc && !zero_inner {
+            for (i, &a) in acc.iter().enumerate() {
+                for (j, &b) in inner.iter().enumerate() {
+                    let product = a
+                        .checked_mul(i128::from(b))
+                        .ok_or(PolynomialCompositionError::ArithmeticOverflow)?;
+                    next[i + j] = next[i + j]
+                        .checked_add(product)
+                        .ok_or(PolynomialCompositionError::ArithmeticOverflow)?;
+                }
+            }
+        }
+        next[0] = next[0]
+            .checked_add(i128::from(coefficient))
+            .ok_or(PolynomialCompositionError::ArithmeticOverflow)?;
+        while next.len() > 1 && next.last() == Some(&0) {
+            next.pop();
+        }
+        acc = next;
+    }
+
+    let exact: Vec<i64> = acc
+        .into_iter()
+        .map(|value| {
+            i64::try_from(value).map_err(|_| PolynomialCompositionError::CoefficientOutOfRange)
+        })
+        .collect::<Result<_, _>>()?;
+    for power in 0..exact.len().max(claimed.len()) {
+        let expected = exact.get(power).copied().unwrap_or(0);
+        let actual = claimed.get(power).copied().unwrap_or(0);
+        if expected != actual {
+            return Err(PolynomialCompositionError::CoefficientMismatch {
+                power: power as u8,
+                expected,
+                actual,
+            });
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn composition_frame(outer: &[i64], inner: &[i64], claimed: &[i64]) -> Vec<u8> {
+        let mut out = Vec::new();
+        for coefficients in [outer, inner, claimed] {
+            out.push(coefficients.len() as u8);
+            for coefficient in coefficients {
+                out.extend_from_slice(&coefficient.to_be_bytes());
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn frozen_composition_witness_checks_exact_coefficients_not_samples() {
+        assert_eq!(
+            check_frozen_polynomial_composition(&composition_frame(
+                &[1, 2, 3],
+                &[-1, 1],
+                &[2, -4, 3]
+            )),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_composition(&composition_frame(&[2, 0, 1], &[0], &[2])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_composition(&composition_frame(&[0], &[3, 2], &[0])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_composition(&composition_frame(
+                &[1, 2, 3],
+                &[-1, 1],
+                &[2, -4, 4]
+            )),
+            Err(PolynomialCompositionError::CoefficientMismatch {
+                power: 2,
+                expected: 3,
+                actual: 4
+            })
+        );
+    }
+
+    #[test]
+    fn frozen_composition_witness_rejects_unbounded_and_noncanonical_claims() {
+        let mut degree_fifteen = [0_i64; 16];
+        degree_fifteen[15] = 1;
+        assert_eq!(
+            check_frozen_polynomial_composition(&composition_frame(
+                &degree_fifteen,
+                &[0, 1, 1],
+                &[0]
+            )),
+            Err(PolynomialCompositionError::DegreeOutOfBounds)
+        );
+        assert_eq!(
+            check_frozen_polynomial_composition(&composition_frame(
+                &[0, 0, 0, 0, 1],
+                &[0, i64::MAX],
+                &[0]
+            )),
+            Err(PolynomialCompositionError::ArithmeticOverflow)
+        );
+        assert_eq!(
+            check_frozen_polynomial_composition(&composition_frame(
+                &[0, 0, 1],
+                &[0, i64::MAX],
+                &[0]
+            )),
+            Err(PolynomialCompositionError::CoefficientOutOfRange)
+        );
+        for (outer, inner, claimed, error) in [
+            (
+                &[1, 0][..],
+                &[1][..],
+                &[1][..],
+                PolynomialCompositionError::NonCanonicalOuter,
+            ),
+            (
+                &[1][..],
+                &[1, 0][..],
+                &[1][..],
+                PolynomialCompositionError::NonCanonicalInner,
+            ),
+            (
+                &[1][..],
+                &[1][..],
+                &[1, 0][..],
+                PolynomialCompositionError::NonCanonicalClaim,
+            ),
+        ] {
+            assert_eq!(
+                check_frozen_polynomial_composition(&composition_frame(outer, inner, claimed)),
+                Err(error)
+            );
+        }
+        let valid = composition_frame(&[1, 2], &[3, 2], &[7, 4]);
+        for end in 0..valid.len() {
+            assert_eq!(
+                check_frozen_polynomial_composition(&valid[..end]),
+                Err(PolynomialCompositionError::InvalidFrame),
+                "truncated at {end}"
+            );
+        }
+        let mut trailing = valid;
+        trailing.push(0);
+        assert_eq!(
+            check_frozen_polynomial_composition(&trailing),
+            Err(PolynomialCompositionError::InvalidFrame)
+        );
+    }
 
     fn frame(left: &[i64], right: &[i64]) -> Vec<u8> {
         let mut out = Vec::new();
