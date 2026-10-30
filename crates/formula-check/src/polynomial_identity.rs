@@ -564,6 +564,112 @@ pub fn check_frozen_polynomial_composition(body: &[u8]) -> Result<(), Polynomial
     Ok(())
 }
 
+// Wire v0 bounded integer-polynomial division witness: four canonical
+// coefficient vectors (dividend, nonzero divisor, quotient, remainder).
+// Coefficients use ascending powers and signed big-endian i64 values.
+// This verifies an exact quotient/remainder relation, NOT certificate authority.
+const MAX_DIVISION_FRAME_BYTES: usize = 4 + 4 * MAX_COEFFICIENTS * 8;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialDivisionError {
+    InvalidFrame,
+    NonCanonicalDividend,
+    NonCanonicalDivisor,
+    NonCanonicalQuotient,
+    NonCanonicalRemainder,
+    ZeroDivisor,
+    RemainderDegreeNotReduced,
+    DegreeOutOfBounds,
+    ArithmeticOverflow,
+    CoefficientOutOfRange,
+    CoefficientMismatch {
+        power: u8,
+        expected: i64,
+        actual: i64,
+    },
+}
+
+/// Independently verify dividend = divisor * quotient + remainder over Z[x],
+/// requiring remainder = 0 or deg(remainder) < deg(divisor). This accepts only
+/// bounded integer-coefficient witnesses; it does not claim every Z[x] pair
+/// admits such a quotient, or confer Judgement/trust-root/promotion authority.
+pub fn check_frozen_polynomial_division(body: &[u8]) -> Result<(), PolynomialDivisionError> {
+    if body.len() > MAX_DIVISION_FRAME_BYTES {
+        return Err(PolynomialDivisionError::InvalidFrame);
+    }
+    let mut cursor = 0;
+    let dividend =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialDivisionError::InvalidFrame)?;
+    let divisor =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialDivisionError::InvalidFrame)?;
+    let quotient =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialDivisionError::InvalidFrame)?;
+    let remainder =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialDivisionError::InvalidFrame)?;
+    if cursor != body.len() {
+        return Err(PolynomialDivisionError::InvalidFrame);
+    }
+    if dividend.len() > 1 && dividend.last() == Some(&0) {
+        return Err(PolynomialDivisionError::NonCanonicalDividend);
+    }
+    if divisor.len() > 1 && divisor.last() == Some(&0) {
+        return Err(PolynomialDivisionError::NonCanonicalDivisor);
+    }
+    if quotient.len() > 1 && quotient.last() == Some(&0) {
+        return Err(PolynomialDivisionError::NonCanonicalQuotient);
+    }
+    if remainder.len() > 1 && remainder.last() == Some(&0) {
+        return Err(PolynomialDivisionError::NonCanonicalRemainder);
+    }
+    if divisor == [0] {
+        return Err(PolynomialDivisionError::ZeroDivisor);
+    }
+    if remainder != [0] && remainder.len() >= divisor.len() {
+        return Err(PolynomialDivisionError::RemainderDegreeNotReduced);
+    }
+
+    let product_len = if quotient == [0] {
+        1
+    } else {
+        divisor.len() + quotient.len() - 1
+    };
+    if product_len > MAX_COEFFICIENTS {
+        return Err(PolynomialDivisionError::DegreeOutOfBounds);
+    }
+    let mut expected = vec![0_i128; product_len.max(remainder.len())];
+    if quotient != [0] {
+        for (i, &d) in divisor.iter().enumerate() {
+            for (j, &q) in quotient.iter().enumerate() {
+                let product = i128::from(d)
+                    .checked_mul(i128::from(q))
+                    .ok_or(PolynomialDivisionError::ArithmeticOverflow)?;
+                expected[i + j] = expected[i + j]
+                    .checked_add(product)
+                    .ok_or(PolynomialDivisionError::ArithmeticOverflow)?;
+            }
+        }
+    }
+    for (power, &r) in remainder.iter().enumerate() {
+        expected[power] = expected[power]
+            .checked_add(i128::from(r))
+            .ok_or(PolynomialDivisionError::ArithmeticOverflow)?;
+    }
+    for power in 0..expected.len().max(dividend.len()) {
+        let exact = expected.get(power).copied().unwrap_or(0);
+        let correct =
+            i64::try_from(exact).map_err(|_| PolynomialDivisionError::CoefficientOutOfRange)?;
+        let actual = dividend.get(power).copied().unwrap_or(0);
+        if correct != actual {
+            return Err(PolynomialDivisionError::CoefficientMismatch {
+                power: power as u8,
+                expected: correct,
+                actual,
+            });
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1284,6 +1390,145 @@ mod tests {
         assert_eq!(
             check_frozen_polynomial_evaluation(&trailing),
             Err(PolynomialEvaluationError::InvalidFrame)
+        );
+    }
+
+    fn division_frame(
+        dividend: &[i64],
+        divisor: &[i64],
+        quotient: &[i64],
+        remainder: &[i64],
+    ) -> Vec<u8> {
+        let mut out = Vec::new();
+        for coefficients in [dividend, divisor, quotient, remainder] {
+            out.push(coefficients.len() as u8);
+            for coefficient in coefficients {
+                out.extend_from_slice(&coefficient.to_be_bytes());
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn frozen_division_witness_checks_exact_quotient_and_remainder() {
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(&[3, 5, 3], &[1, 1], &[2, 3], &[1])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(&[2, 5, 3], &[1, 1], &[2, 3], &[0])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(&[6], &[2], &[3], &[0])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(&[0], &[1, 1], &[0], &[0])),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(&[3, 5, 4], &[1, 1], &[2, 3], &[1])),
+            Err(PolynomialDivisionError::CoefficientMismatch {
+                power: 2,
+                expected: 3,
+                actual: 4
+            })
+        );
+    }
+
+    #[test]
+    fn frozen_division_witness_rejects_forged_remainder_and_overflow() {
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(
+                &[2, 6, 3],
+                &[1, 1],
+                &[2, 3],
+                &[0, 1]
+            )),
+            Err(PolynomialDivisionError::RemainderDegreeNotReduced)
+        );
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(&[7], &[2], &[3], &[1])),
+            Err(PolynomialDivisionError::RemainderDegreeNotReduced)
+        );
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(&[0], &[0], &[0], &[0])),
+            Err(PolynomialDivisionError::ZeroDivisor)
+        );
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(
+                &[0],
+                &[i64::MAX; 3],
+                &[i64::MAX; 3],
+                &[0]
+            )),
+            Err(PolynomialDivisionError::ArithmeticOverflow)
+        );
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(&[0], &[2], &[i64::MAX], &[0])),
+            Err(PolynomialDivisionError::CoefficientOutOfRange)
+        );
+        let mut degree_fifteen = vec![0; 16];
+        degree_fifteen[15] = 1;
+        assert_eq!(
+            check_frozen_polynomial_division(&division_frame(&[0], &[0, 1], &degree_fifteen, &[0])),
+            Err(PolynomialDivisionError::DegreeOutOfBounds)
+        );
+    }
+
+    #[test]
+    fn frozen_division_witness_rejects_noncanonical_and_malformed_frames() {
+        for (dividend, divisor, quotient, remainder, error) in [
+            (
+                &[1, 0][..],
+                &[1][..],
+                &[1][..],
+                &[0][..],
+                PolynomialDivisionError::NonCanonicalDividend,
+            ),
+            (
+                &[1][..],
+                &[1, 0][..],
+                &[1][..],
+                &[0][..],
+                PolynomialDivisionError::NonCanonicalDivisor,
+            ),
+            (
+                &[1][..],
+                &[1][..],
+                &[1, 0][..],
+                &[0][..],
+                PolynomialDivisionError::NonCanonicalQuotient,
+            ),
+            (
+                &[1][..],
+                &[1, 1][..],
+                &[0][..],
+                &[1, 0][..],
+                PolynomialDivisionError::NonCanonicalRemainder,
+            ),
+        ] {
+            assert_eq!(
+                check_frozen_polynomial_division(&division_frame(
+                    dividend, divisor, quotient, remainder
+                )),
+                Err(error)
+            );
+        }
+        let valid = division_frame(&[3, 5, 3], &[1, 1], &[2, 3], &[1]);
+        for end in 0..valid.len() {
+            assert_eq!(
+                check_frozen_polynomial_division(&valid[..end]),
+                Err(PolynomialDivisionError::InvalidFrame),
+                "truncated at {end}"
+            );
+        }
+        let mut trailing = valid;
+        trailing.push(0);
+        assert_eq!(
+            check_frozen_polynomial_division(&trailing),
+            Err(PolynomialDivisionError::InvalidFrame)
         );
     }
 }
