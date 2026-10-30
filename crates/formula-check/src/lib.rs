@@ -633,6 +633,61 @@ pub fn preflight_frozen_realization_independent_gf2_certificate_bundle(
     check_frozen_gf2_body(frozen_certificate).map_err(IndependentGf2CertificatePreflightError::Gf2)
 }
 
+/// Non-authoritative custody and exact integer-polynomial semantics for a
+/// separately pinned certificate body. No trust-root or promotion authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IndependentPolynomialCertificatePreflightError {
+    Bundle(IndependentCertificatePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialIdentityError),
+}
+
+/// Bind the realization, frozen target, observer, independent certificate bytes,
+/// checker, and policy before checking exact coefficient identity over Z[x].
+/// A producer-rehashed false polynomial certificate must not pass merely because
+/// its envelope matches. This does not prove the Judgement denotes the terms,
+/// authenticate a checker/trust root, issue a certificate, or grant promotion.
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_frozen_realization_independent_polynomial_certificate_bundle(
+    recorded_realization: &RealizationMetadata,
+    frozen_judgement: &Judgement,
+    independently_pinned_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    independently_pinned_implementation: ArtifactDigest,
+    independently_pinned_realization_evidence: ArtifactDigest,
+    artifacts: FrozenRealizationArtifactBytes<'_>,
+    independently_pinned_certificate_payload: ArtifactDigest,
+    independently_pinned_checker: ArtifactDigest,
+    independently_pinned_contract_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_certificate: &EvidenceEnvelopeMetadata,
+    frozen_certificate: &FrozenEvidence<'_>,
+) -> Result<(), IndependentPolynomialCertificatePreflightError> {
+    preflight_frozen_realization_independent_certificate_bundle(
+        recorded_realization,
+        frozen_judgement,
+        independently_pinned_semantic_target,
+        independently_pinned_observer,
+        independently_pinned_implementation,
+        independently_pinned_realization_evidence,
+        artifacts,
+        independently_pinned_certificate_payload,
+        independently_pinned_checker,
+        independently_pinned_contract_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_certificate,
+        frozen_certificate,
+    )
+    .map_err(IndependentPolynomialCertificatePreflightError::Bundle)?;
+    if frozen_certificate.evidence_family != "polynomial-identity" {
+        return Err(IndependentPolynomialCertificatePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_identity(frozen_certificate.payload_bytes)
+        .map_err(IndependentPolynomialCertificatePreflightError::Body)
+}
+
 /// Non-authoritative frozen-policy, metadata, and U8-body preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum U8BundlePreflightError {
@@ -4876,6 +4931,118 @@ mod tests {
                         gf2: false,
                     })
                 ))
+            )
+        );
+    }
+
+    #[test]
+    fn independent_polynomial_certificate_rejects_frozen_false_identity() {
+        let target = judgement(
+            digest(b"polynomial-certificate-world"),
+            vec![digest(b"polynomial-dependency")],
+        );
+        let target_pin = target.structural_digest();
+        let observer = b"frozen-polynomial-observer";
+        let implementation = b"frozen-polynomial-implementation";
+        let realization_body = b"frozen-polynomial-observation";
+        let observer_pin = digest(observer);
+        let implementation_pin = digest(implementation);
+        let realization_pin = digest(realization_body);
+        let checker_pin = digest(b"independent-polynomial-checker");
+        let policy = AuthorityContract::new(vec![
+            "finite-exhaustive".to_owned(),
+            "polynomial-identity".to_owned(),
+        ]);
+        let policy_pin = policy.structural_digest();
+        let realization = RealizationMetadata::new(
+            target_pin,
+            observer_pin,
+            implementation_pin,
+            realization_pin,
+        );
+        let frame = |left: &[i64], right: &[i64]| {
+            let mut bytes = Vec::new();
+            for coefficients in [left, right] {
+                bytes.push(coefficients.len() as u8);
+                for coefficient in coefficients {
+                    bytes.extend_from_slice(&coefficient.to_be_bytes());
+                }
+            }
+            bytes
+        };
+        let valid = frame(&[1, -2, 3], &[1, -2, 3]);
+        let forged = frame(&[1, -2, 3], &[1, -2, 4]);
+        let check = |body: &[u8], family: &str| {
+            let frozen = FrozenEvidence {
+                judgement: &target,
+                evidence_family: family,
+                payload_bytes: body,
+                checker_digest: checker_pin,
+            };
+            let metadata = EvidenceEnvelopeMetadata::new(
+                target_pin,
+                frozen.evidence_family,
+                digest(body),
+                checker_pin,
+            );
+            let artifacts = || FrozenRealizationArtifactBytes {
+                observer,
+                implementation,
+                evidence: realization_body,
+            };
+            let structural = preflight_frozen_realization_independent_certificate_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                realization_pin,
+                artifacts(),
+                digest(body),
+                checker_pin,
+                policy_pin,
+                policy_pin,
+                &policy,
+                &metadata,
+                &frozen,
+            );
+            let semantic = preflight_frozen_realization_independent_polynomial_certificate_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                realization_pin,
+                artifacts(),
+                digest(body),
+                checker_pin,
+                policy_pin,
+                policy_pin,
+                &policy,
+                &metadata,
+                &frozen,
+            );
+            (structural, semantic)
+        };
+        assert_eq!(check(&valid, "polynomial-identity"), (Ok(()), Ok(())));
+        assert_eq!(
+            check(&forged, "polynomial-identity"),
+            (
+                Ok(()),
+                Err(IndependentPolynomialCertificatePreflightError::Body(
+                    polynomial_identity::PolynomialIdentityError::CoefficientMismatch {
+                        power: 2,
+                        left: 3,
+                        right: 4,
+                    }
+                ))
+            )
+        );
+        assert_eq!(
+            check(&valid, "finite-exhaustive"),
+            (
+                Ok(()),
+                Err(IndependentPolynomialCertificatePreflightError::WrongEvidenceFamily)
             )
         );
     }
