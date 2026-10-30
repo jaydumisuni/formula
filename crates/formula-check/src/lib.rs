@@ -527,6 +527,63 @@ pub fn preflight_frozen_realization_independent_certificate_bundle(
     .map_err(IndependentCertificatePreflightError::Evidence)
 }
 
+/// Non-authoritative custody and bounded U8 semantics for a *separate*
+/// certificate payload. The realization observer's evidence need not be the
+/// certificate body; the certificate must still pass independent U8 checking.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IndependentU8CertificatePreflightError {
+    Bundle(IndependentCertificatePreflightError),
+    WrongEvidenceFamily,
+    Body(u8_semantics::U8EvidenceBodyError),
+}
+
+/// Close the structural-only gap for a separately frozen U8 certificate:
+/// first bind the realization, target, observer, policy, checker, and distinct
+/// certificate payload to caller-authenticated pins; then exhaustively check
+/// the exact certificate body over all 256 U8 inputs. Even a matching result
+/// does not prove that the Judgement denotes those terms, authenticate a trust
+/// root, issue a certificate, or authorize promotion.
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_frozen_realization_independent_u8_certificate_bundle(
+    recorded_realization: &RealizationMetadata,
+    frozen_judgement: &Judgement,
+    independently_pinned_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    independently_pinned_implementation: ArtifactDigest,
+    independently_pinned_realization_evidence: ArtifactDigest,
+    artifacts: FrozenRealizationArtifactBytes<'_>,
+    independently_pinned_certificate_payload: ArtifactDigest,
+    independently_pinned_checker: ArtifactDigest,
+    independently_pinned_contract_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_certificate: &EvidenceEnvelopeMetadata,
+    frozen_certificate: &FrozenEvidence<'_>,
+) -> Result<(), IndependentU8CertificatePreflightError> {
+    preflight_frozen_realization_independent_certificate_bundle(
+        recorded_realization,
+        frozen_judgement,
+        independently_pinned_semantic_target,
+        independently_pinned_observer,
+        independently_pinned_implementation,
+        independently_pinned_realization_evidence,
+        artifacts,
+        independently_pinned_certificate_payload,
+        independently_pinned_checker,
+        independently_pinned_contract_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_certificate,
+        frozen_certificate,
+    )
+    .map_err(IndependentU8CertificatePreflightError::Bundle)?;
+    if frozen_certificate.evidence_family != "finite-exhaustive" {
+        return Err(IndependentU8CertificatePreflightError::WrongEvidenceFamily);
+    }
+    u8_semantics::check_frozen_u8_evidence_body(frozen_certificate.payload_bytes)
+        .map_err(IndependentU8CertificatePreflightError::Body)
+}
+
 /// Non-authoritative frozen-policy, metadata, and U8-body preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum U8BundlePreflightError {
@@ -4570,6 +4627,106 @@ mod tests {
             Err(IndependentCertificatePreflightError::Evidence(
                 PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
             ))
+        );
+    }
+
+    #[test]
+    fn independent_u8_certificate_checks_frozen_semantics() {
+        let target = judgement(digest(b"u8-certificate-world"), vec![digest(b"dependency")]);
+        let target_pin = target.structural_digest();
+        let observer = b"frozen-observer";
+        let implementation = b"frozen-implementation";
+        let realization_evidence = b"frozen-observer-evidence";
+        let observer_pin = digest(observer);
+        let implementation_pin = digest(implementation);
+        let realization_pin = digest(realization_evidence);
+        let checker_pin = digest(b"independent-u8-checker");
+        let policy = AuthorityContract::new(vec!["finite-exhaustive".to_owned()]);
+        let policy_pin = policy.structural_digest();
+        let realization = RealizationMetadata::new(
+            target_pin,
+            observer_pin,
+            implementation_pin,
+            realization_pin,
+        );
+        let frame = |left: &[u8], right: &[u8]| {
+            let mut bytes = Vec::new();
+            bytes.extend_from_slice(&(left.len() as u16).to_be_bytes());
+            bytes.extend_from_slice(left);
+            bytes.extend_from_slice(&(right.len() as u16).to_be_bytes());
+            bytes.extend_from_slice(right);
+            bytes
+        };
+        let valid = frame(&[0, 0, 2], &[0, 1, 2, 4]); // x+x == 2*x
+        let forged = frame(&[0], &[0, 1, 1, 2]); // x != x+1
+
+        let check = |body: &[u8]| {
+            let frozen = FrozenEvidence {
+                judgement: &target,
+                evidence_family: "finite-exhaustive",
+                payload_bytes: body,
+                checker_digest: checker_pin,
+            };
+            let metadata = EvidenceEnvelopeMetadata::new(
+                target_pin,
+                frozen.evidence_family,
+                digest(body),
+                checker_pin,
+            );
+            let artifacts = || FrozenRealizationArtifactBytes {
+                observer,
+                implementation,
+                evidence: realization_evidence,
+            };
+            let structural = preflight_frozen_realization_independent_certificate_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                realization_pin,
+                artifacts(),
+                digest(body),
+                checker_pin,
+                policy_pin,
+                policy_pin,
+                &policy,
+                &metadata,
+                &frozen,
+            );
+            let semantic = preflight_frozen_realization_independent_u8_certificate_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                realization_pin,
+                artifacts(),
+                digest(body),
+                checker_pin,
+                policy_pin,
+                policy_pin,
+                &policy,
+                &metadata,
+                &frozen,
+            );
+            (structural, semantic)
+        };
+        assert_eq!(check(&valid), (Ok(()), Ok(())));
+        assert_eq!(
+            check(&forged),
+            (
+                Ok(()),
+                Err(IndependentU8CertificatePreflightError::Body(
+                    u8_semantics::U8EvidenceBodyError::Semantics(
+                        u8_semantics::U8EquivalenceError::Counterexample {
+                            input: 0,
+                            left: 0,
+                            right: 1,
+                        },
+                    ),
+                )),
+            )
         );
     }
 }
