@@ -743,6 +743,61 @@ pub fn preflight_frozen_realization_independent_polynomial_product_certificate_b
     polynomial_identity::check_frozen_polynomial_product(frozen_certificate.payload_bytes)
         .map_err(IndependentPolynomialProductCertificatePreflightError::Body)
 }
+/// Non-authoritative custody and exact bounded polynomial-sum semantics
+/// for a separately pinned certificate body. No trust-root or promotion authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IndependentPolynomialSumCertificatePreflightError {
+    Bundle(IndependentCertificatePreflightError),
+    WrongEvidenceFamily,
+    Body(polynomial_identity::PolynomialSumError),
+}
+
+/// Bind realization, frozen Judgement, observer, implementation, exact
+/// independent certificate bytes, checker, and policy before checking bounded
+/// addition over Z[x]. Producer-rehashed false sums must fail even
+/// when the metadata envelope is internally consistent. This does not prove
+/// that the Judgement denotes these summands, authenticate a trust root,
+/// issue a certificate, or grant promotion.
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_frozen_realization_independent_polynomial_sum_certificate_bundle(
+    recorded_realization: &RealizationMetadata,
+    frozen_judgement: &Judgement,
+    independently_pinned_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    independently_pinned_implementation: ArtifactDigest,
+    independently_pinned_realization_evidence: ArtifactDigest,
+    artifacts: FrozenRealizationArtifactBytes<'_>,
+    independently_pinned_certificate_payload: ArtifactDigest,
+    independently_pinned_checker: ArtifactDigest,
+    independently_pinned_contract_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_certificate: &EvidenceEnvelopeMetadata,
+    frozen_certificate: &FrozenEvidence<'_>,
+) -> Result<(), IndependentPolynomialSumCertificatePreflightError> {
+    preflight_frozen_realization_independent_certificate_bundle(
+        recorded_realization,
+        frozen_judgement,
+        independently_pinned_semantic_target,
+        independently_pinned_observer,
+        independently_pinned_implementation,
+        independently_pinned_realization_evidence,
+        artifacts,
+        independently_pinned_certificate_payload,
+        independently_pinned_checker,
+        independently_pinned_contract_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_certificate,
+        frozen_certificate,
+    )
+    .map_err(IndependentPolynomialSumCertificatePreflightError::Bundle)?;
+    if frozen_certificate.evidence_family != "polynomial-sum" {
+        return Err(IndependentPolynomialSumCertificatePreflightError::WrongEvidenceFamily);
+    }
+    polynomial_identity::check_frozen_polynomial_sum(frozen_certificate.payload_bytes)
+        .map_err(IndependentPolynomialSumCertificatePreflightError::Body)
+}
 
 /// Non-authoritative frozen-policy, metadata, and U8-body preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -5211,6 +5266,118 @@ mod tests {
             (
                 Ok(()),
                 Err(IndependentPolynomialProductCertificatePreflightError::WrongEvidenceFamily)
+            )
+        );
+    }
+    #[test]
+    fn independent_polynomial_sum_certificate_rejects_rehashed_false_sum() {
+        let target = judgement(
+            digest(b"sum-certificate-world"),
+            vec![digest(b"sum-dependency")],
+        );
+        let target_pin = target.structural_digest();
+        let observer = b"frozen-sum-observer";
+        let implementation = b"frozen-sum-implementation";
+        let realization_body = b"frozen-sum-observation";
+        let observer_pin = digest(observer);
+        let implementation_pin = digest(implementation);
+        let realization_pin = digest(realization_body);
+        let checker_pin = digest(b"independent-sum-checker");
+        let policy = AuthorityContract::new(vec![
+            "finite-exhaustive".to_owned(),
+            "polynomial-sum".to_owned(),
+        ]);
+        let policy_pin = policy.structural_digest();
+        let realization = RealizationMetadata::new(
+            target_pin,
+            observer_pin,
+            implementation_pin,
+            realization_pin,
+        );
+        let frame = |a: &[i64], b: &[i64], claimed: &[i64]| {
+            let mut bytes = Vec::new();
+            for coefficients in [a, b, claimed] {
+                bytes.push(coefficients.len() as u8);
+                for coefficient in coefficients {
+                    bytes.extend_from_slice(&coefficient.to_be_bytes());
+                }
+            }
+            bytes
+        };
+        let valid = frame(&[1, 1], &[1, -1], &[2]);
+        let forged = frame(&[1, 1], &[1, -1], &[3]);
+        let check = |body: &[u8], family: &str| {
+            let frozen = FrozenEvidence {
+                judgement: &target,
+                evidence_family: family,
+                payload_bytes: body,
+                checker_digest: checker_pin,
+            };
+            let metadata = EvidenceEnvelopeMetadata::new(
+                target_pin,
+                frozen.evidence_family,
+                digest(body),
+                checker_pin,
+            );
+            let artifacts = || FrozenRealizationArtifactBytes {
+                observer,
+                implementation,
+                evidence: realization_body,
+            };
+            let structural = preflight_frozen_realization_independent_certificate_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                realization_pin,
+                artifacts(),
+                digest(body),
+                checker_pin,
+                policy_pin,
+                policy_pin,
+                &policy,
+                &metadata,
+                &frozen,
+            );
+            let semantic =
+                preflight_frozen_realization_independent_polynomial_sum_certificate_bundle(
+                    &realization,
+                    &target,
+                    target_pin,
+                    observer_pin,
+                    implementation_pin,
+                    realization_pin,
+                    artifacts(),
+                    digest(body),
+                    checker_pin,
+                    policy_pin,
+                    policy_pin,
+                    &policy,
+                    &metadata,
+                    &frozen,
+                );
+            (structural, semantic)
+        };
+        assert_eq!(check(&valid, "polynomial-sum"), (Ok(()), Ok(())));
+        assert_eq!(
+            check(&forged, "polynomial-sum"),
+            (
+                Ok(()),
+                Err(IndependentPolynomialSumCertificatePreflightError::Body(
+                    polynomial_identity::PolynomialSumError::CoefficientMismatch {
+                        power: 0,
+                        expected: 2,
+                        actual: 3,
+                    }
+                ))
+            )
+        );
+        assert_eq!(
+            check(&valid, "finite-exhaustive"),
+            (
+                Ok(()),
+                Err(IndependentPolynomialSumCertificatePreflightError::WrongEvidenceFamily)
             )
         );
     }
