@@ -457,6 +457,76 @@ pub fn preflight_pinned_frozen_evidence_bundle(
     .map_err(PinnedEvidenceBundlePreflightError::Bundle)
 }
 
+/// Non-authoritative custody result for an independently frozen certificate
+/// payload that need not be the realization observer's evidence body.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IndependentCertificatePreflightError {
+    Realization(RealizationPreflightError),
+    CrossTargetMismatch,
+    CertificatePayloadMismatch,
+    ContractPinMismatch,
+    Evidence(PinnedEvidenceBundlePreflightError),
+}
+
+/// Bind a Judgement-backed realization and a *separate* frozen certificate to
+/// the same independently pinned semantic target. The certificate body has
+/// its own independently authenticated digest: producer-rehashed metadata is
+/// insufficient even when the certificate differs from observer evidence.
+///
+/// This is only structural custody. It neither proves that the certificate
+/// establishes realization equivalence nor executes a checker, authenticates
+/// a trust root, issues a certificate, or grants promotion authority.
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_frozen_realization_independent_certificate_bundle(
+    recorded_realization: &RealizationMetadata,
+    frozen_judgement: &Judgement,
+    independently_pinned_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    independently_pinned_implementation: ArtifactDigest,
+    independently_pinned_realization_evidence: ArtifactDigest,
+    artifacts: FrozenRealizationArtifactBytes<'_>,
+    independently_pinned_certificate_payload: ArtifactDigest,
+    independently_pinned_checker: ArtifactDigest,
+    independently_pinned_contract_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_certificate: &EvidenceEnvelopeMetadata,
+    frozen_certificate: &FrozenEvidence<'_>,
+) -> Result<(), IndependentCertificatePreflightError> {
+    if independently_pinned_contract_digest != recorded_contract_digest
+        || frozen_contract.structural_digest() != independently_pinned_contract_digest
+    {
+        return Err(IndependentCertificatePreflightError::ContractPinMismatch);
+    }
+    preflight_frozen_realization_judgement_artifacts(
+        recorded_realization,
+        frozen_judgement,
+        independently_pinned_semantic_target,
+        independently_pinned_observer,
+        independently_pinned_implementation,
+        independently_pinned_realization_evidence,
+        artifacts,
+    )
+    .map_err(IndependentCertificatePreflightError::Realization)?;
+
+    if frozen_certificate.judgement.structural_digest() != independently_pinned_semantic_target {
+        return Err(IndependentCertificatePreflightError::CrossTargetMismatch);
+    }
+    if ArtifactDigest::sha256(frozen_certificate.payload_bytes)
+        != independently_pinned_certificate_payload
+    {
+        return Err(IndependentCertificatePreflightError::CertificatePayloadMismatch);
+    }
+    preflight_pinned_frozen_evidence_bundle(
+        independently_pinned_checker,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_certificate,
+        frozen_certificate,
+    )
+    .map_err(IndependentCertificatePreflightError::Evidence)
+}
+
 /// Non-authoritative frozen-policy, metadata, and U8-body preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum U8BundlePreflightError {
@@ -4319,6 +4389,186 @@ mod tests {
                 PinnedEvidenceBundlePreflightError::Bundle(EvidenceBundlePreflightError::Contract(
                     ContractPreflightError::FamilyNotAdmitted
                 ))
+            ))
+        );
+    }
+
+    #[test]
+    fn independent_certificate_bundle_requires_frozen_payload_and_target() {
+        let dependency = digest(b"dependency");
+        let target = judgement(digest(b"world"), vec![dependency]);
+        let other = judgement(digest(b"other-world"), vec![dependency]);
+        let target_pin = target.structural_digest();
+        let observer = b"observer-v1";
+        let implementation = b"implementation-v1";
+        let realization_body = b"realization-evidence-v1";
+        let certificate_body = b"independent-certificate-v1";
+        let observer_pin = digest(observer);
+        let implementation_pin = digest(implementation);
+        let realization_pin = digest(realization_body);
+        let certificate_pin = digest(certificate_body);
+        let checker_pin = digest(b"checker-v1");
+        let policy = AuthorityContract::new(vec!["finite-exhaustive".to_owned()]);
+        let policy_pin = policy.structural_digest();
+        let realization = RealizationMetadata::new(
+            target_pin,
+            observer_pin,
+            implementation_pin,
+            realization_pin,
+        );
+        let artifacts = || FrozenRealizationArtifactBytes {
+            observer,
+            implementation,
+            evidence: realization_body,
+        };
+        let frozen = FrozenEvidence {
+            judgement: &target,
+            evidence_family: "finite-exhaustive",
+            payload_bytes: certificate_body,
+            checker_digest: checker_pin,
+        };
+        let metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            frozen.evidence_family,
+            certificate_pin,
+            checker_pin,
+        );
+        let preflight = |certificate: &FrozenEvidence<'_>,
+                         certificate_metadata: &EvidenceEnvelopeMetadata| {
+            preflight_frozen_realization_independent_certificate_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                realization_pin,
+                artifacts(),
+                certificate_pin,
+                checker_pin,
+                policy_pin,
+                policy_pin,
+                &policy,
+                certificate_metadata,
+                certificate,
+            )
+        };
+        assert_ne!(&realization_body[..], &certificate_body[..]);
+        assert_eq!(preflight(&frozen, &metadata), Ok(()));
+
+        // A separately self-consistent certificate for another target must
+        // not borrow this realization's frozen semantic target.
+        let other_certificate = FrozenEvidence {
+            judgement: &other,
+            ..frozen
+        };
+        let other_metadata = EvidenceEnvelopeMetadata::new(
+            other.structural_digest(),
+            frozen.evidence_family,
+            certificate_pin,
+            checker_pin,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_evidence_bundle(
+                checker_pin,
+                policy_pin,
+                &policy,
+                &other_metadata,
+                &other_certificate,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            preflight(&other_certificate, &other_metadata),
+            Err(IndependentCertificatePreflightError::CrossTargetMismatch)
+        );
+
+        // Metadata and certificate body can be producer-rehashed together.
+        // The independent payload pin must reject that self-consistent splice.
+        let changed_body = b"substituted-certificate-v2";
+        let changed = FrozenEvidence {
+            payload_bytes: changed_body,
+            ..frozen
+        };
+        let changed_metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            frozen.evidence_family,
+            digest(changed_body),
+            checker_pin,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_evidence_bundle(
+                checker_pin,
+                policy_pin,
+                &policy,
+                &changed_metadata,
+                &changed,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            preflight(&changed, &changed_metadata),
+            Err(IndependentCertificatePreflightError::CertificatePayloadMismatch)
+        );
+
+        // A producer may also replace both the policy and its recorded hash.
+        // The caller's independent contract pin must not follow that change.
+        let weaker_policy = AuthorityContract::new(vec!["polynomial-identity".to_owned()]);
+        let weaker_certificate = FrozenEvidence {
+            evidence_family: "polynomial-identity",
+            ..frozen
+        };
+        let weaker_metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            weaker_certificate.evidence_family,
+            certificate_pin,
+            checker_pin,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_evidence_bundle(
+                checker_pin,
+                weaker_policy.structural_digest(),
+                &weaker_policy,
+                &weaker_metadata,
+                &weaker_certificate,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            preflight_frozen_realization_independent_certificate_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                realization_pin,
+                artifacts(),
+                certificate_pin,
+                checker_pin,
+                policy_pin,
+                weaker_policy.structural_digest(),
+                &weaker_policy,
+                &weaker_metadata,
+                &weaker_certificate,
+            ),
+            Err(IndependentCertificatePreflightError::ContractPinMismatch)
+        );
+
+        // A self-consistent but different checker is not an authenticated pin.
+        let substituted_checker = digest(b"producer-checker");
+        let checker_changed = FrozenEvidence {
+            checker_digest: substituted_checker,
+            ..frozen
+        };
+        let checker_metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            frozen.evidence_family,
+            certificate_pin,
+            substituted_checker,
+        );
+        assert_eq!(
+            preflight(&checker_changed, &checker_metadata),
+            Err(IndependentCertificatePreflightError::Evidence(
+                PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
             ))
         );
     }
