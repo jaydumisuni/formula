@@ -407,6 +407,61 @@ pub fn check_frozen_polynomial_derivative(body: &[u8]) -> Result<(), PolynomialD
     Ok(())
 }
 
+// Wire v0 evaluation witness: signed big-endian i64 evaluation point,
+// one canonical bounded Z[x] coefficient vector, and a claimed signed i64
+// value. Exact evaluation of one point never establishes polynomial identity.
+const MAX_EVALUATION_FRAME_BYTES: usize = 8 + 1 + MAX_COEFFICIENTS * 8 + 8;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PolynomialEvaluationError {
+    InvalidFrame,
+    NonCanonicalPolynomial,
+    ArithmeticOverflow,
+    ValueOutOfRange,
+    ValueMismatch { expected: i64, actual: i64 },
+}
+
+/// Independently evaluate a frozen polynomial at one integer point using
+/// checked Horner arithmetic. The bounded i128 intermediate path fails closed
+/// on overflow, and the claimed result must fit the signed i64 wire contract.
+/// Agreement at finitely many points is NOT a polynomial identity certificate;
+/// no Judgement, trust-root, or promotion authority is granted here.
+pub fn check_frozen_polynomial_evaluation(body: &[u8]) -> Result<(), PolynomialEvaluationError> {
+    if body.len() > MAX_EVALUATION_FRAME_BYTES {
+        return Err(PolynomialEvaluationError::InvalidFrame);
+    }
+    let point_bytes: [u8; 8] = body
+        .get(..8)
+        .ok_or(PolynomialEvaluationError::InvalidFrame)?
+        .try_into()
+        .map_err(|_| PolynomialEvaluationError::InvalidFrame)?;
+    let point = i128::from(i64::from_be_bytes(point_bytes));
+    let mut cursor = 8;
+    let coefficients =
+        read_coefficients(body, &mut cursor).ok_or(PolynomialEvaluationError::InvalidFrame)?;
+    let claimed_bytes: [u8; 8] = body
+        .get(cursor..)
+        .ok_or(PolynomialEvaluationError::InvalidFrame)?
+        .try_into()
+        .map_err(|_| PolynomialEvaluationError::InvalidFrame)?;
+    if coefficients.len() > 1 && coefficients.last() == Some(&0) {
+        return Err(PolynomialEvaluationError::NonCanonicalPolynomial);
+    }
+    let actual = i64::from_be_bytes(claimed_bytes);
+    let mut exact = 0_i128;
+    for coefficient in coefficients.iter().rev() {
+        exact = exact
+            .checked_mul(point)
+            .and_then(|value| value.checked_add(i128::from(*coefficient)))
+            .ok_or(PolynomialEvaluationError::ArithmeticOverflow)?;
+    }
+    let expected = i64::try_from(exact).map_err(|_| PolynomialEvaluationError::ValueOutOfRange)?;
+    if expected != actual {
+        return Err(PolynomialEvaluationError::ValueMismatch { expected, actual });
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -937,6 +992,84 @@ mod tests {
         assert_eq!(
             check_frozen_polynomial_derivative(&trailing),
             Err(PolynomialDerivativeError::InvalidFrame)
+        );
+    }
+
+    fn evaluation_frame(x: i64, polynomial: &[i64], claimed: i64) -> Vec<u8> {
+        let mut out = x.to_be_bytes().to_vec();
+        out.push(polynomial.len() as u8);
+        for coefficient in polynomial {
+            out.extend_from_slice(&coefficient.to_be_bytes());
+        }
+        out.extend_from_slice(&claimed.to_be_bytes());
+        out
+    }
+
+    #[test]
+    fn frozen_evaluation_witness_checks_exact_horner_without_identity_authority() {
+        assert_eq!(
+            check_frozen_polynomial_evaluation(&evaluation_frame(4, &[2, -3, 1], 6)),
+            Ok(())
+        );
+        assert_eq!(
+            check_frozen_polynomial_evaluation(&evaluation_frame(4, &[2, -3, 1], 7)),
+            Err(PolynomialEvaluationError::ValueMismatch {
+                expected: 6,
+                actual: 7
+            })
+        );
+        assert_eq!(
+            check_frozen_polynomial_evaluation(&evaluation_frame(0, &[i64::MIN], i64::MIN)),
+            Ok(())
+        );
+        let mut degree_fifteen = vec![0; 16];
+        degree_fifteen[15] = 1;
+        assert_eq!(
+            check_frozen_polynomial_evaluation(&evaluation_frame(0, &degree_fifteen, 0)),
+            Ok(())
+        );
+        // A finite sample of a nonzero polynomial is not an identity certificate.
+        let vanishing = [0, -5040, 13068, -13132, 6769, -1960, 322, -28, 1];
+        for x in 0..8 {
+            assert_eq!(
+                check_frozen_polynomial_evaluation(&evaluation_frame(x, &vanishing, 0)),
+                Ok(())
+            );
+        }
+        assert!(check_frozen_polynomial_identity(&frame(&vanishing, &[0])).is_err());
+    }
+
+    #[test]
+    fn frozen_evaluation_witness_rejects_overflow_and_noncanonical_frames() {
+        assert_eq!(
+            check_frozen_polynomial_evaluation(&evaluation_frame(1, &[i64::MAX, 1], 0)),
+            Err(PolynomialEvaluationError::ValueOutOfRange)
+        );
+        assert_eq!(
+            check_frozen_polynomial_evaluation(&evaluation_frame(i64::MAX, &[1; 5], 0)),
+            Err(PolynomialEvaluationError::ArithmeticOverflow)
+        );
+        assert_eq!(
+            check_frozen_polynomial_evaluation(&evaluation_frame(1, &[1, 0], 1)),
+            Err(PolynomialEvaluationError::NonCanonicalPolynomial)
+        );
+        assert_eq!(
+            check_frozen_polynomial_evaluation(&evaluation_frame(1, &[1; 17], 1)),
+            Err(PolynomialEvaluationError::InvalidFrame)
+        );
+        let valid = evaluation_frame(-2, &[1, 3], -5);
+        for end in 0..valid.len() {
+            assert_eq!(
+                check_frozen_polynomial_evaluation(&valid[..end]),
+                Err(PolynomialEvaluationError::InvalidFrame),
+                "truncated at {end}"
+            );
+        }
+        let mut trailing = valid;
+        trailing.push(0);
+        assert_eq!(
+            check_frozen_polynomial_evaluation(&trailing),
+            Err(PolynomialEvaluationError::InvalidFrame)
         );
     }
 }
