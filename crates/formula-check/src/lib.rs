@@ -288,6 +288,69 @@ pub fn preflight_frozen_realization_judgement_artifacts(
     )
 }
 
+/// Structural-only composition for the special case where the observer's
+/// realization-evidence bytes are also the frozen certificate payload.
+///
+/// Separately valid realization and certificate envelopes can otherwise refer
+/// to different Judgements or different evidence bodies. This preflight
+/// requires the same exact target and payload before checking the independent
+/// checker pin and frozen authority-contract membership. It neither executes
+/// the observer nor verifies certificate semantics or trust-root authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SharedRealizationEvidencePreflightError {
+    Realization(RealizationPreflightError),
+    CrossEnvelopeMismatch,
+    Evidence(PinnedEvidenceBundlePreflightError),
+}
+
+/// Bind a Judgement-backed realization to a frozen evidence envelope sharing
+/// the *same* observer-evidence body. Do not use this helper for certificate
+/// formats whose evidence payload is intentionally a separate artifact.
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_shared_frozen_realization_evidence_bundle(
+    recorded_realization: &RealizationMetadata,
+    frozen_judgement: &Judgement,
+    independently_pinned_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    independently_pinned_implementation: ArtifactDigest,
+    independently_pinned_realization_evidence: ArtifactDigest,
+    artifacts: FrozenRealizationArtifactBytes<'_>,
+    independently_pinned_checker: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_evidence: &EvidenceEnvelopeMetadata,
+    frozen_evidence: &FrozenEvidence<'_>,
+) -> Result<(), SharedRealizationEvidencePreflightError> {
+    preflight_frozen_realization_judgement_artifacts(
+        recorded_realization,
+        frozen_judgement,
+        independently_pinned_semantic_target,
+        independently_pinned_observer,
+        independently_pinned_implementation,
+        independently_pinned_realization_evidence,
+        FrozenRealizationArtifactBytes {
+            observer: artifacts.observer,
+            implementation: artifacts.implementation,
+            evidence: artifacts.evidence,
+        },
+    )
+    .map_err(SharedRealizationEvidencePreflightError::Realization)?;
+
+    if frozen_evidence.judgement.structural_digest() != independently_pinned_semantic_target
+        || frozen_evidence.payload_bytes != artifacts.evidence
+    {
+        return Err(SharedRealizationEvidencePreflightError::CrossEnvelopeMismatch);
+    }
+    preflight_pinned_frozen_evidence_bundle(
+        independently_pinned_checker,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_evidence,
+        frozen_evidence,
+    )
+    .map_err(SharedRealizationEvidencePreflightError::Evidence)
+}
+
 /// Non-authoritative paired preflight result. Neither branch certifies a proof,
 /// establishes the contract trust root, or grants promotion authority.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -3945,6 +4008,174 @@ mod tests {
                 artifacts(),
             ),
             Err(RealizationPreflightError::BindingMismatch)
+        );
+    }
+
+    #[test]
+    fn shared_realization_evidence_bundle_rejects_cross_envelope_splicing() {
+        let world = digest(b"world");
+        let target = judgement(world, vec![digest(b"dependency")]);
+        let other = judgement(digest(b"unrelated-world"), vec![digest(b"dependency")]);
+        let target_pin = target.structural_digest();
+        let observer = b"frozen-observer";
+        let implementation = b"frozen-implementation";
+        let evidence = b"shared-observer-certificate";
+        let observer_pin = digest(observer);
+        let implementation_pin = digest(implementation);
+        let evidence_pin = digest(evidence);
+        let checker_pin = digest(b"independent-checker");
+        let policy = AuthorityContract::new(vec!["finite-exhaustive".to_owned()]);
+        let policy_pin = policy.structural_digest();
+        let realization =
+            RealizationMetadata::new(target_pin, observer_pin, implementation_pin, evidence_pin);
+        let artifacts = || FrozenRealizationArtifactBytes {
+            observer,
+            implementation,
+            evidence,
+        };
+        let frozen = FrozenEvidence {
+            judgement: &target,
+            evidence_family: "finite-exhaustive",
+            payload_bytes: evidence,
+            checker_digest: checker_pin,
+        };
+        let metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            frozen.evidence_family,
+            evidence_pin,
+            checker_pin,
+        );
+        assert_eq!(
+            preflight_shared_frozen_realization_evidence_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+                checker_pin,
+                policy_pin,
+                &policy,
+                &metadata,
+                &frozen,
+            ),
+            Ok(())
+        );
+
+        // Both predecessor preflights independently accept this splice:
+        // the realization targets one Judgement and the certificate another.
+        let substituted = FrozenEvidence {
+            judgement: &other,
+            ..frozen
+        };
+        let substituted_metadata = EvidenceEnvelopeMetadata::new(
+            other.structural_digest(),
+            substituted.evidence_family,
+            evidence_pin,
+            checker_pin,
+        );
+        assert_eq!(
+            preflight_frozen_realization_judgement_artifacts(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            preflight_pinned_frozen_evidence_bundle(
+                checker_pin,
+                policy_pin,
+                &policy,
+                &substituted_metadata,
+                &substituted,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            preflight_shared_frozen_realization_evidence_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+                checker_pin,
+                policy_pin,
+                &policy,
+                &substituted_metadata,
+                &substituted,
+            ),
+            Err(SharedRealizationEvidencePreflightError::CrossEnvelopeMismatch)
+        );
+
+        // A second valid certificate envelope must not silently replace the
+        // realization's independently pinned observer-evidence body.
+        let different_bytes = b"unrelated-certificate";
+        let different = FrozenEvidence {
+            payload_bytes: different_bytes,
+            ..frozen
+        };
+        let different_metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            different.evidence_family,
+            digest(different_bytes),
+            checker_pin,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_evidence_bundle(
+                checker_pin,
+                policy_pin,
+                &policy,
+                &different_metadata,
+                &different,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            preflight_shared_frozen_realization_evidence_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+                checker_pin,
+                policy_pin,
+                &policy,
+                &different_metadata,
+                &different,
+            ),
+            Err(SharedRealizationEvidencePreflightError::CrossEnvelopeMismatch)
+        );
+        let bad_policy = AuthorityContract::new(vec!["polynomial-identity".to_owned()]);
+        assert_eq!(
+            preflight_shared_frozen_realization_evidence_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+                checker_pin,
+                bad_policy.structural_digest(),
+                &bad_policy,
+                &metadata,
+                &frozen,
+            ),
+            Err(SharedRealizationEvidencePreflightError::Evidence(
+                PinnedEvidenceBundlePreflightError::Bundle(EvidenceBundlePreflightError::Contract(
+                    ContractPreflightError::FamilyNotAdmitted
+                ))
+            ))
         );
     }
 }
