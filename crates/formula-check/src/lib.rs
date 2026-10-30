@@ -584,6 +584,55 @@ pub fn preflight_frozen_realization_independent_u8_certificate_bundle(
         .map_err(IndependentU8CertificatePreflightError::Body)
 }
 
+/// Non-authoritative custody and bounded Boolean/GF(2) semantics for a
+/// separately pinned certificate body. No trust-root or promotion authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IndependentGf2CertificatePreflightError {
+    Bundle(IndependentCertificatePreflightError),
+    Gf2(Gf2BundlePreflightError),
+}
+
+/// Bind the realization and independent certificate to the same frozen target,
+/// exact bytes, checker, and contract before checking all four Boolean inputs
+/// and corroborating the GF(2) normal form. The result does not establish that
+/// the Judgement denotes these terms or that the certificate is trusted.
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_frozen_realization_independent_gf2_certificate_bundle(
+    recorded_realization: &RealizationMetadata,
+    frozen_judgement: &Judgement,
+    independently_pinned_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    independently_pinned_implementation: ArtifactDigest,
+    independently_pinned_realization_evidence: ArtifactDigest,
+    artifacts: FrozenRealizationArtifactBytes<'_>,
+    independently_pinned_certificate_payload: ArtifactDigest,
+    independently_pinned_checker: ArtifactDigest,
+    independently_pinned_contract_digest: ArtifactDigest,
+    recorded_contract_digest: ArtifactDigest,
+    frozen_contract: &AuthorityContract,
+    recorded_certificate: &EvidenceEnvelopeMetadata,
+    frozen_certificate: &FrozenEvidence<'_>,
+) -> Result<(), IndependentGf2CertificatePreflightError> {
+    preflight_frozen_realization_independent_certificate_bundle(
+        recorded_realization,
+        frozen_judgement,
+        independently_pinned_semantic_target,
+        independently_pinned_observer,
+        independently_pinned_implementation,
+        independently_pinned_realization_evidence,
+        artifacts,
+        independently_pinned_certificate_payload,
+        independently_pinned_checker,
+        independently_pinned_contract_digest,
+        recorded_contract_digest,
+        frozen_contract,
+        recorded_certificate,
+        frozen_certificate,
+    )
+    .map_err(IndependentGf2CertificatePreflightError::Bundle)?;
+    check_frozen_gf2_body(frozen_certificate).map_err(IndependentGf2CertificatePreflightError::Gf2)
+}
+
 /// Non-authoritative frozen-policy, metadata, and U8-body preflight.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum U8BundlePreflightError {
@@ -4726,6 +4775,107 @@ mod tests {
                         },
                     ),
                 )),
+            )
+        );
+    }
+
+    #[test]
+    fn independent_gf2_certificate_rejects_frozen_false_translation() {
+        let target = judgement(
+            digest(b"gf2-certificate-world"),
+            vec![digest(b"dependency")],
+        );
+        let target_pin = target.structural_digest();
+        let observer = b"frozen-gf2-observer";
+        let implementation = b"frozen-gf2-implementation";
+        let realization_body = b"frozen-gf2-observation";
+        let observer_pin = digest(observer);
+        let implementation_pin = digest(implementation);
+        let realization_pin = digest(realization_body);
+        let checker_pin = digest(b"independent-gf2-checker");
+        let policy = AuthorityContract::new(vec!["boolean-gf2-translation".to_owned()]);
+        let policy_pin = policy.structural_digest();
+        let realization = RealizationMetadata::new(
+            target_pin,
+            observer_pin,
+            implementation_pin,
+            realization_pin,
+        );
+        let frame = |boolean: &[u8], gf2: &[u8]| {
+            let mut bytes = Vec::new();
+            bytes.extend_from_slice(&(boolean.len() as u16).to_be_bytes());
+            bytes.extend_from_slice(boolean);
+            bytes.extend_from_slice(&(gf2.len() as u16).to_be_bytes());
+            bytes.extend_from_slice(gf2);
+            bytes
+        };
+        let valid = frame(&[0, 1, 6], &[0, 1, 4, 0, 1, 5, 4]);
+        let forged = frame(&[0, 1, 6], &[0, 1, 4]);
+        let check = |body: &[u8]| {
+            let frozen = FrozenEvidence {
+                judgement: &target,
+                evidence_family: "boolean-gf2-translation",
+                payload_bytes: body,
+                checker_digest: checker_pin,
+            };
+            let metadata = EvidenceEnvelopeMetadata::new(
+                target_pin,
+                frozen.evidence_family,
+                digest(body),
+                checker_pin,
+            );
+            let artifacts = || FrozenRealizationArtifactBytes {
+                observer,
+                implementation,
+                evidence: realization_body,
+            };
+            let structural = preflight_frozen_realization_independent_certificate_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                realization_pin,
+                artifacts(),
+                digest(body),
+                checker_pin,
+                policy_pin,
+                policy_pin,
+                &policy,
+                &metadata,
+                &frozen,
+            );
+            let semantic = preflight_frozen_realization_independent_gf2_certificate_bundle(
+                &realization,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                realization_pin,
+                artifacts(),
+                digest(body),
+                checker_pin,
+                policy_pin,
+                policy_pin,
+                &policy,
+                &metadata,
+                &frozen,
+            );
+            (structural, semantic)
+        };
+        assert_eq!(check(&valid), (Ok(()), Ok(())));
+        assert_eq!(
+            check(&forged),
+            (
+                Ok(()),
+                Err(IndependentGf2CertificatePreflightError::Gf2(
+                    Gf2BundlePreflightError::Body(gf2_semantics::Gf2WitnessError::Counterexample {
+                        x: true,
+                        y: true,
+                        boolean: true,
+                        gf2: false,
+                    })
+                ))
             )
         );
     }
