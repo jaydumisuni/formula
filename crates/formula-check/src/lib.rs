@@ -260,6 +260,34 @@ pub fn preflight_frozen_realization_observer_artifacts(
     )
 }
 
+/// Bind the actual canonical Judgement identity to the independently pinned
+/// semantic target before validating the observer, implementation and evidence
+/// bytes against their independently authenticated frozen identities.
+///
+/// This is structural custody for a Judgement-backed realization only: it does
+/// not execute the observer, check realization equivalence, certify, or promote.
+pub fn preflight_frozen_realization_judgement_artifacts(
+    recorded: &RealizationMetadata,
+    frozen_judgement: &Judgement,
+    independently_pinned_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    independently_pinned_implementation: ArtifactDigest,
+    independently_pinned_evidence: ArtifactDigest,
+    artifacts: FrozenRealizationArtifactBytes<'_>,
+) -> Result<(), RealizationPreflightError> {
+    if frozen_judgement.structural_digest() != independently_pinned_semantic_target {
+        return Err(RealizationPreflightError::BindingMismatch);
+    }
+    preflight_frozen_realization_observer_artifacts(
+        recorded,
+        independently_pinned_semantic_target,
+        independently_pinned_observer,
+        independently_pinned_implementation,
+        independently_pinned_evidence,
+        artifacts,
+    )
+}
+
 /// Non-authoritative paired preflight result. Neither branch certifies a proof,
 /// establishes the contract trust root, or grants promotion authority.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -3828,5 +3856,95 @@ mod tests {
                 "a post-freeze world, dependency, proposition, body, or checker change must fail",
             );
         }
+    }
+
+    #[test]
+    /// A recorded semantic-target digest is not a substitute for the actual
+    /// frozen Judgement. Bind its canonical world, dependencies, and proposition
+    /// to the independently pinned target before checking observer artifacts.
+    fn frozen_realization_judgement_artifacts_bind_exact_semantic_target() {
+        let world = digest(b"world");
+        let dependency = digest(b"dependency");
+        let target = judgement(world, vec![dependency]);
+        let target_pin = target.structural_digest();
+        let observer = b"observer-v1";
+        let implementation = b"implementation-v1";
+        let evidence = b"realization-evidence-v1";
+        let observer_pin = digest(observer);
+        let implementation_pin = digest(implementation);
+        let evidence_pin = digest(evidence);
+        let recorded =
+            RealizationMetadata::new(target_pin, observer_pin, implementation_pin, evidence_pin);
+        let artifacts = || FrozenRealizationArtifactBytes {
+            observer,
+            implementation,
+            evidence,
+        };
+        assert_eq!(
+            preflight_frozen_realization_judgement_artifacts(
+                &recorded,
+                &target,
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+            ),
+            Ok(())
+        );
+        let altered = [
+            judgement(digest(b"other-world"), vec![dependency]),
+            judgement(world, vec![digest(b"other-dependency")]),
+            Judgement::new(
+                world,
+                "finite-exact",
+                b"other-proposition".to_vec(),
+                vec![dependency],
+            ),
+        ];
+        for changed in &altered {
+            assert_eq!(
+                preflight_frozen_realization_judgement_artifacts(
+                    &recorded,
+                    changed,
+                    target_pin,
+                    observer_pin,
+                    implementation_pin,
+                    evidence_pin,
+                    artifacts(),
+                ),
+                Err(RealizationPreflightError::BindingMismatch)
+            );
+        }
+        let producer_rehashed = RealizationMetadata::new(
+            altered[0].structural_digest(),
+            observer_pin,
+            implementation_pin,
+            evidence_pin,
+        );
+        assert_eq!(
+            preflight_frozen_realization_judgement_artifacts(
+                &producer_rehashed,
+                &altered[0],
+                target_pin,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+            ),
+            Err(RealizationPreflightError::BindingMismatch)
+        );
+        assert_eq!(
+            preflight_frozen_realization_judgement_artifacts(
+                &recorded,
+                &target,
+                digest(b"unrelated-target"),
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                artifacts(),
+            ),
+            Err(RealizationPreflightError::BindingMismatch)
+        );
     }
 }
