@@ -226,6 +226,40 @@ pub fn preflight_frozen_realization_artifacts(
     )
 }
 
+/// Frozen realization artifact bodies supplied by the caller. These bytes
+/// have no authority until checked against independently authenticated pins.
+pub struct FrozenRealizationArtifactBytes<'a> {
+    pub observer: &'a [u8],
+    pub implementation: &'a [u8],
+    pub evidence: &'a [u8],
+}
+
+/// Bind actual observer, implementation, and evidence bytes to separately
+/// authenticated frozen identities and the recorded realization envelope.
+/// The caller must authenticate all four pins outside the producer's control.
+/// This does not run the observer, prove equivalence, certify, or promote.
+pub fn preflight_frozen_realization_observer_artifacts(
+    recorded: &RealizationMetadata,
+    frozen_semantic_target: ArtifactDigest,
+    independently_pinned_observer: ArtifactDigest,
+    independently_pinned_implementation: ArtifactDigest,
+    independently_pinned_evidence: ArtifactDigest,
+    artifacts: FrozenRealizationArtifactBytes<'_>,
+) -> Result<(), RealizationPreflightError> {
+    if ArtifactDigest::sha256(artifacts.observer) != independently_pinned_observer {
+        return Err(RealizationPreflightError::BindingMismatch);
+    }
+    preflight_frozen_realization_artifacts(
+        recorded,
+        frozen_semantic_target,
+        independently_pinned_observer,
+        independently_pinned_implementation,
+        independently_pinned_evidence,
+        artifacts.implementation,
+        artifacts.evidence,
+    )
+}
+
 /// Non-authoritative paired preflight result. Neither branch certifies a proof,
 /// establishes the contract trust root, or grants promotion authority.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -3295,6 +3329,124 @@ mod tests {
             Err(PinnedEvidenceBundlePreflightError::Bundle(
                 EvidenceBundlePreflightError::Contract(ContractPreflightError::FamilyNotAdmitted)
             ))
+        );
+    }
+
+    #[test]
+    /// A frozen observer digest must also bind the actual observer artifact
+    /// bytes. Producer-rehashed observer metadata is not independent custody.
+    fn frozen_realization_observer_artifact_requires_independent_byte_pin() {
+        let target = digest(b"semantic-target");
+        let observer = b"observer-binary-v1";
+        let implementation = b"implementation-v1";
+        let evidence = b"exhaustive-observer-evidence-v1";
+        let observer_pin = digest(observer);
+        let implementation_pin = digest(implementation);
+        let evidence_pin = digest(evidence);
+        let recorded =
+            RealizationMetadata::new(target, observer_pin, implementation_pin, evidence_pin);
+
+        assert_eq!(
+            preflight_frozen_realization_observer_artifacts(
+                &recorded,
+                target,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                FrozenRealizationArtifactBytes {
+                    observer,
+                    implementation,
+                    evidence
+                },
+            ),
+            Ok(())
+        );
+
+        let replacement = b"observer-binary-v2";
+        let forged = RealizationMetadata::new(
+            target,
+            digest(replacement),
+            implementation_pin,
+            evidence_pin,
+        );
+        // Producer-supplied replacement identities are self-consistent, but
+        // cannot replace the separately authenticated original observer pin.
+        assert_eq!(
+            preflight_frozen_realization_artifacts(
+                &forged,
+                target,
+                digest(replacement),
+                implementation_pin,
+                evidence_pin,
+                implementation,
+                evidence,
+            ),
+            Ok(())
+        );
+        for (record, observer_bytes) in [
+            (&recorded, replacement.as_slice()),
+            (&forged, replacement.as_slice()),
+        ] {
+            assert_eq!(
+                preflight_frozen_realization_observer_artifacts(
+                    record,
+                    target,
+                    observer_pin,
+                    implementation_pin,
+                    evidence_pin,
+                    FrozenRealizationArtifactBytes {
+                        observer: observer_bytes,
+                        implementation,
+                        evidence
+                    },
+                ),
+                Err(RealizationPreflightError::BindingMismatch)
+            );
+        }
+        assert_eq!(
+            preflight_frozen_realization_observer_artifacts(
+                &recorded,
+                target,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                FrozenRealizationArtifactBytes {
+                    observer,
+                    implementation: b"substituted-implementation",
+                    evidence
+                },
+            ),
+            Err(RealizationPreflightError::BindingMismatch)
+        );
+        assert_eq!(
+            preflight_frozen_realization_observer_artifacts(
+                &recorded,
+                target,
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                FrozenRealizationArtifactBytes {
+                    observer,
+                    implementation,
+                    evidence: b"substituted-evidence"
+                },
+            ),
+            Err(RealizationPreflightError::BindingMismatch)
+        );
+        assert_eq!(
+            preflight_frozen_realization_observer_artifacts(
+                &recorded,
+                digest(b"other-semantic-target"),
+                observer_pin,
+                implementation_pin,
+                evidence_pin,
+                FrozenRealizationArtifactBytes {
+                    observer,
+                    implementation,
+                    evidence
+                },
+            ),
+            Err(RealizationPreflightError::BindingMismatch)
         );
     }
 
