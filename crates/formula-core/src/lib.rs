@@ -444,6 +444,13 @@ impl AuthorityContract {
         }
     }
 
+    /// Read-only policy classes for independent, non-authoritative preflight.
+    /// The caller must separately establish the frozen contract's trust root.
+    #[must_use]
+    pub fn admissible_evidence_classes(&self) -> &[String] {
+        &self.admissible_evidence_classes
+    }
+
     #[must_use]
     pub fn canonical_bytes(&self) -> Vec<u8> {
         let mut out = CanonicalWriter::new(b"formula.authority-contract");
