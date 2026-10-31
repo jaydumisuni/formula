@@ -138,7 +138,7 @@ mod tests {
         }
         for (element, inverse) in [(0b1000, 1), (1, 0b1000), (0b1011, 1)] {
             assert_eq!(
-                check_frozen_gf2_polynomial_modular_inverse(&frame(0b1011, element, inverse,))
+                check_frozen_gf2_polynomial_modular_inverse(&frame(0b1011, element, inverse,)),
                 Err(Gf2PolynomialModularInverseError::UnreducedOperand)
             );
         }
