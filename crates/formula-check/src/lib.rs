@@ -14,6 +14,7 @@ pub mod gf2_polynomial_gcd;
 pub mod gf2_polynomial_irreducibility;
 pub mod gf2_polynomial_lcm;
 pub mod gf2_polynomial_modular_inverse;
+pub mod gf2_polynomial_modular_power;
 pub mod gf2_polynomial_square_root;
 pub mod gf2_polynomial_squarefree;
 pub mod gf2_semantics;
