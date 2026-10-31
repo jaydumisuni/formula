@@ -21,17 +21,19 @@
     "branch": "supervisor/shift-c-p2-gf2-modular-power-20261101-0024",
     "files": [
       "crates/formula-check/src/gf2_polynomial_modular_power.rs",
-      "crates/formula-check/src/lib.rs"
+      "crates/formula-check/src/lib.rs",
+      ".github/workflows/p2-gf2-modular-power.yml"
     ],
-    "change": "Add exact eight-byte GF(2) modular-power witness preflight with bounded repeated squaring and independent coefficient-convolution regression oracle"
+    "change": "Add exact eight-byte GF(2) modular-power witness preflight with bounded repeated squaring and independent coefficient-convolution regression oracle; add pinned Rust 1.98.0 focused hosted qualification workflow"
   },
   "after": {
-    "implementation_head": "474396a09995019eec8b16b3984132fbf17847e1",
+    "implementation_head": "1190c11256a720d89a821ab5c7644487f13197ac",
     "pr": 58,
     "source_blob": "c7bddcd8fd3321bedfc2983ef48ba4440c077aff",
     "lib_blob": "a08585c2947a5ce3e0cd77097081ca97bc7a587c",
-    "ahead_of_predecessor": 2,
-    "behind_predecessor": 0
+    "ahead_of_predecessor": 4,
+    "behind_predecessor": 0,
+    "qualification_workflow_head": "1190c11256a720d89a821ab5c7644487f13197ac"
   },
   "proof": {
     "isolated_reference_comparisons": 7140,
@@ -39,7 +41,7 @@
     "source_and_export_blob_readback": "MATCH",
     "native_cargo": "UNVERIFIED",
     "patrol_preflight": "UNVERIFIED",
-    "hosted_exact_head_ci": "NO_RUNS_RETURNED",
+    "hosted_exact_head_ci": "NEW_WORKFLOW_PUBLISHED_AWAIT_RUN",
     "independent_exact_head_review": "PENDING",
     "physical_or_external_proof": "NOT_CLAIMED"
   },
@@ -52,7 +54,7 @@
   "implementation_movement": {
     "kind": "PROJECT_OWNED_SOURCE_HEAD_ADVANCED",
     "from": "861e5e4f374c6bc3393aa9640d22ec368a0e6eff",
-    "to": "474396a09995019eec8b16b3984132fbf17847e1",
+    "to": "1190c11256a720d89a821ab5c7644487f13197ac",
     "time_utc": "2026-10-31T22:22:24.635Z"
   },
   "dependency_linkage": {
