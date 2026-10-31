@@ -1,0 +1,55 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "A",
+  "project": "formula",
+  "frontier": "P2 independent frozen GF(2)[x] square-root witness preflight",
+  "source_published_at_utc": "2026-10-31T18:58:43Z",
+  "before": {
+    "repository": "jaydumisuni/formula",
+    "branch": "supervisor/shift-d-p2-gf2-derivative-20261031-1736",
+    "head": "4012d4a09fe418b343c34cce874598c51a8f26ed",
+    "pr": 55,
+    "engineering_health": "HOSTED_EXACT_HEAD_CI_SUCCESS; NO_INDEPENDENT_REVIEW"
+  },
+  "after": {
+    "repository": "jaydumisuni/formula",
+    "branch": "supervisor/shift-a-p2-gf2-square-root-20261031-2056",
+    "source_head": "c73c371b9a68f3428c3ac7d9461be3d57ea18601",
+    "source_tree": "59937481ebfab1ed537fad7b297ee2ca6a91acf4",
+    "draft_pr": 56,
+    "source_files": [
+      "crates/formula-check/src/gf2_polynomial_square_root.rs",
+      "crates/formula-check/src/lib.rs"
+    ],
+    "source_changes": {
+      "insertions": 156,
+      "deletions": 0
+    }
+  },
+  "worker_action": "Authenticated GitHub source-only fallback; exact-head predecessor recovery, independent algebraic model, two blobs/one tree/one commit, non-force expected-head update, draft PR for independent review",
+  "proof": {
+    "source_blob_sha": "8c01209393b51dd60c901c8f5e9eece47a16638a",
+    "lib_blob_sha": "b8d89315b88e65831c4c678e5dccd5deefec264b",
+    "git_compare": "1 ahead, 0 behind; exactly two Rust source files",
+    "independent_mathematical_model": "65536/65536 u16 polynomials; 256 distinct squares and 65280 nonsquares; source-model only, NOT Rust execution",
+    "hosted_exact_source_head_ci": "SUCCESS run 41231993818: formatting, workspace compile, P0 boundaries and P1 regression steps",
+    "native_rust": "UNVERIFIED — KRATOS terminal transport failed; hosted CI is not KRATOS native proof",
+    "patrol": "UNVERIFIED — Oracle Live node roster and KRATOS terminal failed internally",
+    "independent_review": "PENDING; no approval at source publication",
+    "physical": "NOT PROVEN"
+  },
+  "engineering_health": "HOSTED_EXACT_HEAD_CI_SUCCESS_NATIVE_UNVERIFIED",
+  "implementation_movement": "MATERIAL_SOURCE_HEAD_ADVANCED",
+  "disposition": "SOURCE_PUBLISHED_CI_PASS_DRAFT_REVIEW_AND_KRATOS_PROOF_PENDING",
+  "dependency_linkage": {
+    "project": "formula",
+    "frontier": "P2 independent checker evidence-body preparation",
+    "parent_pr": 55,
+    "roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md",
+    "protected_authority": "P1 physical/macOS and P2 certificate, Judgement, trust-root and promotion remain unqualified"
+  },
+  "local_attention_and_dispatch": "PENDING — KRATOS offline/unreachable; reconcile exact cloud source/receipt, run project-owned Patrol and native Cargo proof before any local PASS or guarded timer rebound",
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false
+}
