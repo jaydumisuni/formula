@@ -1,0 +1,54 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "D",
+  "project": "formula",
+  "frontier": "P2 independent frozen GF(2)[x] formal-derivative evidence-body preflight",
+  "started_at_utc": "2026-10-31T15:34:25Z",
+  "source_published_at_utc": "2026-10-31T15:36:43Z",
+  "before": {
+    "repository": "jaydumisuni/formula",
+    "branch": "supervisor/shift-a-p2-gf2-factor-witness-20261031-1600",
+    "head": "eab93d0a108283957f7d1a556154bf76992d487e",
+    "pr": 54
+  },
+  "after": {
+    "repository": "jaydumisuni/formula",
+    "branch": "supervisor/shift-d-p2-gf2-derivative-20261031-1736",
+    "source_head": "375022b1024e1eb5df2f7b5bc23cc072331b6457",
+    "draft_pr": 55,
+    "source_tree": "74cf3e9a09f97688a066034b159e1abbb3086087",
+    "source_files": [
+      "crates/formula-check/src/gf2_polynomial_derivative.rs",
+      "crates/formula-check/src/lib.rs"
+    ],
+    "source_changes": {
+      "insertions": 128,
+      "deletions": 0
+    }
+  },
+  "worker_action": "Authenticated GitHub cloud-only source fallback; exact-parent new branch; publish two source blobs as one commit with non-force expected-head ref update; open draft PR for independent review",
+  "proof": {
+    "mathematical_independent_crosscheck": "65536/65536 u16 polynomial derivatives match independently enumerated odd-exponent coefficient rule; model check, NOT Rust execution",
+    "published_source_blobs": "2/2 exact SHA readback",
+    "github_pr_head": "PR #55 exact source HEAD verified before receipt commit",
+    "native_rust": "UNVERIFIED — Oracle terminal unavailable and no Rust toolchain in local fallback runtime",
+    "patrol": "UNVERIFIED — Oracle terminal failed; no KRATOS workspace preflight or explicit ALLOW",
+    "hosted_exact_head_ci": "UNVERIFIED — no workflow runs returned at source HEAD when checked",
+    "physical": "NOT PROVEN; no device/guest proof claimed"
+  },
+  "engineering_health": "SOURCE_ONLY_MODEL_CHECKED_NATIVE_UNVERIFIED",
+  "implementation_movement": "MATERIAL_SOURCE_HEAD_ADVANCED",
+  "disposition": "SOURCE_PUBLISHED_DRAFT_REVIEW_PENDING_NATIVE_AND_PATROL_QUEUED",
+  "dependency_linkage": {
+    "upstream_project": "formula",
+    "upstream_frontier": "P2 independent checker preparation",
+    "parent_pr": 54,
+    "roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md",
+    "protected_authority": "P1 physical/macOS and P2 certificate, Judgement, trust-root, promotion remain unqualified"
+  },
+  "transport": "Oracle Live cloud roster and KRATOS terminal failed internally; authenticated GitHub connector source-only fallback",
+  "local_receipt_reconciliation": "PENDING: write/read local dispatch and attention, Patrol, cargo fmt/test/clippy when KRATOS transport returns",
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false
+}
