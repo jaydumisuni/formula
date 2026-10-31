@@ -1,0 +1,72 @@
+{
+  "schema": "ttg.supervisor.cloud-dispatch.v1",
+  "shift": "C",
+  "observed_at_utc": "2026-10-31T22:22:24.635Z",
+  "project": "formula",
+  "frontier": "P2 independent bounded GF(2)[x] modular-power witness preflight",
+  "selection": {
+    "basis": "oldest observed eligible source movement among enabled projects; KRATOS-local dispatch/worker history unavailable",
+    "previous_observed_material_movement_utc": "2026-10-31T20:19:23Z",
+    "canonical_registry": "jaydumisuni/cookpit main:registry.json",
+    "canonical_registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb"
+  },
+  "before": {
+    "repository": "jaydumisuni/formula",
+    "candidate_head": "861e5e4f374c6bc3393aa9640d22ec368a0e6eff",
+    "predecessor_pr": 57
+  },
+  "action": {
+    "transport": "authenticated GitHub cloud fallback",
+    "worker": "Shift C bounded source-only implementation",
+    "branch": "supervisor/shift-c-p2-gf2-modular-power-20261101-0024",
+    "files": [
+      "crates/formula-check/src/gf2_polynomial_modular_power.rs",
+      "crates/formula-check/src/lib.rs"
+    ],
+    "change": "Add exact eight-byte GF(2) modular-power witness preflight with bounded repeated squaring and independent coefficient-convolution regression oracle"
+  },
+  "after": {
+    "implementation_head": "474396a09995019eec8b16b3984132fbf17847e1",
+    "pr": 58,
+    "source_blob": "c7bddcd8fd3321bedfc2983ef48ba4440c077aff",
+    "lib_blob": "a08585c2947a5ce3e0cd77097081ca97bc7a587c",
+    "ahead_of_predecessor": 2,
+    "behind_predecessor": 0
+  },
+  "proof": {
+    "isolated_reference_comparisons": 7140,
+    "isolated_reference_mismatches": 0,
+    "source_and_export_blob_readback": "MATCH",
+    "native_cargo": "UNVERIFIED",
+    "patrol_preflight": "UNVERIFIED",
+    "hosted_exact_head_ci": "NO_RUNS_RETURNED",
+    "independent_exact_head_review": "PENDING",
+    "physical_or_external_proof": "NOT_CLAIMED"
+  },
+  "engineering_health": {
+    "oracle_roster": "UNVERIFIED_INTERNAL_ERROR",
+    "kratos_terminal": "UNAVAILABLE_INTERNAL_ERROR",
+    "supervisor_pool": "FIVE_ENABLED_ZERO_CONFIRMED_MISSED",
+    "candidate_review": "PENDING"
+  },
+  "implementation_movement": {
+    "kind": "PROJECT_OWNED_SOURCE_HEAD_ADVANCED",
+    "from": "861e5e4f374c6bc3393aa9640d22ec368a0e6eff",
+    "to": "474396a09995019eec8b16b3984132fbf17847e1",
+    "time_utc": "2026-10-31T22:22:24.635Z"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent checker preparation",
+    "held": "P1 physical/macOS; P2 certificate/Judgement/trust-root and promotion admission"
+  },
+  "disposition": "SOURCE_PUBLISHED_CLOUD_PROOF_ONLY_NATIVE_AND_REVIEW_PENDING",
+  "local_reconciliation": "QUEUED_KRATOS_ATTENTION_AND_DISPATCH_RECEIPT",
+  "protected": {
+    "production_touched": false,
+    "oracle_phase27_dispatched": false,
+    "stolen_device_touched": false,
+    "supervisor_schedules_changed": false,
+    "protected_merge": false,
+    "force_push": false
+  }
+}
