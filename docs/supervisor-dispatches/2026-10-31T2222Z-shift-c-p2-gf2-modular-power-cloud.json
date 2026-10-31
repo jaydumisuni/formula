@@ -24,14 +24,14 @@
       "crates/formula-check/src/lib.rs",
       ".github/workflows/p2-gf2-modular-power.yml"
     ],
-    "change": "Add exact eight-byte GF(2) modular-power witness preflight with bounded repeated squaring and independent coefficient-convolution regression oracle; add pinned Rust 1.98.0 focused hosted qualification workflow"
+    "change": "Add exact eight-byte GF(2) modular-power witness preflight with bounded repeated squaring and independent coefficient-convolution regression oracle; add pinned Rust 1.98.0 focused hosted qualification workflow; consumed exact Rust 1.98 rustfmt failure into source correction"
   },
   "after": {
-    "implementation_head": "1190c11256a720d89a821ab5c7644487f13197ac",
+    "implementation_head": "5dddef702f558c386d4cac63a7502123f80f9fbd",
     "pr": 58,
-    "source_blob": "c7bddcd8fd3321bedfc2983ef48ba4440c077aff",
+    "source_blob": "fa2771c580655add30b731a73b3a571b13043084",
     "lib_blob": "a08585c2947a5ce3e0cd77097081ca97bc7a587c",
-    "ahead_of_predecessor": 4,
+    "ahead_of_predecessor": 6,
     "behind_predecessor": 0,
     "qualification_workflow_head": "1190c11256a720d89a821ab5c7644487f13197ac"
   },
@@ -39,11 +39,29 @@
     "isolated_reference_comparisons": 7140,
     "isolated_reference_mismatches": 0,
     "source_and_export_blob_readback": "MATCH",
-    "native_cargo": "UNVERIFIED",
+    "native_cargo": "HOSTED_FOCUSED_RUST_TEST_PASS_LOCAL_KRATOS_UNVERIFIED",
     "patrol_preflight": "UNVERIFIED",
-    "hosted_exact_head_ci": "NEW_WORKFLOW_PUBLISHED_AWAIT_RUN",
+    "hosted_exact_head_ci": "THREE_WORKFLOWS_SUCCESS_AT_SOURCE_HEAD_5dddef7",
     "independent_exact_head_review": "PENDING",
-    "physical_or_external_proof": "NOT_CLAIMED"
+    "physical_or_external_proof": "NOT_CLAIMED",
+    "hosted_runs": [
+      {
+        "id": 41248018151,
+        "name": "Formula P2 GF2 modular power candidate",
+        "conclusion": "success"
+      },
+      {
+        "id": 41248018146,
+        "name": "Formula P2 GF2 modular inverse candidate",
+        "conclusion": "success"
+      },
+      {
+        "id": 41248018160,
+        "name": "P0 Boundary Candidate Verification",
+        "conclusion": "success"
+      }
+    ],
+    "rustfmt": "PASS"
   },
   "engineering_health": {
     "oracle_roster": "UNVERIFIED_INTERNAL_ERROR",
@@ -54,14 +72,14 @@
   "implementation_movement": {
     "kind": "PROJECT_OWNED_SOURCE_HEAD_ADVANCED",
     "from": "861e5e4f374c6bc3393aa9640d22ec368a0e6eff",
-    "to": "1190c11256a720d89a821ab5c7644487f13197ac",
+    "to": "5dddef702f558c386d4cac63a7502123f80f9fbd",
     "time_utc": "2026-10-31T22:22:24.635Z"
   },
   "dependency_linkage": {
     "upstream": "Formula P2 independent checker preparation",
     "held": "P1 physical/macOS; P2 certificate/Judgement/trust-root and promotion admission"
   },
-  "disposition": "SOURCE_PUBLISHED_CLOUD_PROOF_ONLY_NATIVE_AND_REVIEW_PENDING",
+  "disposition": "SOURCE_AND_HOSTED_FOCUSED_CI_PASS_INDEPENDENT_REVIEW_PENDING_LOCAL_RECONCILIATION",
   "local_reconciliation": "QUEUED_KRATOS_ATTENTION_AND_DISPATCH_RECEIPT",
   "protected": {
     "production_touched": false,
