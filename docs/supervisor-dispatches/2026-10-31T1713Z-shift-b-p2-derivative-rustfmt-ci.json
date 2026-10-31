@@ -1,0 +1,58 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "B",
+  "project": "formula",
+  "frontier": "P2 derivative checker: correct exact-head pinned rustfmt failure",
+  "source_published_at_utc": "2026-10-31T17:13:41Z",
+  "before": {
+    "repository": "jaydumisuni/formula",
+    "head": "59f236f271abb78ee1903457de76831ca8ae9260",
+    "pr": 55,
+    "engineering_health": "HOSTED_CI_FAILED_FORMATTING",
+    "failed_workflow_run": 41215715861,
+    "failed_step": "Verify formatting",
+    "failure_details": [
+      "gf2_polynomial_derivative.rs assert_eq line wrapping",
+      "lib.rs module declaration order"
+    ]
+  },
+  "after": {
+    "repository": "jaydumisuni/formula",
+    "source_head": "f50d308f8e0b41ff37770842185964bbc4e04568",
+    "source_tree": "6703c7acb26b282529e32a4e36f364d30d1a740f",
+    "pr": 55,
+    "source_files": [
+      "crates/formula-check/src/gf2_polynomial_derivative.rs",
+      "crates/formula-check/src/lib.rs"
+    ],
+    "change_stats": {
+      "insertions": 5,
+      "deletions": 2
+    }
+  },
+  "worker_action": "Authenticated GitHub cloud-only source correction; use exact failed CI rustfmt diff; create two source blobs, one tree and commit, non-force expected-head ref update",
+  "proof": {
+    "failed_predecessor_ci": "P0 Boundary Candidate Verification run 41215715861: formatting step FAIL; prior boundary and source-proof steps PASS",
+    "correction": "Two exact formatting hunks match rustfmt 1.98.0 diagnostic output; source blobs and GitHub compare verified",
+    "github_pr_exact_source_head": "MATCH",
+    "git_compare": "1 ahead, 0 behind; exactly two Rust source files",
+    "patrol": "UNVERIFIED — Oracle Live roster and KRATOS terminal failed internally",
+    "native_rust": "UNVERIFIED — no KRATOS or local Rust toolchain",
+    "hosted_exact_source_head_ci": "UNVERIFIED — no runs returned immediately after source publication",
+    "physical": "NOT PROVEN"
+  },
+  "engineering_health": "SOURCE_FORMAT_FIX_PUBLISHED_CI_PENDING",
+  "implementation_movement": "MATERIAL_SOURCE_HEAD_ADVANCED_CONSUMED_CI_FINDING",
+  "disposition": "SOURCE_CORRECTION_PUBLISHED_AWAIT_HOSTED_AND_NATIVE_PROOF",
+  "dependency_linkage": {
+    "project": "formula",
+    "frontier": "P2 independent checker preparatory evidence",
+    "parent_pr": 55,
+    "roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md",
+    "protected_authority": "P1 physical/macOS and P2 certificate, Judgement, trust-root, promotion remain unqualified"
+  },
+  "local_attention_and_dispatch": "PENDING — KRATOS Oracle terminal unavailable; reconcile cloud commit and this project-owned receipt before any local PASS",
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false
+}
