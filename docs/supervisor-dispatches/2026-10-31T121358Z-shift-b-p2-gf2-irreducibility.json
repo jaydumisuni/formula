@@ -30,12 +30,15 @@
     "mathematical_independent_crosscheck": "254/254 nonconstant 8-bit polynomials agree with independent carryless factor-pair enumeration; high-degree fixtures independently checked",
     "git_exact_head": "verified PR #53 head matches published source commit before receipt",
     "git_comparison": "ahead by 2, behind by 0, two intended source files",
-    "hosted_ci": "IN_PROGRESS on source head at inspection; not PASS",
-    "native_rust": "UNVERIFIED; Rust/Cargo not available in cloud execution container",
-    "patrol": "UNVERIFIED; Oracle Live connection failed",
-    "physical": "NOT_APPLICABLE; no physical authority claimed"
+    "hosted_ci": "Source commit workflow was IN_PROGRESS; receipt-commit exact-head CI not yet established",
+    "native_rust": "KRATOS isolated Formula project worktree: cargo test -p formula-check --locked, 111/111 PASS (includes 3/3 new tests)",
+    "patrol": "UNVERIFIED: xvfb-run patrol --help exited 0 without an explicit ALLOW receipt",
+    "physical": "NOT_APPLICABLE; no physical authority claimed",
+    "cargo_format": "KRATOS cargo fmt --all -- --check PASS",
+    "cargo_clippy": "KRATOS cargo clippy -p formula-check --all-targets --locked -- -D warnings PASS",
+    "git_diff_check": "KRATOS isolated project worktree git diff --check PASS"
   },
-  "engineering_health": "SOURCE_REVIEW_PENDING",
+  "engineering_health": "NATIVE_CHECKER_TESTS_PASS_REVIEW_PENDING",
   "implementation_movement": "MATERIAL_SOURCE_HEAD_ADVANCED",
   "disposition": "SOURCE_PUBLISHED_REVIEW_PENDING",
   "dependency_linkage": {
@@ -46,8 +49,9 @@
     "protected_authority": "P2 certificate, Judgement, trust-root, and promotion remain unqualified"
   },
   "transport": "GitHub authenticated connector; Oracle Live roster UNVERIFIED due to connection failure",
-  "local_receipt_reconciliation": "Queue copy to /home/kratos/.local/state/ttg-cookpit/supervisors/dispatches/ when KRATOS Oracle transport returns; do not mark local receipt written",
+  "local_receipt_reconciliation": "Local dispatch and attention write pending, to be verified separately",
   "production_touched": false,
   "stolen_device_touched": false,
-  "supervisor_schedules_changed": false
+  "supervisor_schedules_changed": false,
+  "local_worktree": "/home/kratos/projects/formula/.workspace/worktrees/shift-b-p2-irreducibility-20261031"
 }
