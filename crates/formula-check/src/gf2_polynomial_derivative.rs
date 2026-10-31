@@ -78,7 +78,10 @@ mod tests {
             Err(Gf2PolynomialDerivativeError::InvalidFrame)
         );
         for polynomial in [0_u16, 1] {
-            assert_eq!(check_frozen_gf2_polynomial_derivative(&frame(polynomial, 0)), Ok(()));
+            assert_eq!(
+                check_frozen_gf2_polynomial_derivative(&frame(polynomial, 0)),
+                Ok(())
+            );
             assert_eq!(
                 check_frozen_gf2_polynomial_derivative(&frame(polynomial, 1)),
                 Err(Gf2PolynomialDerivativeError::DerivativeMismatch {
