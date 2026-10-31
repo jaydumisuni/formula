@@ -7,6 +7,7 @@
 //! remain independent unimplemented gates.
 
 pub mod gf2_normal_form;
+pub mod gf2_polynomial_bezout;
 pub mod gf2_polynomial_division;
 pub mod gf2_polynomial_gcd;
 pub mod gf2_semantics;
