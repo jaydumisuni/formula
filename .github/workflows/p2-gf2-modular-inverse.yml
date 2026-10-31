@@ -1,0 +1,29 @@
+name: Formula P2 GF2 modular inverse candidate
+
+on:
+  pull_request:
+    paths:
+      - "crates/formula-check/src/gf2_polynomial_modular_inverse.rs"
+      - "crates/formula-check/src/lib.rs"
+      - ".github/workflows/p2-gf2-modular-inverse.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  modular-inverse-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt
+      - name: Verify formatting
+        run: cargo +1.98.0 fmt --all -- --check
+      - name: Exercise independent P2 modular inverse regressions
+        run: cargo +1.98.0 test -p formula-check --locked gf2_polynomial_modular_inverse
+      - name: Preserve mathematical authority boundary
+        run: |
+          echo "Source-only P2 checker candidate; no certificate, Judgement, trust-root or promotion."

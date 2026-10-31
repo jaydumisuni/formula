@@ -1,0 +1,64 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "B",
+  "project": "formula",
+  "frontier": "P2 independent bounded GF(2)[x] modular inverse witness preflight",
+  "observed_at_utc": "2026-10-31T20:16:30.399Z",
+  "canonical_authority": {
+    "registry": "jaydumisuni/cookpit main:registry.json",
+    "main_head": "aa49182ce91c5261ac49d04d9d297fea6fe39b8d",
+    "registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb",
+    "enabled": true,
+    "profile": "profiles/formula.json",
+    "roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md"
+  },
+  "before": {
+    "branch": "supervisor/shift-a-p2-gf2-square-root-20261031-2056",
+    "head": "c9b4ec790b9a23aec8cd2f72d5155bc51d5f8889",
+    "pr": 56
+  },
+  "after": {
+    "branch": "supervisor/shift-b-p2-gf2-modular-inverse-20261031-2215",
+    "source_head": "ba272fe5ab481d0108dd34b2256fe6739e0e1abd",
+    "pr": 57,
+    "files": [
+      "crates/formula-check/src/gf2_polynomial_modular_inverse.rs",
+      "crates/formula-check/src/lib.rs",
+      ".github/workflows/p2-gf2-modular-inverse.yml"
+    ],
+    "additions": 177,
+    "deletions": 0,
+    "initial_source_head": "1401103ddeb4569a6b58ee5ff4c6bcfececa54ae",
+    "focused_ci_workflow_head": "44f526de2bddd0a4c193ba9558ca1753bc787866"
+  },
+  "worker_action": "Shift B authenticated GitHub cloud fallback, source-only Formula project branch; exact predecessor source and P2 roadmap recovery, bounded modular inverse checker and independent regression model; no KRATOS terminal",
+  "movement": {
+    "state": "MATERIAL_SOURCE_HEAD_ADVANCED",
+    "material_progress_at_utc": "2026-10-31T20:18:31Z",
+    "source_head_advanced": true,
+    "obligation": "exact 6-byte reduced modular inverse witness verification with full u32 carryless remainder"
+  },
+  "engineering_health": {
+    "independent_python_algebra_model": "4680/4680 small-domain operand/claim checks matched brute-force quotient enumeration; not Rust execution",
+    "github_compare": "ahead 2 behind 0, exactly 2 Formula source files",
+    "source_blob_readback": "69f505279a194693738de500cea507fdb67d208e",
+    "hosted_exact_source_head_ci": "SUCCESS P0 run 41238296478 at ba272fe5; focused P2 Rust tests SUCCESS run 41238296192 at ba272fe5",
+    "native_rust": "KRATOS NATIVE UNVERIFIED; hosted Rust focused tests SUCCESS",
+    "patrol": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "physical": "NOT_PROVEN",
+    "nodie_cloud_roster": "UNVERIFIED internal Oracle Live error",
+    "kratos": "UNVERIFIED Oracle terminal internal error",
+    "format_failure_repaired": "Initial pinned rustfmt failure and subsequent missing assert_eq comma were diagnosed from hosted logs and corrected; both exact-source-head workflows now SUCCESS",
+    "hosted_targeted_tests": "SUCCESS: cargo +1.98.0 test -p formula-check --locked gf2_polynomial_modular_inverse; focused module regressions executed in GitHub Actions"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 GF(2) polynomial division/GCD/irreducibility/square-root source preflights; stacked on PR #56",
+    "downstream": "P2 independent certificate/Judgement/trust-root/promotion and P1 physical/macOS remain protected"
+  },
+  "disposition": "SOURCE_PUBLISHED_FOCUSED_HOSTED_TESTS_PASS_INDEPENDENT_REVIEW_PENDING",
+  "local_attention_and_dispatch": "QUEUED_KRATOS_RECONCILIATION: recover exact branch/receipt; run Patrol in Formula-owned workspace and focused cargo test, cargo fmt, cargo clippy; reconcile attention without duplicating a PASS receipt",
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false
+}
