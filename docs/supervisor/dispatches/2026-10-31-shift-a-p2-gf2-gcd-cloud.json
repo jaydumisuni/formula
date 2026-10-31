@@ -1,7 +1,7 @@
 {
   "schema": "ttg.supervisor.cloud-dispatch.v1",
   "shift": "A",
-  "observed_at_utc": "2026-10-31T07:07:09.646Z",
+  "observed_at_utc": "2026-10-31T07:08:32.353Z",
   "project": "formula",
   "frontier": "P2 independent bounded GF(2)[x] GCD witness checker",
   "dependency_linkage": "Formula P2 preparatory source-only checker; P1 physical/macOS and P2 trust-root admission remain protected",
@@ -31,16 +31,17 @@
     "protected_promotion": false
   },
   "after": {
-    "source_head": "1dd44e6a907aa3a7c9cee8629f5eea52212281b0",
+    "source_head": "571be981c88858b689fadaedd8fde88d6a495d39",
     "remote_head_verified": true,
     "review": "PR #50 draft, 0 reviews",
-    "source_delta": "new exact six-byte frozen GF(2) GCD checker; exhaustive small-domain and high-degree adversarial tests"
+    "source_delta": "new exact six-byte frozen GF(2) GCD checker; exhaustive small-domain and high-degree adversarial tests",
+    "ci_repair": "Hosted run 41179329809 failed at rustfmt module ordering; corrected ordering in 571be981c88858b689fadaedd8fde88d6a495d39"
   },
   "proof": {
     "independent_math_crosscheck": "1023 nonzero 5-bit operand pairs, 0 discrepancies between Euclidean and brute-force divisor-product enumeration; 6 high-degree cases checked in Python mirror",
     "rust_cargo_tests": "UNVERIFIED",
     "patrol": "UNVERIFIED",
-    "hosted_ci": "IN_PROGRESS at observation; no PASS claimed",
+    "hosted_ci": "INITIAL FAILURE (formatting) CONSUMED INTO SOURCE FIX; new exact-head CI PENDING",
     "physical_device": "NOT_RUN",
     "trust_root": "NOT_ADMITTED"
   },
