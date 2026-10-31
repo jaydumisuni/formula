@@ -142,11 +142,12 @@ mod tests {
                     );
                     assert_eq!(
                         check_frozen_gf2_polynomial_modular_power(&frame(
-                            modulus, base, exponent, expected ^ 1
+                            modulus,
+                            base,
+                            exponent,
+                            expected ^ 1
                         )),
-                        Err(Gf2PolynomialModularPowerError::NotPower {
-                            computed: expected
-                        }),
+                        Err(Gf2PolynomialModularPowerError::NotPower { computed: expected }),
                         "forged modulus={modulus:#b} base={base:#b} exponent={exponent}"
                     );
                 }
