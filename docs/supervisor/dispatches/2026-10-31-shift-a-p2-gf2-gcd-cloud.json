@@ -1,0 +1,53 @@
+{
+  "schema": "ttg.supervisor.cloud-dispatch.v1",
+  "shift": "A",
+  "observed_at_utc": "2026-10-31T07:08:32.353Z",
+  "project": "formula",
+  "frontier": "P2 independent bounded GF(2)[x] GCD witness checker",
+  "dependency_linkage": "Formula P2 preparatory source-only checker; P1 physical/macOS and P2 trust-root admission remain protected",
+  "canonical_registry": {
+    "repository": "jaydumisuni/cookpit",
+    "ref": "main",
+    "head": "aa49182ce91c5261ac49d04d9d297fea6fe39b8d",
+    "project_enabled": true
+  },
+  "selection_basis": "Prior durable Shift A reconciliation identified Formula as older than Origins; KRATOS receipts and live worker leases could not be re-read due Oracle Live transport failure, so fleet-wide fairness is provisional.",
+  "transport": "authenticated GitHub cloud fallback",
+  "patrol_preflight": "UNVERIFIED: KRATOS terminal unavailable; no local Patrol execution claimed",
+  "before": {
+    "repo": "jaydumisuni/formula",
+    "source_branch": "supervisor/shift-a-p2-gf2-division-20261031-0300",
+    "head": "120c81abe6c3e9136eefc7af406d7d58c58fb858",
+    "review": "PR #46 draft; no reviews"
+  },
+  "action": {
+    "kind": "bounded_source_only_implementation",
+    "branch": "supervisor/shift-a-p2-gf2-gcd-20261031-0900",
+    "changed_files": [
+      "crates/formula-check/src/gf2_polynomial_gcd.rs",
+      "crates/formula-check/src/lib.rs"
+    ],
+    "pull_request": "https://github.com/jaydumisuni/formula/pull/50",
+    "protected_promotion": false
+  },
+  "after": {
+    "source_head": "571be981c88858b689fadaedd8fde88d6a495d39",
+    "remote_head_verified": true,
+    "review": "PR #50 draft, 0 reviews",
+    "source_delta": "new exact six-byte frozen GF(2) GCD checker; exhaustive small-domain and high-degree adversarial tests",
+    "ci_repair": "Hosted run 41179329809 failed at rustfmt module ordering; corrected ordering in 571be981c88858b689fadaedd8fde88d6a495d39"
+  },
+  "proof": {
+    "independent_math_crosscheck": "1023 nonzero 5-bit operand pairs, 0 discrepancies between Euclidean and brute-force divisor-product enumeration; 6 high-degree cases checked in Python mirror",
+    "rust_cargo_tests": "UNVERIFIED",
+    "patrol": "UNVERIFIED",
+    "hosted_ci": "INITIAL FAILURE (formatting) CONSUMED INTO SOURCE FIX; new exact-head CI PENDING",
+    "physical_device": "NOT_RUN",
+    "trust_root": "NOT_ADMITTED"
+  },
+  "health": "SOURCE_ONLY_PROOF_PENDING",
+  "movement": "MATERIAL_SOURCE_HEAD_ADVANCED",
+  "disposition": "PUBLISHED_FOR_INDEPENDENT_REVIEW_NOT_PROMOTED",
+  "production_touched": false,
+  "local_receipt_sync": "PENDING_KRATOS_RECONNECTION; reconcile with /home/kratos/.local/state/ttg-cookpit/supervisors/dispatches/ before next local dispatch"
+}
