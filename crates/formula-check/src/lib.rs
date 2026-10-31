@@ -9,6 +9,7 @@
 pub mod gf2_normal_form;
 pub mod gf2_polynomial_division;
 pub mod gf2_polynomial_gcd;
+pub mod gf2_polynomial_irreducibility;
 pub mod gf2_polynomial_lcm;
 pub mod gf2_polynomial_squarefree;
 pub mod gf2_semantics;
