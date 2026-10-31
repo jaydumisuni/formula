@@ -19,14 +19,15 @@
   },
   "after": {
     "branch": "supervisor/shift-b-p2-gf2-modular-inverse-20261031-2215",
-    "source_head": "1401103ddeb4569a6b58ee5ff4c6bcfececa54ae",
+    "source_head": "5b950988868964dd308a35ca76bdcef09358be82",
     "pr": 57,
     "files": [
       "crates/formula-check/src/gf2_polynomial_modular_inverse.rs",
       "crates/formula-check/src/lib.rs"
     ],
     "additions": 177,
-    "deletions": 0
+    "deletions": 0,
+    "initial_source_head": "1401103ddeb4569a6b58ee5ff4c6bcfececa54ae"
   },
   "worker_action": "Shift B authenticated GitHub cloud fallback, source-only Formula project branch; exact predecessor source and P2 roadmap recovery, bounded modular inverse checker and independent regression model; no KRATOS terminal",
   "movement": {
@@ -38,20 +39,21 @@
   "engineering_health": {
     "independent_python_algebra_model": "4680/4680 small-domain operand/claim checks matched brute-force quotient enumeration; not Rust execution",
     "github_compare": "ahead 2 behind 0, exactly 2 Formula source files",
-    "source_blob_readback": "80e482feb966a8bf46745fb0d03937a3248f303e",
-    "hosted_exact_source_head_ci": "IN_PROGRESS run 41238102073 at receipt creation",
+    "source_blob_readback": "d115874b9f163e7c00e157f4de1840f22fde8722",
+    "hosted_exact_source_head_ci": "Initial source/receipt runs FAILED at pinned rustfmt; corrected exact source head 5b95098 queued run 41238166240; no PASS asserted",
     "native_rust": "UNVERIFIED",
     "patrol": "UNVERIFIED",
     "independent_review": "PENDING",
     "physical": "NOT_PROVEN",
     "nodie_cloud_roster": "UNVERIFIED internal Oracle Live error",
-    "kratos": "UNVERIFIED Oracle terminal internal error"
+    "kratos": "UNVERIFIED Oracle terminal internal error",
+    "format_failure_repaired": "5 exact formatting diffs recovered from GitHub job 124646034316 and applied to source; no semantic change"
   },
   "dependency_linkage": {
     "upstream": "Formula P2 GF(2) polynomial division/GCD/irreducibility/square-root source preflights; stacked on PR #56",
     "downstream": "P2 independent certificate/Judgement/trust-root/promotion and P1 physical/macOS remain protected"
   },
-  "disposition": "SOURCE_PUBLISHED_HOSTED_CI_PENDING_NATIVE_UNVERIFIED",
+  "disposition": "SOURCE_CORRECTED_HOSTED_CI_QUEUED_NATIVE_UNVERIFIED",
   "local_attention_and_dispatch": "QUEUED_KRATOS_RECONCILIATION: recover exact branch/receipt; run Patrol in Formula-owned workspace and focused cargo test, cargo fmt, cargo clippy; reconcile attention without duplicating a PASS receipt",
   "production_touched": false,
   "stolen_device_touched": false,
