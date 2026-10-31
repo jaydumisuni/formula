@@ -33,8 +33,7 @@ pub fn check_frozen_gf2_polynomial_modular_inverse(
         return Err(Gf2PolynomialModularInverseError::ConstantModulus);
     }
     if (element != 0 && element.leading_zeros() <= modulus.leading_zeros())
-        || (claimed_inverse != 0
-            && claimed_inverse.leading_zeros() <= modulus.leading_zeros())
+        || (claimed_inverse != 0 && claimed_inverse.leading_zeros() <= modulus.leading_zeros())
     {
         return Err(Gf2PolynomialModularInverseError::UnreducedOperand);
     }
@@ -80,8 +79,7 @@ mod tests {
             let mut parity = 0_u32;
             for i in 0..16 {
                 if degree >= i && degree - i < 16 {
-                    parity ^= u32::from((lhs >> i) & 1)
-                        & u32::from((rhs >> (degree - i)) & 1);
+                    parity ^= u32::from((lhs >> i) & 1) & u32::from((rhs >> (degree - i)) & 1);
                 }
             }
             result |= parity << degree;
@@ -93,9 +91,7 @@ mod tests {
         let product = convolution(element, candidate);
         // For modulus <= degree 4 and reduced operands, the quotient
         // degree is <= 3; 0..=255 is a deliberately generous bound.
-        (0_u16..=255).any(|quotient| {
-            product ^ convolution(modulus, quotient) == 1
-        })
+        (0_u16..=255).any(|quotient| product ^ convolution(modulus, quotient) == 1)
     }
 
     #[test]
@@ -104,9 +100,9 @@ mod tests {
             let limit = 1_u16 << (15 - modulus.leading_zeros());
             for element in 0..limit {
                 for candidate in 0..limit {
-                    let actual = check_frozen_gf2_polynomial_modular_inverse(
-                        &frame(modulus, element, candidate),
-                    );
+                    let actual = check_frozen_gf2_polynomial_modular_inverse(&frame(
+                        modulus, element, candidate,
+                    ));
                     let expected = independent_inverse(modulus, element, candidate);
                     assert_eq!(
                         actual.is_ok(),
@@ -142,9 +138,7 @@ mod tests {
         }
         for (element, inverse) in [(0b1000, 1), (1, 0b1000), (0b1011, 1)] {
             assert_eq!(
-                check_frozen_gf2_polynomial_modular_inverse(&frame(
-                    0b1011, element, inverse,
-                )),
+                check_frozen_gf2_polynomial_modular_inverse(&frame(0b1011, element, inverse,))
                 Err(Gf2PolynomialModularInverseError::UnreducedOperand)
             );
         }
