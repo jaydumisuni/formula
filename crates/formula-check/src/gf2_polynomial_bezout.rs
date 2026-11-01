@@ -6,7 +6,7 @@
 //! Both-zero operands are undefined; all other pairs have a monic GCD.
 
 use crate::{
-    preflight_pinned_frozen_evidence_bundle, FrozenEvidence, PinnedEvidenceBundlePreflightError,
+    FrozenEvidence, PinnedEvidenceBundlePreflightError, preflight_pinned_frozen_evidence_bundle,
 };
 use formula_core::{ArtifactDigest, AuthorityContract, EvidenceEnvelopeMetadata};
 
@@ -358,22 +358,40 @@ mod tests {
         let alien = ArtifactDigest::sha256(b"untrusted-substitution");
         assert_eq!(
             preflight_pinned_frozen_gf2_polynomial_bezout(
-                target_pin, payload_pin, checker_pin, alien, contract_pin,
-                &contract, &metadata, &frozen,
+                target_pin,
+                payload_pin,
+                checker_pin,
+                alien,
+                contract_pin,
+                &contract,
+                &metadata,
+                &frozen,
             ),
             Err(Gf2PolynomialBezoutBundleError::ContractPinMismatch)
         );
         assert_eq!(
             preflight_pinned_frozen_gf2_polynomial_bezout(
-                alien, payload_pin, checker_pin, contract_pin, contract_pin,
-                &contract, &metadata, &frozen,
+                alien,
+                payload_pin,
+                checker_pin,
+                contract_pin,
+                contract_pin,
+                &contract,
+                &metadata,
+                &frozen,
             ),
             Err(Gf2PolynomialBezoutBundleError::JudgementPinMismatch)
         );
         assert_eq!(
             preflight_pinned_frozen_gf2_polynomial_bezout(
-                target_pin, payload_pin, alien, contract_pin, contract_pin,
-                &contract, &metadata, &frozen,
+                target_pin,
+                payload_pin,
+                alien,
+                contract_pin,
+                contract_pin,
+                &contract,
+                &metadata,
+                &frozen,
             ),
             Err(Gf2PolynomialBezoutBundleError::Bundle(
                 PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
@@ -402,15 +420,23 @@ mod tests {
         let target_pin = judgement.structural_digest();
         let payload_pin = ArtifactDigest::sha256(&body);
         let metadata = EvidenceEnvelopeMetadata::new(
-            target_pin, frozen.evidence_family, payload_pin, checker_pin,
+            target_pin,
+            frozen.evidence_family,
+            payload_pin,
+            checker_pin,
         );
         assert_eq!(
             preflight_pinned_frozen_gf2_polynomial_bezout(
-                target_pin, payload_pin, checker_pin, contract_pin, contract_pin,
-                &contract, &metadata, &frozen,
+                target_pin,
+                payload_pin,
+                checker_pin,
+                contract_pin,
+                contract_pin,
+                &contract,
+                &metadata,
+                &frozen,
             ),
             Err(Gf2PolynomialBezoutBundleError::WrongEvidenceFamily)
         );
     }
-
 }
