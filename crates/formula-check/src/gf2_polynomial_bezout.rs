@@ -427,6 +427,56 @@ mod tests {
     }
 
     #[test]
+    fn full_width_cancellation_rejects_forgeries_hidden_by_u16_truncation() {
+        // Both products exceed u16, but their high terms cancel in GF(2)[x].
+        // A checker that truncates before XOR would admit the forged pairs.
+        let (lhs, rhs, gcd) = (0x8000_u16, 0x8000_u16, 0x8000_u16);
+        let (s, t) = (0x8001_u16, 0x8000_u16);
+        assert_eq!(reference_product(lhs, s), 0x4000_8000);
+        assert_eq!(reference_product(rhs, t), 0x4000_0000);
+        assert_eq!(
+            reference_product(lhs, s) ^ reference_product(rhs, t),
+            u32::from(gcd)
+        );
+        assert_eq!(
+            check_frozen_gf2_polynomial_bezout(&frame(lhs, rhs, gcd, s, t)),
+            Ok(())
+        );
+
+        for (forged_s, forged_t) in [(s, 0_u16), (1_u16, t)] {
+            let computed = reference_product(lhs, forged_s) ^ reference_product(rhs, forged_t);
+            assert_eq!(computed, 0x4000_8000);
+            assert_eq!(computed & 0xffff, u32::from(gcd));
+            assert_ne!(computed, u32::from(gcd));
+            assert_eq!(
+                check_frozen_gf2_polynomial_bezout(&frame(lhs, rhs, gcd, forged_s, forged_t)),
+                Err(Gf2PolynomialBezoutError::IdentityMismatch {
+                    computed,
+                    claimed: gcd,
+                })
+            );
+        }
+    }
+
+    #[test]
+    fn zero_operand_accepts_noncanonical_irrelevant_coefficient() {
+        // A Bezout coefficient multiplying zero is semantically unconstrained.
+        // Exact verification must not impose a false canonical-zero rule.
+        for nonzero in [0x8000_u16, 0xffff] {
+            for irrelevant in [0_u16, 1, 0x8000, 0xffff] {
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(nonzero, 0, nonzero, 1, irrelevant)),
+                    Ok(())
+                );
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(0, nonzero, nonzero, irrelevant, 1)),
+                    Ok(())
+                );
+            }
+        }
+    }
+
+    #[test]
     fn malformed_frames_and_undefined_pair_fail_closed() {
         let valid = frame(0b1011, 0b1101, 1, 2, 3);
         assert_eq!(check_frozen_gf2_polynomial_bezout(&valid), Ok(()));
