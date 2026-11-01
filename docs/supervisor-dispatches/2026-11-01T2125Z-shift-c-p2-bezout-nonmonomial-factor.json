@@ -1,0 +1,47 @@
+{
+  "schema": "ttg.formula.supervisor.dispatch.v1",
+  "shift": "C",
+  "project": "formula",
+  "frontier": "P2_INDEPENDENT_GF2_BEZOUT_NONMONOMIAL_COMMON_FACTOR_COVARIANCE",
+  "before_head": "2a112af262d9b1baac9e8c9d613a296d419bacf0",
+  "implementation_head": "3aa8a5fed5a5a1be514ead43e5ea49245a631b15",
+  "before_state": "PR71 source proof 142 native formula-check tests; no explicit nonmonomial common-factor covariance matrix; no fresh implementation worker",
+  "after_state": "86 Rust test lines add 49 independently derived multi-term common-factor witnesses, operand exchange, 49 forged GCD and 98 one-sided coefficient forgery checks; P2 source-only preparation, no authority promotion",
+  "worker_action": "Shift C isolated project-owned Formula worktree, Patrol ALLOW, bounded test implementation, focused/native proof, nonforce publication and independent draft PR",
+  "worktree": "/home/kratos/projects/formula/.workspace/worktrees/p2-bezout-nonmonomial-factor-shift-c-20261101-2324",
+  "branch": "supervisor/shift-c-p2-bezout-nonmonomial-factor-20261101-2324",
+  "parent_pr": "https://github.com/jaydumisuni/formula/pull/71",
+  "proof": {
+    "patrol": "ALLOW inside registered project formula",
+    "focused": "1/1 PASS",
+    "native_formula_check": "143/143 PASS",
+    "clippy": "PASS -D warnings",
+    "fmt": "PASS",
+    "diff_check": "PASS",
+    "p0_invariants": "PASS repository invariants only; P0 milestone NOT PROVEN",
+    "hosted_exact_head_ci": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "p1_macos": "NOT PROVEN",
+    "p2_certificate": "NOT ADMITTED"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent checker source qualification",
+    "downstream": "mathematical certificate/trust-root qualification",
+    "protected": "P1 macOS physical, P2 authority/promotion HOLD"
+  },
+  "movement_fact": {
+    "kind": "MATERIAL_SOURCE_IMPLEMENTATION_HEAD_ADVANCED",
+    "before_head": "2a112af262d9b1baac9e8c9d613a296d419bacf0",
+    "implementation_head": "3aa8a5fed5a5a1be514ead43e5ea49245a631b15",
+    "tracked_delta": "86 Rust test lines",
+    "active_worker": false
+  },
+  "health_fact": {
+    "state": "NATIVE_143_PASS_HOSTED_UNVERIFIED_REVIEW_PENDING",
+    "proof_is_movement": false
+  },
+  "time_utc": "2026-11-01T21:25:22.940583+00:00",
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false
+}
