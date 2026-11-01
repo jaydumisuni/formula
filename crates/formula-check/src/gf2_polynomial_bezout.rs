@@ -534,6 +534,42 @@ mod tests {
                         claimed: shifted_gcd,
                     })
                 );
+
+                // The shifted witness must still depend on the *other*
+                // coefficient. Independently compute the forged polynomial
+                // instead of trusting the production multiplication path.
+                let forged_t = t ^ 1;
+                let forged_t_product =
+                    reference_product(shifted_lhs, s) ^ reference_product(shifted_rhs, forged_t);
+                assert_ne!(forged_t_product, u32::from(shifted_gcd));
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(
+                        shifted_lhs,
+                        shifted_rhs,
+                        shifted_gcd,
+                        s,
+                        forged_t
+                    )),
+                    Err(Gf2PolynomialBezoutError::IdentityMismatch {
+                        computed: forged_t_product,
+                        claimed: shifted_gcd,
+                    }),
+                    "forged shifted t lhs={lhs:#x} rhs={rhs:#x} shift={shift}"
+                );
+
+                // The same independently derived relation must survive
+                // operand/coefficient exchange after the monomial shift.
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(
+                        shifted_rhs,
+                        shifted_lhs,
+                        shifted_gcd,
+                        t,
+                        s
+                    )),
+                    Ok(()),
+                    "swapped shifted lhs={lhs:#x} rhs={rhs:#x} shift={shift}"
+                );
             }
         }
     }
