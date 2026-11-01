@@ -80,6 +80,7 @@ pub enum Gf2PolynomialBezoutBundleError {
     JudgementPinMismatch,
     PayloadPinMismatch,
     CheckerBytesPinMismatch,
+    EmptyCheckerArtifact,
     Bundle(PinnedEvidenceBundlePreflightError),
     WrongEvidenceFamily,
     Body(Gf2PolynomialBezoutError),
@@ -142,6 +143,11 @@ pub fn preflight_pinned_frozen_gf2_polynomial_bezout_with_checker_bytes(
     checker_bytes: &[u8],
     frozen: &FrozenEvidence<'_>,
 ) -> Result<(), Gf2PolynomialBezoutBundleError> {
+    // A digest can authenticate zero bytes, but zero bytes are not a checker
+    // artifact. Reject even when the producer and independent pin agree.
+    if checker_bytes.is_empty() {
+        return Err(Gf2PolynomialBezoutBundleError::EmptyCheckerArtifact);
+    }
     if ArtifactDigest::sha256(checker_bytes) != independently_pinned_checker {
         return Err(Gf2PolynomialBezoutBundleError::CheckerBytesPinMismatch);
     }
@@ -513,6 +519,33 @@ mod tests {
                 )
             };
         assert_eq!(verify(checker_bytes, &metadata, &frozen), Ok(()));
+        // A self-consistent SHA-256(empty) envelope must not stand in for
+        // actual frozen checker artifact bytes.
+        let empty_checker_pin = ArtifactDigest::sha256(b"");
+        let empty_frozen = FrozenEvidence {
+            checker_digest: empty_checker_pin,
+            ..frozen
+        };
+        let empty_metadata = EvidenceEnvelopeMetadata::new(
+            judgement_pin,
+            empty_frozen.evidence_family,
+            payload_pin,
+            empty_checker_pin,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_gf2_polynomial_bezout_with_checker_bytes(
+                judgement_pin,
+                payload_pin,
+                empty_checker_pin,
+                contract_pin,
+                contract_pin,
+                &contract,
+                &empty_metadata,
+                b"",
+                &empty_frozen,
+            ),
+            Err(Gf2PolynomialBezoutBundleError::EmptyCheckerArtifact)
+        );
         assert_eq!(
             verify(b"mutated-checker", &metadata, &frozen),
             Err(Gf2PolynomialBezoutBundleError::CheckerBytesPinMismatch)
