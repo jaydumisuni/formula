@@ -1,0 +1,79 @@
+{
+  "schema": "ttg.cookpit.supervisor.cloud-dispatch.v1",
+  "shift": "E",
+  "observed_at_utc": "2026-11-01T01:58:25.044Z",
+  "project": "formula",
+  "repository": "jaydumisuni/formula",
+  "frontier": "P2 independently pinned GF(2)[x] Bezout evidence-body preflight",
+  "canonical_routing": {
+    "registry": "jaydumisuni/cookpit@main:registry.json",
+    "registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb",
+    "profile": "profiles/formula.json",
+    "enabled": true
+  },
+  "before": {
+    "head": "c3735bec7cde52dc3c5a8f4ba5ba3b5128013470",
+    "state": "Formula draft PR #59 exact-head GF(2)[x] Bezout checker, 4/4 hosted Rust tests PASS; independent certificate-envelope binding for this relation absent"
+  },
+  "action": {
+    "transport": "authenticated GitHub cloud source-only fallback",
+    "worker": "Cookpit Supervisor Shift E",
+    "workspace_owner": "formula",
+    "branch": "supervisor/shift-e-p2-bezout-bound-evidence-20261101-0348",
+    "changed_files": [
+      "crates/formula-check/src/gf2_polynomial_bezout.rs"
+    ],
+    "description": "Add independent Judgement/payload/checker/contract pin custody, frozen metadata and policy validation, then exact GF(2) Bezout relation preflight; add 3 adversarial Rust regression tests; consume rustfmt failure into source correction"
+  },
+  "after": {
+    "source_head": "49589a2bb30d83fe37f1d8147bab161d51b5786e",
+    "initial_source_head": "9444309ce397a116bf3eef210c2f2961856411bb",
+    "pr": "https://github.com/jaydumisuni/formula/pull/60",
+    "state": "SOURCE_PUBLISHED_HOSTED_PROOF_PASS_INDEPENDENT_REVIEW_PENDING",
+    "protected_promotion": false
+  },
+  "engineering_health": {
+    "source_blob": "0220a48d70eba21acae70e4a6e6cab8ec7356813",
+    "source_readback": "MATCH",
+    "ancestry": "2 commits ahead of PR #59; no force-push",
+    "hosted_focused": "PASS, including new Rust tests and rustfmt",
+    "hosted_focused_run": "https://github.com/jaydumisuni/formula/actions/runs/41263204608",
+    "hosted_p0_boundary": "PASS, source-only",
+    "hosted_p0_run": "https://github.com/jaydumisuni/formula/actions/runs/41263204605",
+    "local_patrol": "UNVERIFIED: Oracle Live terminal RPC internal error",
+    "local_worker_lease": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "physical_mac": "NOT PROVEN",
+    "mathematical_certificate": "NOT PROVEN"
+  },
+  "implementation_movement": {
+    "material": true,
+    "kind": "tracked project-owned P2 preflight source and regression commits",
+    "before_head": "c3735bec7cde52dc3c5a8f4ba5ba3b5128013470",
+    "after_head": "49589a2bb30d83fe37f1d8147bab161d51b5786e",
+    "last_material_commit_utc": "2026-11-01T01:57:39Z",
+    "distinct_frontier": true
+  },
+  "dependency_linkage": {
+    "internal": "Formula P2 checker/certificate core; independent evidence custody ahead of trust-root admission",
+    "blocked_gates": [
+      "independent exact-head review",
+      "P1 physical/macOS acceptance",
+      "P2 certificate/trust-root authority admission"
+    ]
+  },
+  "restrictions": {
+    "production_touched": false,
+    "stolen_device_touched": false,
+    "supervisor_schedules_modified": false,
+    "protected_merge": false,
+    "force_push": false,
+    "oracle_phase27_dispatched": false
+  },
+  "local_reconciliation": {
+    "attention": "QUEUED_KRATOS_UNREACHABLE",
+    "dispatch_directory": "/home/kratos/.local/state/ttg-cookpit/supervisors/dispatches/",
+    "patrol": "QUEUED_KRATOS_UNREACHABLE"
+  },
+  "nodie_observation": "UNVERIFIED: cloud Oracle roster internal error; no device action"
+}
