@@ -498,19 +498,20 @@ mod tests {
             payload_pin,
             checker_pin,
         );
-        let verify = |bytes: &[u8], recorded: &EvidenceEnvelopeMetadata, candidate: &FrozenEvidence<'_>| {
-            preflight_pinned_frozen_gf2_polynomial_bezout_with_checker_bytes(
-                judgement_pin,
-                payload_pin,
-                checker_pin,
-                contract_pin,
-                contract_pin,
-                &contract,
-                recorded,
-                bytes,
-                candidate,
-            )
-        };
+        let verify =
+            |bytes: &[u8], recorded: &EvidenceEnvelopeMetadata, candidate: &FrozenEvidence<'_>| {
+                preflight_pinned_frozen_gf2_polynomial_bezout_with_checker_bytes(
+                    judgement_pin,
+                    payload_pin,
+                    checker_pin,
+                    contract_pin,
+                    contract_pin,
+                    &contract,
+                    recorded,
+                    bytes,
+                    candidate,
+                )
+            };
         assert_eq!(verify(checker_bytes, &metadata, &frozen), Ok(()));
         assert_eq!(
             verify(b"mutated-checker", &metadata, &frozen),
@@ -529,9 +530,12 @@ mod tests {
             substituted_pin,
         );
         assert_eq!(
-            verify(substituted_bytes, &substituted_metadata, &substituted_frozen),
+            verify(
+                substituted_bytes,
+                &substituted_metadata,
+                &substituted_frozen
+            ),
             Err(Gf2PolynomialBezoutBundleError::CheckerBytesPinMismatch)
         );
     }
-
 }
