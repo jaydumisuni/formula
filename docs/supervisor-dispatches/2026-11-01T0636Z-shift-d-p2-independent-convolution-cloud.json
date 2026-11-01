@@ -1,0 +1,72 @@
+{
+  "schema": "ttg.cookpit.supervisor.cloud-dispatch.v1",
+  "shift": "D",
+  "observed_at_utc": "2026-11-01T06:36:19.119Z",
+  "project": "formula",
+  "repository": "jaydumisuni/formula",
+  "frontier": "P2 independent GF(2)[x] Bezout reference-oracle and exhaustive forgery verification",
+  "canonical_routing": {
+    "registry": "jaydumisuni/cookpit@main:registry.json",
+    "registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb",
+    "profile": "profiles/formula.json",
+    "enabled": true,
+    "project_workspace": "/home/kratos/projects/formula/.workspace/worktrees/p1-continuation-20261006",
+    "local_workspace_reconciliation": "PENDING_ORACLE_TERMINAL_INTERNAL_ERROR"
+  },
+  "before": {
+    "head": "2dd32791be13972e1c929fa5687e40fb12b6295d",
+    "state": "PR #62 receipt-bearing P2 candidate: purported independent small-domain GCD oracle reused production carryless_product; no exhaustive coefficient-forgery matrix",
+    "last_visible_material_movement_utc": "2026-11-01T05:03:30Z",
+    "movement_classification": "STALLED_IMPLEMENTATION"
+  },
+  "action": {
+    "transport": "authenticated GitHub cloud source-only fallback",
+    "worker": "Cookpit Supervisor Shift D",
+    "branch": "supervisor/shift-d-p2-independent-convolution-20261101-0836",
+    "changed_files": [
+      "crates/formula-check/src/gf2_polynomial_bezout.rs"
+    ],
+    "description": "Replace reference oracle multiplication with independent schoolbook convolution and exhaust all 255 nonzero 4-bit operand pairs times 256 4-bit Bezout coefficient pairs, plus 255 forged-GCD negatives"
+  },
+  "after": {
+    "source_head": "fa8be95737672092a1febfa893c192815f996e9c",
+    "pr": "https://github.com/jaydumisuni/formula/pull/63",
+    "state": "SOURCE_PUBLISHED_HOSTED_P2_AND_P0_PASS_REVIEW_PENDING",
+    "protected_promotion": false
+  },
+  "engineering_health": {
+    "source_readback": "MATCH",
+    "source_blob": "d4dd72ae17ccafac5d2adfcaa23c10f988f4bb5f",
+    "ancestry": "2 ahead, 0 behind exact PR #62 receipt-bearing predecessor",
+    "isolated_cross_algorithm": "PASS: 65280 cases (1536 valid, 63744 invalid), 0 disagreements; JS model only",
+    "hosted_p2": "SUCCESS on exact source head",
+    "hosted_p2_run": "https://github.com/jaydumisuni/formula/actions/runs/41281460241",
+    "hosted_p0": "SUCCESS on exact source head",
+    "hosted_p0_run": "https://github.com/jaydumisuni/formula/actions/runs/41281460124",
+    "local_patrol": "UNVERIFIED: Oracle Live terminal internal error",
+    "local_worker_lease": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "mathematical_certificate": "NOT_PROVEN",
+    "physical_proof": "NOT_PROVEN"
+  },
+  "implementation_movement": {
+    "material": true,
+    "kind": "tracked Formula-owned P2 independent checker proof implementation",
+    "before_head": "2dd32791be13972e1c929fa5687e40fb12b6295d",
+    "after_head": "fa8be95737672092a1febfa893c192815f996e9c",
+    "time_utc": "2026-11-01T06:36:19.119Z",
+    "distinct_frontier": true
+  },
+  "dependency_linkage": {
+    "internal": "Formula P2 independent checker and frozen evidence custody; P1 construction branch remains separately bound; no mathematical trust-root or promotion authority conferred",
+    "blocked_gates": [
+      "independent exact-head review",
+      "KRATOS Patrol/worker/lease reconciliation",
+      "mathematical certificate and promotion"
+    ]
+  },
+  "disposition": "MATERIAL_SOURCE_PUBLISHED_HOSTED_SOURCE_HEAD_PASS_REVIEW_PENDING",
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false
+}
