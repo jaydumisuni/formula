@@ -650,6 +650,92 @@ mod tests {
     }
 
     #[test]
+    fn nonmonomial_common_factors_preserve_exact_bezout_witnesses() {
+        // Scaling both operands by a nonmonomial GF(2) polynomial scales
+        // their GCD, not their Bezout coefficients. Unlike x^k covariance,
+        // this exercises multi-term convolution and cancellation. Derive
+        // the unscaled witness through the independent Euclidean oracle.
+        let mut checked = 0;
+        let mut nontrivial_base_gcds = 0;
+        for (lhs, rhs) in [
+            (0x0013_u16, 0x001d_u16),
+            (0x002b, 0x0035),
+            (0x0101, 0x0111),
+            (0x000a, 0x000e),
+            (0x0036, 0x001e),
+            (0x002a, 0x003e),
+            (0x0003, 0x0005),
+        ] {
+            let (gcd_wide, s_wide, t_wide) = independent_extended_gcd(lhs, rhs);
+            let (gcd, s, t) = (
+                u16::try_from(gcd_wide).expect("bounded GCD"),
+                u16::try_from(s_wide).expect("bounded coefficient s"),
+                u16::try_from(t_wide).expect("bounded coefficient t"),
+            );
+            assert_eq!(
+                reference_product(lhs, s) ^ reference_product(rhs, t),
+                u32::from(gcd)
+            );
+            for factor in [0b11_u16, 0b101, 0b111, 0b1011, 0b10011, 0b11001, 0b11111] {
+                assert!(factor.count_ones() > 1);
+                let scaled_lhs =
+                    u16::try_from(reference_product(lhs, factor)).expect("bounded lhs");
+                let scaled_rhs =
+                    u16::try_from(reference_product(rhs, factor)).expect("bounded rhs");
+                let scaled_gcd =
+                    u16::try_from(reference_product(gcd, factor)).expect("bounded GCD");
+                assert_eq!(
+                    reference_product(scaled_lhs, s) ^ reference_product(scaled_rhs, t),
+                    u32::from(scaled_gcd)
+                );
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(
+                        scaled_lhs, scaled_rhs, scaled_gcd, s, t
+                    )),
+                    Ok(()),
+                    "lhs={lhs:#x} rhs={rhs:#x} factor={factor:#x}"
+                );
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(
+                        scaled_rhs, scaled_lhs, scaled_gcd, t, s
+                    )),
+                    Ok(())
+                );
+                let forged_gcd = scaled_gcd ^ 1;
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(
+                        scaled_lhs, scaled_rhs, forged_gcd, s, t
+                    )),
+                    Err(Gf2PolynomialBezoutError::GcdMismatch {
+                        expected: scaled_gcd,
+                        actual: forged_gcd,
+                    })
+                );
+                for (forged_s, forged_t) in [(s ^ 1, t), (s, t ^ 1)] {
+                    let computed = reference_product(scaled_lhs, forged_s)
+                        ^ reference_product(scaled_rhs, forged_t);
+                    assert_ne!(computed, u32::from(scaled_gcd));
+                    assert_eq!(
+                        check_frozen_gf2_polynomial_bezout(&frame(
+                            scaled_lhs, scaled_rhs, scaled_gcd, forged_s, forged_t
+                        )),
+                        Err(Gf2PolynomialBezoutError::IdentityMismatch {
+                            computed,
+                            claimed: scaled_gcd,
+                        })
+                    );
+                }
+                checked += 1;
+                if gcd != 1 {
+                    nontrivial_base_gcds += 1;
+                }
+            }
+        }
+        assert_eq!(checked, 49);
+        assert!(nontrivial_base_gcds >= 14);
+    }
+
+    #[test]
     fn zero_operand_accepts_noncanonical_irrelevant_coefficient() {
         // A Bezout coefficient multiplying zero is semantically unconstrained.
         // Exact verification must not impose a false canonical-zero rule.
