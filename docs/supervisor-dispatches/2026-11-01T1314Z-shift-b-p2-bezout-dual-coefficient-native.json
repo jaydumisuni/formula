@@ -1,0 +1,38 @@
+{
+  "schema": "ttg.cookpit.supervisor-dispatch.v1",
+  "shift": "B",
+  "project": "formula",
+  "frontier": "P2_FULL_WIDTH_BEZOUT_DUAL_COEFFICIENT_INDEPENDENT_FORGERY_AND_SYMMETRY",
+  "time_utc": "2026-11-01T13:14:14Z",
+  "before_head": "065554aab46e7fda5a1fba3acb0c57dc7b92f12e",
+  "before_state": "PR66 independent high-degree witness matrix checked forged s but did not independently test forged t or operand/coefficient swap symmetry",
+  "after_implementation_head": "3b271e07a2a31156b9c867b574219f67dca10700",
+  "after_state": "Twelve deterministic full-width nonzero operand pairs now independently check forged t rejection and swapped valid Bezout witnesses; no production checker change",
+  "worker_action": "KRATOS Oracle Live project-owned isolated worktree, test-only bounded Rust delta, native tests, strict lint, push and draft PR pending",
+  "candidate_worktree": "/home/kratos/projects/formula/.workspace/worktrees/p2-bezout-dual-coeff-shift-b-20261101-1512",
+  "candidate_branch": "supervisor/shift-b-p2-bezout-dual-coeff-20261101-1512",
+  "proof": {
+    "predecessor_exact_remote_head": "MATCH",
+    "patrol": "headless check exit 0; explicit ALLOW text not emitted",
+    "focused": "11/11 PASS",
+    "native_full": "138/138 PASS",
+    "cargo_fmt": "PASS",
+    "strict_clippy": "PASS",
+    "git_diff_check": "PASS",
+    "hosted_exact_head_ci": "PENDING",
+    "independent_review": "PENDING",
+    "mathematical_certificate": "NOT_PROVEN",
+    "p1_physical_macos": "NOT_PROVEN"
+  },
+  "engineering_health": "NATIVE_SOURCE_TESTS_PASS_REVIEW_PENDING",
+  "implementation_movement": "SOURCE_TEST_COMMIT_ADVANCED",
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent checker and frozen authority",
+    "downstream": "independent checker/certificate trust-root qualification",
+    "protected": "No P2 certificate, P1 macOS acceptance or promotion authority"
+  },
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "disposition": "MATERIAL_TEST_SOURCE_COMMITTED_NATIVE_PASS_REVIEW_PENDING"
+}

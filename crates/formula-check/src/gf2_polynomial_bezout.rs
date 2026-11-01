@@ -398,6 +398,31 @@ mod tests {
                     claimed: gcd,
                 })
             );
+
+            // The independent oracle must exercise the other coefficient as
+            // well: a checker that ignored t could still pass the s-only
+            // adversarial matrix. Since rhs is nonzero, flipping t's constant
+            // term necessarily changes the exact polynomial identity.
+            let forged_t = t ^ 1;
+            let computed_t = reference_product(lhs, s) ^ reference_product(rhs, forged_t);
+            assert_ne!(computed_t, u32::from(gcd));
+            assert_eq!(
+                check_frozen_gf2_polynomial_bezout(&frame(lhs, rhs, gcd, s, forged_t)),
+                Err(Gf2PolynomialBezoutError::IdentityMismatch {
+                    computed: computed_t,
+                    claimed: gcd,
+                }),
+                "forged t lhs={lhs:#x} rhs={rhs:#x}"
+            );
+
+            // Bezout is symmetric under swapping both operands and their
+            // corresponding coefficients; verify this with the same
+            // independently derived full-width witness.
+            assert_eq!(
+                check_frozen_gf2_polynomial_bezout(&frame(rhs, lhs, gcd, t, s)),
+                Ok(()),
+                "swapped lhs={lhs:#x} rhs={rhs:#x}"
+            );
         }
     }
 
