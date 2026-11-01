@@ -459,6 +459,86 @@ mod tests {
     }
 
     #[test]
+    fn full_width_bezout_witnesses_covary_under_monomial_shift() {
+        // Multiplying both operands by x^k must multiply the monic GCD by
+        // x^k while preserving the original independently derived Bezout
+        // coefficients. The reference products remain u32 throughout.
+        for (lhs, rhs) in [
+            (0x0013_u16, 0x001d_u16),
+            (0x001b, 0x0015),
+            (0x0021, 0x0031),
+            (0x0003, 0x0005),
+        ] {
+            let (gcd_wide, s_wide, t_wide) = independent_extended_gcd(lhs, rhs);
+            assert!(gcd_wide <= u32::from(u16::MAX));
+            assert!(s_wide <= u64::from(u16::MAX));
+            assert!(t_wide <= u64::from(u16::MAX));
+            let (gcd, s, t) = (gcd_wide as u16, s_wide as u16, t_wide as u16);
+            assert_eq!(
+                reference_product(lhs, s) ^ reference_product(rhs, t),
+                u32::from(gcd)
+            );
+
+            for shift in 1..16 {
+                if (u32::from(lhs) << shift) > u32::from(u16::MAX)
+                    || (u32::from(rhs) << shift) > u32::from(u16::MAX)
+                {
+                    break;
+                }
+                let (shifted_lhs, shifted_rhs, shifted_gcd) =
+                    (lhs << shift, rhs << shift, gcd << shift);
+                let expected =
+                    reference_product(shifted_lhs, s) ^ reference_product(shifted_rhs, t);
+                assert_eq!(expected, u32::from(shifted_gcd));
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(
+                        shifted_lhs,
+                        shifted_rhs,
+                        shifted_gcd,
+                        s,
+                        t
+                    )),
+                    Ok(()),
+                    "lhs={lhs:#x} rhs={rhs:#x} shift={shift}"
+                );
+
+                let forged_gcd = shifted_gcd ^ 1;
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(
+                        shifted_lhs,
+                        shifted_rhs,
+                        forged_gcd,
+                        s,
+                        t
+                    )),
+                    Err(Gf2PolynomialBezoutError::GcdMismatch {
+                        expected: shifted_gcd,
+                        actual: forged_gcd,
+                    })
+                );
+
+                let forged_s = s ^ 1;
+                let forged_product =
+                    reference_product(shifted_lhs, forged_s) ^ reference_product(shifted_rhs, t);
+                assert_ne!(forged_product, u32::from(shifted_gcd));
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(
+                        shifted_lhs,
+                        shifted_rhs,
+                        shifted_gcd,
+                        forged_s,
+                        t
+                    )),
+                    Err(Gf2PolynomialBezoutError::IdentityMismatch {
+                        computed: forged_product,
+                        claimed: shifted_gcd,
+                    })
+                );
+            }
+        }
+    }
+
+    #[test]
     fn zero_operand_accepts_noncanonical_irrelevant_coefficient() {
         // A Bezout coefficient multiplying zero is semantically unconstrained.
         // Exact verification must not impose a false canonical-zero rule.

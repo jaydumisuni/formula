@@ -1,0 +1,29 @@
+{
+  "schema": "ttg.cookpit.supervisor-dispatch.v1",
+  "shift": "D",
+  "project": "formula",
+  "frontier": "P2_BEZOUT_MONOMIAL_SHIFT_COVARIANCE",
+  "before_head": "908127d7e50216afa4f01f743603f13e3f23c11a",
+  "after_implementation_head": "cfcd6d6cc05312edd51b22300a37290c4bc380a9",
+  "before_state": "PR68 lacked monomial-shift covariance regression; worker inactive",
+  "after_state": "45 shift cases, valid identities and two forged variants each; test-only 80 lines",
+  "worker_action": "Patrol check; isolated Formula worktree; native proof; draft PR",
+  "proof": {
+    "patrol": "exit0 no explicit ALLOW",
+    "focused": "1 PASS",
+    "formula_check": "141 PASS",
+    "workspace": "PASS",
+    "fmt": "PASS",
+    "clippy": "PASS",
+    "p0": "PASS invariants only",
+    "ci": "PENDING",
+    "review": "PENDING",
+    "certificate": "NOT_PROVEN"
+  },
+  "dependency_linkage": "P2 independent checker to mathematical certification; P1 macOS and promotion HOLD",
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "schedules_changed": false,
+  "time_utc": "2026-11-01T16:41:00Z",
+  "disposition": "MATERIAL_SOURCE_NATIVE_PASS_REVIEW_PENDING"
+}
