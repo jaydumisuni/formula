@@ -175,9 +175,25 @@ mod tests {
         body
     }
 
+    // Independent schoolbook convolution: never reuse the production
+    // carryless_product in the oracle that judges its polynomial identities.
+    fn reference_product(lhs: u16, rhs: u16) -> u32 {
+        let mut product = 0_u32;
+        for left_degree in 0..16 {
+            for right_degree in 0..16 {
+                if lhs & (1_u16 << left_degree) != 0
+                    && rhs & (1_u16 << right_degree) != 0
+                {
+                    product ^= 1_u32 << (left_degree + right_degree);
+                }
+            }
+        }
+        product
+    }
+
     // Reference oracle enumerates exact factor/quotient pairs, not Euclid.
     fn divides(divisor: u16, dividend: u16) -> bool {
-        (0_u16..16).any(|quotient| carryless_product(divisor, quotient) == u32::from(dividend))
+        (0_u16..16).any(|quotient| reference_product(divisor, quotient) == u32::from(dividend))
     }
 
     fn independent_small_gcd(lhs: u16, rhs: u16) -> u16 {
@@ -215,6 +231,48 @@ mod tests {
                 assert_eq!(
                     check_frozen_gf2_polynomial_bezout(&frame(lhs, rhs, gcd, s, t)),
                     Ok(()),
+                    "lhs={lhs:#b} rhs={rhs:#b}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn exhaustive_small_domain_rejects_forged_bezout_coefficients_and_gcds() {
+        // All 255 nonzero operand pairs and all 256 bounded coefficient pairs.
+        // The expected result comes from the independent convolution oracle,
+        // not from the multiplication routine under test.
+        for lhs in 0_u16..16 {
+            for rhs in 0_u16..16 {
+                if lhs == 0 && rhs == 0 {
+                    continue;
+                }
+                let gcd = independent_small_gcd(lhs, rhs);
+                for s in 0_u16..16 {
+                    for t in 0_u16..16 {
+                        let computed = reference_product(lhs, s) ^ reference_product(rhs, t);
+                        let expected = if computed == u32::from(gcd) {
+                            Ok(())
+                        } else {
+                            Err(Gf2PolynomialBezoutError::IdentityMismatch {
+                                computed,
+                                claimed: gcd,
+                            })
+                        };
+                        assert_eq!(
+                            check_frozen_gf2_polynomial_bezout(&frame(lhs, rhs, gcd, s, t)),
+                            expected,
+                            "lhs={lhs:#b} rhs={rhs:#b} s={s:#b} t={t:#b}"
+                        );
+                    }
+                }
+                let forged_gcd = gcd ^ 1;
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(lhs, rhs, forged_gcd, 0, 0)),
+                    Err(Gf2PolynomialBezoutError::GcdMismatch {
+                        expected: gcd,
+                        actual: forged_gcd,
+                    }),
                     "lhs={lhs:#b} rhs={rhs:#b}"
                 );
             }
