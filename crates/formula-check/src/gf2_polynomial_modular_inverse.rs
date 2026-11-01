@@ -167,4 +167,113 @@ mod tests {
             Err(Gf2PolynomialModularInverseError::NotInverse { remainder: 6 })
         );
     }
+
+    // This oracle derives a unit's inverse by extended Euclid over u64
+    // polynomials, not the production multiply-then-reduce checker. The
+    // quotient and coefficient trace are independent of its implementation.
+    fn reference_div_rem_wide(mut numerator: u64, denominator: u64) -> (u64, u64) {
+        assert_ne!(denominator, 0);
+        let mut quotient = 0_u64;
+        while numerator != 0 && numerator.leading_zeros() <= denominator.leading_zeros() {
+            let shift = denominator.leading_zeros() - numerator.leading_zeros();
+            quotient ^= 1_u64 << shift;
+            numerator ^= denominator << shift;
+        }
+        (quotient, numerator)
+    }
+
+    fn reference_product_wide(lhs: u64, mut rhs: u64) -> u64 {
+        let mut product = 0_u64;
+        let mut shifted = lhs;
+        while rhs != 0 {
+            if rhs & 1 != 0 {
+                product ^= shifted;
+            }
+            rhs >>= 1;
+            shifted <<= 1;
+        }
+        product
+    }
+
+    fn reference_inverse_wide(modulus: u16, element: u16) -> Option<u16> {
+        let (mut old_r, mut r) = (u64::from(modulus), u64::from(element));
+        let (mut old_t, mut t) = (0_u64, 1_u64);
+        while r != 0 {
+            let (quotient, remainder) = reference_div_rem_wide(old_r, r);
+            let next_t = old_t ^ reference_product_wide(quotient, t);
+            (old_r, r) = (r, remainder);
+            (old_t, t) = (t, next_t);
+        }
+        if old_r != 1 {
+            return None;
+        }
+        let (_, reduced) = reference_div_rem_wide(old_t, u64::from(modulus));
+        Some(u16::try_from(reduced).expect("reduced inverse fits the frozen frame"))
+    }
+
+    #[test]
+    fn full_width_inverses_match_independent_extended_euclid() {
+        // Include reducible and high-degree moduli; invertibility is about
+        // units, not a blanket assumption that the modulus is irreducible.
+        let mut units = 0;
+        let mut nonunits = 0;
+        for modulus in [
+            0x8000_u16, 0x8003, 0x801b, 0x80f5, 0x9e37, 0xc0f1, 0xffff, 0x7fff,
+        ] {
+            for element in [0_u16, 1, 2, 3, 0x1234, 0x4001, 0x5555, 0x7ffe] {
+                if element != 0 && element.leading_zeros() <= modulus.leading_zeros() {
+                    continue;
+                }
+                match reference_inverse_wide(modulus, element) {
+                    Some(inverse) => {
+                        units += 1;
+                        let product =
+                            reference_product_wide(u64::from(element), u64::from(inverse));
+                        assert_eq!(
+                            reference_div_rem_wide(product, u64::from(modulus)).1,
+                            1,
+                            "independent unit modulus={modulus:#x} element={element:#x}"
+                        );
+                        assert_eq!(
+                            check_frozen_gf2_polynomial_modular_inverse(&frame(
+                                modulus, element, inverse
+                            )),
+                            Ok(()),
+                        );
+                        let forged = inverse ^ 1;
+                        let forged_remainder = reference_div_rem_wide(
+                            reference_product_wide(u64::from(element), u64::from(forged)),
+                            u64::from(modulus),
+                        )
+                        .1 as u16;
+                        assert_ne!(forged_remainder, 1);
+                        assert_eq!(
+                            check_frozen_gf2_polynomial_modular_inverse(&frame(
+                                modulus, element, forged
+                            )),
+                            Err(Gf2PolynomialModularInverseError::NotInverse {
+                                remainder: forged_remainder
+                            }),
+                        );
+                    }
+                    None => {
+                        nonunits += 1;
+                        let remainder = reference_div_rem_wide(
+                            reference_product_wide(u64::from(element), 1),
+                            u64::from(modulus),
+                        )
+                        .1 as u16;
+                        assert_ne!(remainder, 1);
+                        assert_eq!(
+                            check_frozen_gf2_polynomial_modular_inverse(&frame(
+                                modulus, element, 1
+                            )),
+                            Err(Gf2PolynomialModularInverseError::NotInverse { remainder }),
+                        );
+                    }
+                }
+            }
+        }
+        assert!(units > 0 && nonunits > 0);
+    }
 }
