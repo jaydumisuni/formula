@@ -5,6 +5,11 @@
 //! lhs, rhs, claimed GCD, lhs coefficient, rhs coefficient.
 //! Both-zero operands are undefined; all other pairs have a monic GCD.
 
+use crate::{
+    FrozenEvidence, PinnedEvidenceBundlePreflightError, preflight_pinned_frozen_evidence_bundle,
+};
+use formula_core::{ArtifactDigest, AuthorityContract, EvidenceEnvelopeMetadata};
+
 const FRAME_BYTES: usize = 10;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -65,6 +70,59 @@ fn carryless_product(lhs: u16, rhs: u16) -> u32 {
         }
     }
     result
+}
+
+/// Frozen-policy, independent-pin, and exact GF(2)[x] Bezout preflight.
+/// No trust root, certificate, Judgement semantics, or promotion is conferred.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Gf2PolynomialBezoutBundleError {
+    ContractPinMismatch,
+    JudgementPinMismatch,
+    PayloadPinMismatch,
+    Bundle(PinnedEvidenceBundlePreflightError),
+    WrongEvidenceFamily,
+    Body(Gf2PolynomialBezoutError),
+}
+
+/// Require caller-authenticated contract, Judgement, checker and payload pins
+/// before checking the exact frozen Bezout relation. Producer-rehashed evidence
+/// must not substitute for independently pinned bytes. This is preparation
+/// only: the caller still must authenticate the pins and the Judgement meaning.
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_pinned_frozen_gf2_polynomial_bezout(
+    independently_pinned_judgement: ArtifactDigest,
+    independently_pinned_payload: ArtifactDigest,
+    independently_pinned_checker: ArtifactDigest,
+    independently_pinned_contract: ArtifactDigest,
+    recorded_contract: ArtifactDigest,
+    contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), Gf2PolynomialBezoutBundleError> {
+    if independently_pinned_contract != recorded_contract
+        || contract.structural_digest() != independently_pinned_contract
+    {
+        return Err(Gf2PolynomialBezoutBundleError::ContractPinMismatch);
+    }
+    if frozen.judgement.structural_digest() != independently_pinned_judgement {
+        return Err(Gf2PolynomialBezoutBundleError::JudgementPinMismatch);
+    }
+    if ArtifactDigest::sha256(frozen.payload_bytes) != independently_pinned_payload {
+        return Err(Gf2PolynomialBezoutBundleError::PayloadPinMismatch);
+    }
+    preflight_pinned_frozen_evidence_bundle(
+        independently_pinned_checker,
+        recorded_contract,
+        contract,
+        recorded_metadata,
+        frozen,
+    )
+    .map_err(Gf2PolynomialBezoutBundleError::Bundle)?;
+    if frozen.evidence_family != "gf2-polynomial-bezout" {
+        return Err(Gf2PolynomialBezoutBundleError::WrongEvidenceFamily);
+    }
+    check_frozen_gf2_polynomial_bezout(frozen.payload_bytes)
+        .map_err(Gf2PolynomialBezoutBundleError::Body)
 }
 
 #[cfg(test)]
@@ -185,5 +243,200 @@ mod tests {
                 Ok(())
             );
         }
+    }
+    #[test]
+    fn pinned_bezout_bundle_checks_frozen_identity_and_exact_relation() {
+        let judgement = formula_core::Judgement::new(
+            ArtifactDigest::sha256(b"bezout-world"),
+            "finite-exact",
+            b"bezout-relation".to_vec(),
+            vec![ArtifactDigest::sha256(b"bezout-dependency")],
+        );
+        let target_pin = judgement.structural_digest();
+        let checker_pin = ArtifactDigest::sha256(b"independent-bezout-checker");
+        let contract = AuthorityContract::new(vec!["gf2-polynomial-bezout".to_owned()]);
+        let contract_pin = contract.structural_digest();
+        let valid = frame(0b1011, 0b1101, 1, 2, 3);
+        let frozen = FrozenEvidence {
+            judgement: &judgement,
+            evidence_family: "gf2-polynomial-bezout",
+            payload_bytes: &valid,
+            checker_digest: checker_pin,
+        };
+        let metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            frozen.evidence_family,
+            ArtifactDigest::sha256(&valid),
+            checker_pin,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_gf2_polynomial_bezout(
+                target_pin,
+                ArtifactDigest::sha256(&valid),
+                checker_pin,
+                contract_pin,
+                contract_pin,
+                &contract,
+                &metadata,
+                &frozen,
+            ),
+            Ok(())
+        );
+
+        // A false relation remains false even when its producer rehashes
+        // the payload and supplies a self-consistent metadata envelope.
+        let forged = frame(0b1011, 0b1101, 1, 0, 0);
+        let forged_frozen = FrozenEvidence {
+            payload_bytes: &forged,
+            ..frozen
+        };
+        let forged_metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            forged_frozen.evidence_family,
+            ArtifactDigest::sha256(&forged),
+            checker_pin,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_gf2_polynomial_bezout(
+                target_pin,
+                ArtifactDigest::sha256(&forged),
+                checker_pin,
+                contract_pin,
+                contract_pin,
+                &contract,
+                &forged_metadata,
+                &forged_frozen,
+            ),
+            Err(Gf2PolynomialBezoutBundleError::Body(
+                Gf2PolynomialBezoutError::IdentityMismatch {
+                    computed: 0,
+                    claimed: 1,
+                }
+            ))
+        );
+        assert_eq!(
+            preflight_pinned_frozen_gf2_polynomial_bezout(
+                target_pin,
+                ArtifactDigest::sha256(&valid),
+                checker_pin,
+                contract_pin,
+                contract_pin,
+                &contract,
+                &forged_metadata,
+                &forged_frozen,
+            ),
+            Err(Gf2PolynomialBezoutBundleError::PayloadPinMismatch)
+        );
+    }
+
+    #[test]
+    fn pinned_bezout_bundle_rejects_contract_target_and_checker_substitution() {
+        let judgement = formula_core::Judgement::new(
+            ArtifactDigest::sha256(b"frozen-world"),
+            "finite-exact",
+            b"exact-bezout".to_vec(),
+            vec![],
+        );
+        let target_pin = judgement.structural_digest();
+        let checker_pin = ArtifactDigest::sha256(b"pinned-checker");
+        let contract = AuthorityContract::new(vec!["gf2-polynomial-bezout".to_owned()]);
+        let contract_pin = contract.structural_digest();
+        let body = frame(0b1011, 0b1101, 1, 2, 3);
+        let payload_pin = ArtifactDigest::sha256(&body);
+        let frozen = FrozenEvidence {
+            judgement: &judgement,
+            evidence_family: "gf2-polynomial-bezout",
+            payload_bytes: &body,
+            checker_digest: checker_pin,
+        };
+        let metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            frozen.evidence_family,
+            payload_pin,
+            checker_pin,
+        );
+        let alien = ArtifactDigest::sha256(b"untrusted-substitution");
+        assert_eq!(
+            preflight_pinned_frozen_gf2_polynomial_bezout(
+                target_pin,
+                payload_pin,
+                checker_pin,
+                alien,
+                contract_pin,
+                &contract,
+                &metadata,
+                &frozen,
+            ),
+            Err(Gf2PolynomialBezoutBundleError::ContractPinMismatch)
+        );
+        assert_eq!(
+            preflight_pinned_frozen_gf2_polynomial_bezout(
+                alien,
+                payload_pin,
+                checker_pin,
+                contract_pin,
+                contract_pin,
+                &contract,
+                &metadata,
+                &frozen,
+            ),
+            Err(Gf2PolynomialBezoutBundleError::JudgementPinMismatch)
+        );
+        assert_eq!(
+            preflight_pinned_frozen_gf2_polynomial_bezout(
+                target_pin,
+                payload_pin,
+                alien,
+                contract_pin,
+                contract_pin,
+                &contract,
+                &metadata,
+                &frozen,
+            ),
+            Err(Gf2PolynomialBezoutBundleError::Bundle(
+                PinnedEvidenceBundlePreflightError::CheckerDigestMismatch
+            ))
+        );
+    }
+
+    #[test]
+    fn pinned_bezout_bundle_rejects_other_admitted_family() {
+        let judgement = formula_core::Judgement::new(
+            ArtifactDigest::sha256(b"family-world"),
+            "finite-exact",
+            b"family-identity".to_vec(),
+            vec![],
+        );
+        let checker_pin = ArtifactDigest::sha256(b"checker");
+        let contract = AuthorityContract::new(vec!["unrelated-family".to_owned()]);
+        let contract_pin = contract.structural_digest();
+        let body = frame(0b1011, 0b1101, 1, 2, 3);
+        let frozen = FrozenEvidence {
+            judgement: &judgement,
+            evidence_family: "unrelated-family",
+            payload_bytes: &body,
+            checker_digest: checker_pin,
+        };
+        let target_pin = judgement.structural_digest();
+        let payload_pin = ArtifactDigest::sha256(&body);
+        let metadata = EvidenceEnvelopeMetadata::new(
+            target_pin,
+            frozen.evidence_family,
+            payload_pin,
+            checker_pin,
+        );
+        assert_eq!(
+            preflight_pinned_frozen_gf2_polynomial_bezout(
+                target_pin,
+                payload_pin,
+                checker_pin,
+                contract_pin,
+                contract_pin,
+                &contract,
+                &metadata,
+                &frozen,
+            ),
+            Err(Gf2PolynomialBezoutBundleError::WrongEvidenceFamily)
+        );
     }
 }
