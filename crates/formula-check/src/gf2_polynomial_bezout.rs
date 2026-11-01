@@ -20,9 +20,7 @@ pub enum Gf2PolynomialBezoutError {
 /// The claimed coefficients are untrusted and need not be minimal. Carryless
 /// products use u32 so degree-30 terms cannot disappear through truncation.
 /// This does not authenticate the witness or grant mathematical authority.
-pub fn check_frozen_gf2_polynomial_bezout(
-    body: &[u8],
-) -> Result<(), Gf2PolynomialBezoutError> {
+pub fn check_frozen_gf2_polynomial_bezout(body: &[u8]) -> Result<(), Gf2PolynomialBezoutError> {
     let bytes: &[u8; FRAME_BYTES] = body
         .try_into()
         .map_err(|_| Gf2PolynomialBezoutError::InvalidFrame)?;
@@ -51,8 +49,8 @@ pub fn check_frozen_gf2_polynomial_bezout(
         });
     }
 
-    let computed = carryless_product(lhs, lhs_coefficient)
-        ^ carryless_product(rhs, rhs_coefficient);
+    let computed =
+        carryless_product(lhs, lhs_coefficient) ^ carryless_product(rhs, rhs_coefficient);
     if computed != u32::from(claimed) {
         return Err(Gf2PolynomialBezoutError::IdentityMismatch { computed, claimed });
     }
@@ -111,9 +109,7 @@ mod tests {
                 let mut witness = None;
                 'search: for s in 0_u16..16 {
                     for t in 0_u16..16 {
-                        if carryless_product(lhs, s) ^ carryless_product(rhs, t)
-                            == u32::from(gcd)
-                        {
+                        if carryless_product(lhs, s) ^ carryless_product(rhs, t) == u32::from(gcd) {
                             witness = Some((s, t));
                             break 'search;
                         }
