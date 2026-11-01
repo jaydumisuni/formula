@@ -1,0 +1,37 @@
+{
+  "base_head": "9979d16d405391f9b9259de32d5f076406f478da",
+  "boundary": {
+    "p1_macos": "NOT PROVEN",
+    "p2_certificate": "NOT ADMITTED",
+    "production_touched": false,
+    "promotion": "HOLD",
+    "stolen_device_touched": false
+  },
+  "branch": "supervisor/shift-a-p2-bezout-inverse-crosscheck-20261102-0100",
+  "change": "139 Rust lines; independent u64 extended-Euclid oracle cross-checks two frozen checker families over 11 pairs and 22 directions; rejects nonunits and one-sided forged inverse coefficients",
+  "dependency_linkage": {
+    "authority_granted": false,
+    "downstream": "P2 certificate trust-root qualification",
+    "upstream": "P2 independent GF(2)[x] checker"
+  },
+  "disposition": "SOURCE_COMMITTED_NATIVE_PASS_PENDING_PUBLICATION_REVIEW",
+  "frontier": "P2_INDEPENDENT_BEZOUT_MODULAR_INVERSE_CROSS_FAMILY_CONSISTENCY",
+  "implementation_head": "b3037d69ac1285d72ca98abbfdd1d40ca0ee1e40",
+  "observed_at_utc": "2026-11-01T23:02:23.915946+00:00",
+  "project": "formula",
+  "proof": {
+    "clippy": "PASS -D warnings",
+    "diff_check": "PASS",
+    "fmt": "PASS",
+    "focused": "1/1 PASS",
+    "formula_check_integration": "1/1 PASS",
+    "formula_check_unit": "143/143 PASS",
+    "hosted": "PENDING",
+    "independent_review": "PENDING",
+    "p0_repository_invariants": "PASS; P0 milestone NOT PROVEN",
+    "patrol": "ALLOW project-owned worktree"
+  },
+  "schema": "ttg.formula.supervisor-dispatch.v1",
+  "shift": "A",
+  "worktree": "/home/kratos/projects/formula/.workspace/worktrees/p2-bezout-inverse-crosscheck-shift-a-20261102-0100"
+}
