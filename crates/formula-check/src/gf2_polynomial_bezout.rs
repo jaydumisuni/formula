@@ -219,7 +219,7 @@ mod tests {
                 let mut witness = None;
                 'search: for s in 0_u16..16 {
                     for t in 0_u16..16 {
-                        if carryless_product(lhs, s) ^ carryless_product(rhs, t) == u32::from(gcd) {
+                        if reference_product(lhs, s) ^ reference_product(rhs, t) == u32::from(gcd) {
                             witness = Some((s, t));
                             break 'search;
                         }
@@ -273,6 +273,36 @@ mod tests {
                     }),
                     "lhs={lhs:#b} rhs={rhs:#b}"
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn full_width_zero_operand_witnesses_use_independent_convolution() {
+        // A zero operand fixes the monic GCD exactly to the nonzero operand.
+        // Exercise both operand positions, including degree-30 products that
+        // would be silently truncated by a u16 multiplication oracle.
+        for nonzero in [0x8000_u16, 0xffff, 0x8001, 0x7fff, 0x5555, 0xaaaa] {
+            for coefficient in [0_u16, 1, 2, 0x4001, 0x8000, 0xffff] {
+                let computed = reference_product(nonzero, coefficient);
+                let expected = if computed == u32::from(nonzero) {
+                    Ok(())
+                } else {
+                    Err(Gf2PolynomialBezoutError::IdentityMismatch {
+                        computed,
+                        claimed: nonzero,
+                    })
+                };
+                for body in [
+                    frame(nonzero, 0, nonzero, coefficient, 0),
+                    frame(0, nonzero, nonzero, 0, coefficient),
+                ] {
+                    assert_eq!(
+                        check_frozen_gf2_polynomial_bezout(&body),
+                        expected,
+                        "nonzero={nonzero:#b} coefficient={coefficient:#b} body={body:?}"
+                    );
+                }
             }
         }
     }
