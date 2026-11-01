@@ -181,9 +181,7 @@ mod tests {
         let mut product = 0_u32;
         for left_degree in 0..16 {
             for right_degree in 0..16 {
-                if lhs & (1_u16 << left_degree) != 0
-                    && rhs & (1_u16 << right_degree) != 0
-                {
+                if lhs & (1_u16 << left_degree) != 0 && rhs & (1_u16 << right_degree) != 0 {
                     product ^= 1_u32 << (left_degree + right_degree);
                 }
             }
