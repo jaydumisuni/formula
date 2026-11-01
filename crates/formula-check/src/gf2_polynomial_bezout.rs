@@ -307,6 +307,100 @@ mod tests {
         }
     }
 
+    // This oracle uses wide polynomial long division and an independent
+    // extended-Euclid coefficient trace. Neither the production GCD loop
+    // nor its carryless_product is used to derive expected witnesses.
+    fn reference_div_rem(mut numerator: u32, denominator: u32) -> (u32, u32) {
+        assert_ne!(denominator, 0);
+        let mut quotient = 0_u32;
+        while numerator != 0 && numerator.leading_zeros() <= denominator.leading_zeros() {
+            let shift = denominator.leading_zeros() - numerator.leading_zeros();
+            quotient ^= 1_u32 << shift;
+            numerator ^= denominator << shift;
+        }
+        (quotient, numerator)
+    }
+
+    fn reference_wide_product(lhs: u32, rhs: u64) -> u64 {
+        let mut product = 0_u64;
+        for bit in 0..32 {
+            if lhs & (1_u32 << bit) != 0 {
+                product ^= rhs << bit;
+            }
+        }
+        product
+    }
+
+    fn independent_extended_gcd(lhs: u16, rhs: u16) -> (u32, u64, u64) {
+        let (mut old_r, mut r) = (u32::from(lhs), u32::from(rhs));
+        let (mut old_s, mut s) = (1_u64, 0_u64);
+        let (mut old_t, mut t) = (0_u64, 1_u64);
+        while r != 0 {
+            let (quotient, remainder) = reference_div_rem(old_r, r);
+            let next_s = old_s ^ reference_wide_product(quotient, s);
+            let next_t = old_t ^ reference_wide_product(quotient, t);
+            (old_r, r) = (r, remainder);
+            (old_s, s) = (s, next_s);
+            (old_t, t) = (t, next_t);
+        }
+        (old_r, old_s, old_t)
+    }
+
+    #[test]
+    fn full_width_nonzero_pairs_have_independently_derived_bezout_witnesses() {
+        // PR #64 exercises high-degree multiplication with one zero operand.
+        // These nonzero/nonzero pairs also exercise the actual Euclidean
+        // reduction path and independent high-degree Bezout coefficients.
+        for (lhs, rhs) in [
+            (0x8000_u16, 0x8001_u16),
+            (0x8001, 0x8003),
+            (0xffff, 0xaaaa),
+            (0xbeef, 0xdead),
+            (0xe00d, 0xf00d),
+            (0xffff, 0xffff),
+            (0x5555, 0xaaaa),
+            (0xf0f0, 0x0f0f),
+            (0x8000, 0x0003),
+            (0x0001, 0xffff),
+            (0x8001, 0x8001),
+            (0x7fff, 0x8000),
+        ] {
+            let (gcd_wide, s_wide, t_wide) = independent_extended_gcd(lhs, rhs);
+            assert!(gcd_wide <= u32::from(u16::MAX));
+            assert!(s_wide <= u64::from(u16::MAX));
+            assert!(t_wide <= u64::from(u16::MAX));
+            let (gcd, s, t) = (gcd_wide as u16, s_wide as u16, t_wide as u16);
+            assert_eq!(
+                reference_product(lhs, s) ^ reference_product(rhs, t),
+                u32::from(gcd),
+                "independent witness lhs={lhs:#x} rhs={rhs:#x}"
+            );
+            assert_eq!(
+                check_frozen_gf2_polynomial_bezout(&frame(lhs, rhs, gcd, s, t)),
+                Ok(()),
+                "valid lhs={lhs:#x} rhs={rhs:#x}"
+            );
+            let forged_gcd = gcd ^ 1;
+            assert_eq!(
+                check_frozen_gf2_polynomial_bezout(&frame(lhs, rhs, forged_gcd, s, t)),
+                Err(Gf2PolynomialBezoutError::GcdMismatch {
+                    expected: gcd,
+                    actual: forged_gcd,
+                })
+            );
+            let forged_s = s ^ 1;
+            let computed = reference_product(lhs, forged_s) ^ reference_product(rhs, t);
+            assert_ne!(computed, u32::from(gcd));
+            assert_eq!(
+                check_frozen_gf2_polynomial_bezout(&frame(lhs, rhs, gcd, forged_s, t)),
+                Err(Gf2PolynomialBezoutError::IdentityMismatch {
+                    computed,
+                    claimed: gcd,
+                })
+            );
+        }
+    }
+
     #[test]
     fn malformed_frames_and_undefined_pair_fail_closed() {
         let valid = frame(0b1011, 0b1101, 1, 2, 3);
