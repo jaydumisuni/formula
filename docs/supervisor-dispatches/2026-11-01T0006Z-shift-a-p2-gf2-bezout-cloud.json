@@ -1,0 +1,83 @@
+{
+  "schema": "ttg.cookpit.supervisor.cloud-dispatch.v1",
+  "shift": "A",
+  "observed_at_utc": "2026-11-01T00:06:38Z",
+  "project": "formula",
+  "repository": "jaydumisuni/formula",
+  "frontier": "P2 bounded independent GF(2)[x] Bezout witness preflight",
+  "canonical_routing": {
+    "registry": "jaydumisuni/cookpit@main:registry.json",
+    "registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb",
+    "enabled": true,
+    "profile": "profiles/formula.json"
+  },
+  "before": {
+    "head": "f8f0b825dad002b8b4d8c0ec81329ea595d93f32",
+    "state": "draft PR #58; P2 independent modular-power candidate, review pending"
+  },
+  "action": {
+    "transport": "authenticated GitHub cloud source-only fallback",
+    "worker": "Cookpit Supervisor Shift A",
+    "workspace_owner": "formula",
+    "branch": "supervisor/shift-a-p2-gf2-bezout-witness-20261101-0200",
+    "changes": [
+      "crates/formula-check/src/gf2_polynomial_bezout.rs",
+      "crates/formula-check/src/lib.rs",
+      ".github/workflows/p2-gf2-bezout.yml"
+    ],
+    "description": "Implement exact ten-byte GF(2) Bezout relation checker with independently recomputed GCD, nontruncating carryless identity, four Rust regression tests and focused hosted qualification"
+  },
+  "after": {
+    "source_head": "a4399f73bba9d22bbb4ea876e7c1a06479b8fe18",
+    "pr": "https://github.com/jaydumisuni/formula/pull/59",
+    "state": "SOURCE_PUBLISHED_HOSTED_PROOF_PASS_REVIEW_AND_LOCAL_PATROL_PENDING",
+    "protected_promotion": false
+  },
+  "engineering_health": {
+    "hosted_focused": "PASS 4/4 Rust tests",
+    "hosted_focused_run": "https://github.com/jaydumisuni/formula/actions/runs/41255238402",
+    "hosted_modular_power": "PASS",
+    "hosted_modular_power_run": "https://github.com/jaydumisuni/formula/actions/runs/41255238356",
+    "hosted_modular_inverse": "PASS",
+    "hosted_modular_inverse_run": "https://github.com/jaydumisuni/formula/actions/runs/41255238330",
+    "hosted_p0_boundary": "PASS source-only",
+    "hosted_p0_run": "https://github.com/jaydumisuni/formula/actions/runs/41255238368",
+    "independent_python_model": "PASS 255 nonzero small operand pairs and four high-degree/zero cases",
+    "source_blob_readback": "MATCH",
+    "local_patrol": "UNVERIFIED: Oracle Live workstation RPC internal error",
+    "local_native_cargo": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "mathematical_certificate": "NOT PROVEN",
+    "p1_physical_mac": "NOT PROVEN"
+  },
+  "implementation_movement": {
+    "material": true,
+    "kind": "tracked project-owned source and regression commits",
+    "before_head": "f8f0b825dad002b8b4d8c0ec81329ea595d93f32",
+    "after_head": "a4399f73bba9d22bbb4ea876e7c1a06479b8fe18",
+    "source_changes": "3 project-owned files; new checker, export, focused CI",
+    "last_successful_dispatch_receipt": "new frontier; no duplicate receipt for same project+head+frontier"
+  },
+  "dependency_linkage": {
+    "internal": "Formula P2 checker/certificate preparation",
+    "blocked_gates": [
+      "P1 physical/macOS acceptance",
+      "P2 independent certificate checker/trust-root admission",
+      "independent exact-head review"
+    ]
+  },
+  "restrictions": {
+    "production_touched": false,
+    "stolen_device_touched": false,
+    "supervisor_schedules_modified": false,
+    "protected_merge": false,
+    "force_push": false,
+    "oracle_phase27_dispatched": false
+  },
+  "local_reconciliation": {
+    "attention": "QUEUED_KRATOS_OFFLINE",
+    "dispatch_directory": "/home/kratos/.local/state/ttg-cookpit/supervisors/dispatches/",
+    "patrol": "QUEUED_KRATOS_OFFLINE",
+    "worker_lease": "UNVERIFIED"
+  }
+}
