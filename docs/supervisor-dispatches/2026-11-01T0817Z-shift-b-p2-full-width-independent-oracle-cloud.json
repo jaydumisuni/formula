@@ -1,0 +1,72 @@
+{
+  "schema": "ttg.cookpit.supervisor.cloud-dispatch.v1",
+  "shift": "B",
+  "observed_at_utc": "2026-11-01T08:17:41.467Z",
+  "project": "formula",
+  "repository": "jaydumisuni/formula",
+  "frontier": "P2 independent full-width GF(2)[x] Bezout frozen-witness negative and positive proof",
+  "canonical_routing": {
+    "registry": "jaydumisuni/cookpit@main:registry.json",
+    "registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb",
+    "profile": "profiles/formula.json",
+    "enabled": true,
+    "project_workspace": "/home/kratos/projects/formula/.workspace/worktrees/p1-continuation-20261006",
+    "local_workspace_reconciliation": "PENDING_ORACLE_LIVE_TERMINAL_INTERNAL_ERROR",
+    "project_authority": "Formula frozen architecture and P2 checker, not Cookpit"
+  },
+  "before": {
+    "head": "ce6135cfa5d87c3fd595f5a479ebdef3228e65ff",
+    "state": "PR #63 independently computes expected small-domain GCD/identity but the positive-witness search still used production multiplication and no full-width independent negative matrix",
+    "last_visible_material_movement_utc": "2026-11-01T06:36:53Z",
+    "movement_classification": "STALLED_IMPLEMENTATION"
+  },
+  "action": {
+    "transport": "authenticated GitHub cloud source-only fallback",
+    "worker": "Cookpit Supervisor Shift B; no claimed local worker lease",
+    "branch": "supervisor/shift-b-p2-full-width-independent-oracle-20261101-1015",
+    "changed_files": [
+      "crates/formula-check/src/gf2_polynomial_bezout.rs"
+    ],
+    "description": "Use independent convolution for witness selection; exercise 72 full-width frozen Bezout frames across both zero-operand orientations (12 valid, 60 invalid)"
+  },
+  "after": {
+    "source_head": "20c2afaae7a7df7b3c36907a86be15f7cdaa6914",
+    "pr": "https://github.com/jaydumisuni/formula/pull/64",
+    "state": "SOURCE_PUBLISHED_HOSTED_CI_IN_PROGRESS_REVIEW_PENDING",
+    "protected_promotion": false
+  },
+  "engineering_health": {
+    "source_readback": "MATCH",
+    "source_blob": "5c46f27aa220788c3a6a7c98421229c9b39ab3e2",
+    "ancestry": "1 ahead, 0 behind exact PR #63 receipt-bearing predecessor",
+    "isolated_oracle": "PASS: 72/72 independently modeled full-width identities, 12 valid and 60 invalid; JS model only",
+    "hosted_p2": "IN_PROGRESS at source head; not PASS",
+    "hosted_p0": "QUEUED at source head; not PASS",
+    "local_patrol": "UNVERIFIED: Oracle Live terminal internal error",
+    "local_worker_lease": "UNVERIFIED",
+    "native_rust": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "mathematical_certificate": "NOT_PROVEN",
+    "physical_proof": "NOT_PROVEN"
+  },
+  "implementation_movement": {
+    "material": true,
+    "kind": "tracked Formula-owned P2 independent checker test implementation",
+    "before_head": "ce6135cfa5d87c3fd595f5a479ebdef3228e65ff",
+    "after_head": "20c2afaae7a7df7b3c36907a86be15f7cdaa6914",
+    "time_utc": "2026-11-01T08:17:41.467Z",
+    "distinct_frontier": true
+  },
+  "dependency_linkage": {
+    "internal": "Formula P2 independent checker and frozen evidence custody; P1 construction remains separately bound; no mathematical trust-root or promotion authority conferred",
+    "blocked_gates": [
+      "independent exact-head review",
+      "KRATOS Patrol/worker/lease reconciliation",
+      "mathematical certificate and promotion"
+    ]
+  },
+  "disposition": "MATERIAL_SOURCE_PUBLISHED_CI_PENDING_REVIEW_PENDING",
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false
+}
