@@ -1,0 +1,78 @@
+{
+  "schema": "ttg.cookpit.supervisor.cloud-dispatch.v1",
+  "shift": "C",
+  "observed_at_utc": "2026-11-01T03:30:34.016Z",
+  "project": "formula",
+  "repository": "jaydumisuni/formula",
+  "frontier": "P2 frozen GF(2) Bezout checker artifact byte custody",
+  "canonical_routing": {
+    "registry": "jaydumisuni/cookpit@main:registry.json",
+    "registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb",
+    "profile": "profiles/formula.json",
+    "enabled": true
+  },
+  "before": {
+    "head": "fec784a749384d6046faefff5f453b597fa41c68",
+    "state": "PR #60 frozen GF(2) Bezout pinned metadata/policy checker; actual checker artifact bytes not independently compared to checker pin"
+  },
+  "action": {
+    "transport": "authenticated GitHub cloud source-only fallback",
+    "worker": "Cookpit Supervisor Shift C",
+    "workspace_owner": "formula",
+    "branch": "supervisor/shift-c-p2-bezout-checker-bytes-20261101-0524",
+    "changed_files": [
+      "crates/formula-check/src/gf2_polynomial_bezout.rs"
+    ],
+    "description": "Add opt-in preflight binding actual frozen checker bytes to independent digest before existing frozen policy, metadata and exact Bezout checks; add valid, byte-mutation and producer-rehashed substitution regressions; consume rustfmt CI finding"
+  },
+  "after": {
+    "source_head": "4953ba6bc9d91defcda1cf55a059c43ae057f143",
+    "initial_source_head": "df29cd5403be85c29a420bbf67935bf8fa501afc",
+    "pr": "https://github.com/jaydumisuni/formula/pull/61",
+    "state": "SOURCE_PUBLISHED_FOCUSED_HOSTED_PASS_REVIEW_PENDING",
+    "protected_promotion": false
+  },
+  "engineering_health": {
+    "source_blob": "70639de6b2289028eaf6aa635968785dcf8f3118",
+    "source_readback": "MATCH",
+    "ancestry": "2 ahead 0 behind of exact PR #60 predecessor",
+    "hosted_focused": "PASS (rustfmt and formula-check GF2 Bezout regressions)",
+    "hosted_focused_run": "https://github.com/jaydumisuni/formula/actions/runs/41269420551",
+    "hosted_p0_boundary": "IN_PROGRESS_AT_RECEIPT",
+    "hosted_p0_run": "https://github.com/jaydumisuni/formula/actions/runs/41269420572",
+    "local_patrol": "UNVERIFIED: Oracle Live terminal internal error",
+    "local_worker_lease": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "physical_mac": "NOT_PROVEN",
+    "mathematical_certificate": "NOT_PROVEN"
+  },
+  "implementation_movement": {
+    "material": true,
+    "kind": "tracked Formula-owned P2 source and regression change",
+    "before_head": "fec784a749384d6046faefff5f453b597fa41c68",
+    "after_head": "4953ba6bc9d91defcda1cf55a059c43ae057f143",
+    "distinct_frontier": true
+  },
+  "dependency_linkage": {
+    "internal": "Formula P2 checker identity and independent certificate custody; trust-root and promotion remain gated",
+    "blocked_gates": [
+      "independent exact-head review",
+      "P1 physical/macOS acceptance",
+      "P2 certificate/trust-root admission"
+    ]
+  },
+  "restrictions": {
+    "production_touched": false,
+    "stolen_device_touched": false,
+    "supervisor_schedules_modified": false,
+    "protected_merge": false,
+    "force_push": false,
+    "oracle_phase27_dispatched": false
+  },
+  "local_reconciliation": {
+    "attention": "QUEUED_KRATOS_UNREACHABLE",
+    "dispatch_directory": "/home/kratos/.local/state/ttg-cookpit/supervisors/dispatches/",
+    "patrol": "QUEUED_KRATOS_UNREACHABLE"
+  },
+  "nodie_observation": "UNVERIFIED: direct Oracle Live cloud roster internal error; no device action"
+}
