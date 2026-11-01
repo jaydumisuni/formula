@@ -1,0 +1,33 @@
+{
+  "schema": "ttg.formula.supervisor-dispatch.v1",
+  "shift": "E",
+  "project": "formula",
+  "frontier": "P2_INDEPENDENT_GF2_BEZOUT_NONCANONICAL_SYZYGY_FAMILY",
+  "before_head": "619bae05fb2ec1fc7bb1fbf4023a3cce71e4b496",
+  "before_state": "PR70 independent shifted Bezout coefficient-forgery and exchange tests; no explicit noncanonical syzygy family with high-degree cancellation and unilateral forgeries",
+  "implementation_head": "c808b37022afb6d2b50000772c80027d3a12e538",
+  "implementation_delta": "75 Rust test-only lines; independently derived quotient syzygy family for 9 operand pairs and 6 multipliers; >=35 noncanonical witnesses, one-sided forged s/t negative controls, high-degree cancellation",
+  "proof": {
+    "patrol": "xvfb-run patrol check exit 0; explicit ALLOW not emitted",
+    "focused": "1/1 PASS",
+    "formula_check": "142/142 PASS",
+    "cargo_fmt": "PASS",
+    "strict_clippy": "PASS -D warnings",
+    "git_diff_check": "PASS",
+    "p0_invariants": "PASS; P0 milestone NOT PROVEN",
+    "hosted_exact_head_ci": "PENDING",
+    "independent_review": "PENDING",
+    "p1_macos": "NOT PROVEN",
+    "p2_certificate": "NOT ADMITTED"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent GF(2)[x] checker",
+    "downstream": "independent mathematical certificate and trust-root qualification",
+    "protected": "P1 macOS physical proof, P2 certification and promotion HOLD"
+  },
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "time_utc": "2026-11-01T19:52:02.570445+00:00",
+  "disposition": "MATERIAL_SOURCE_NATIVE_PASS_REVIEW_PENDING"
+}
