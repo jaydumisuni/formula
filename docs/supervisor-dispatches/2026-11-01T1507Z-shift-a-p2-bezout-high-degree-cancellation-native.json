@@ -1,0 +1,37 @@
+{
+  "schema": "ttg.cookpit.supervisor-dispatch.v1",
+  "shift": "A",
+  "project": "formula",
+  "frontier": "P2_FULL_WIDTH_BEZOUT_HIGH_DEGREE_CANCELLATION_AND_ZERO_FACTOR_FREEDOM",
+  "time_utc": "2026-11-01T15:07:35Z",
+  "before_head": "afbcb335adebc051fcef597439254676cd6a681f",
+  "before_state": "PR67 lacked explicit positive degree-30 high-term cancellation and low-16-bit-identical negative forgeries plus zero-factor noncanonical freedom controls",
+  "after_implementation_head": "09878a295d38623966ca5365f19829a2e61c2bc0",
+  "after_state": "Two independent Rust regression tests: exact high-term cancellation and two forged witnesses a u16-truncated checker would admit; 16 zero-factor coefficient freedom controls. No production checker changes.",
+  "worker_action": "Shift A, Oracle Live KRATOS, isolated Formula project-owned worktree, headless Patrol preflight, test-only source delta, native proof, reviewed diff, non-force publication",
+  "candidate_worktree": "/home/kratos/projects/formula/.workspace/worktrees/p2-bezout-high-degree-cancellation-shift-a-20261101-1700",
+  "candidate_branch": "supervisor/shift-a-p2-bezout-high-degree-cancellation-20261101-1700",
+  "proof": {
+    "patrol": "headless exit 0, no explicit ALLOW",
+    "focused": "13/13 PASS",
+    "native_full": "140/140 PASS",
+    "cargo_fmt": "PASS",
+    "strict_clippy": "PASS",
+    "git_diff_check": "PASS",
+    "hosted_exact_head_ci": "PENDING",
+    "independent_review": "PENDING",
+    "mathematical_certificate": "NOT_PROVEN",
+    "p1_physical_macos": "NOT_PROVEN"
+  },
+  "engineering_health": "NATIVE_SOURCE_TESTS_PASS_REVIEW_PENDING",
+  "implementation_movement": "SOURCE_TEST_COMMIT_ADVANCED",
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent checker/certificate core",
+    "downstream": "independent checker trust-root qualification",
+    "protected": "No mathematical certificate, P1 macOS acceptance, promotion or main merge"
+  },
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "disposition": "MATERIAL_TEST_SOURCE_COMMITTED_NATIVE_PASS_REVIEW_PENDING"
+}
