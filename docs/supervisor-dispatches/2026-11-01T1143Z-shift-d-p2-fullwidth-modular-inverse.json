@@ -1,0 +1,55 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "D",
+  "project": "formula",
+  "frontier": "P2 independent full-width GF(2)[x] modular inverse positive/nonunit/forged witness matrix",
+  "observed_at_utc": "2026-11-01T11:43:51.013373+00:00",
+  "before": {
+    "head": "7568c0800d858354a73d77a853622ce48ed19186",
+    "state": "PR65 high-degree Bezout evidence; modular inverse full-width independent oracle not covered"
+  },
+  "worker_action": {
+    "worker": "Shift D isolated Formula project worktree",
+    "path": "/home/kratos/projects/formula/.workspace/worktrees/p2-modular-inverse-fullwidth-shift-d-20261101",
+    "branch": "supervisor/shift-d-p2-modular-inverse-fullwidth-20261101-1336",
+    "source_commit": "567e3e5d4b1a6b202db8e8ee66715c3d2d7a679e",
+    "change": "109 Rust regression/helper lines; independent wide extended-Euclid inverse oracle, 8 moduli, positive units, nonunits and forged inverse assertions"
+  },
+  "after": {
+    "source_head": "567e3e5d4b1a6b202db8e8ee66715c3d2d7a679e",
+    "remote_source_head": "567e3e5d4b1a6b202db8e8ee66715c3d2d7a679e",
+    "pr": "https://github.com/jaydumisuni/formula/pull/66",
+    "review": "PENDING",
+    "source_published": true
+  },
+  "proof": {
+    "patrol": "xvfb-run -a patrol check exit 0; explicit ALLOW text not emitted",
+    "git_diff_check": "PASS",
+    "cargo_fmt": "PASS",
+    "native_formula_check": "138/138 PASS",
+    "strict_clippy": "PASS -D warnings",
+    "remote_source_readback": "MATCH",
+    "hosted_exact_head_ci": "IN_PROGRESS at source head; receipt head unverified",
+    "independent_review": "PENDING",
+    "p1_macos": "NOT_PROVEN",
+    "p2_certificate": "NOT_ADMITTED"
+  },
+  "health_fact": {
+    "state": "NATIVE_138_PASS_HOSTED_IN_PROGRESS_REVIEW_PENDING",
+    "time_utc": "2026-11-01T11:43:51.013373+00:00",
+    "proof_is_movement": false
+  },
+  "movement_fact": {
+    "state": "MATERIAL_SOURCE_PUBLISHED",
+    "time_utc": "2026-11-01T11:43:51.013373+00:00",
+    "before_head": "7568c0800d858354a73d77a853622ce48ed19186",
+    "source_head": "567e3e5d4b1a6b202db8e8ee66715c3d2d7a679e",
+    "material": true
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 checker preparation",
+    "downstream": "Formula independent certificate/trust-root qualification",
+    "promotion_authority": false
+  },
+  "production_touched": false
+}
