@@ -1,0 +1,28 @@
+{
+  "schema": "ttg.cookpit.supervisor-dispatch.v1",
+  "shift": "B",
+  "project": "formula",
+  "frontier": "P2_BEZOUT_SHIFTED_DUAL_COEFFICIENT_FORGERY_AND_SYMMETRY",
+  "before_head": "a23c3e4cc2a0562e1407213a8132d8f30b7b82ca",
+  "after_implementation_head": "c91d2a184a4140727bcd248615029c3069e62d5e",
+  "before_state": "PR69 monomial-shift tests covered forged GCD and s but not shifted t or swapped operands; no fresh bounded implementation worker",
+  "after_state": "36-line test-only extension: 45 independently computed shifted t forgeries rejected and 45 swapped shifted positive witnesses accepted; no production checker changes",
+  "worker_action": "Shift B isolated Formula project worktree from exact PR69 head; native Rust tests; draft PR pending",
+  "proof": {
+    "patrol": "UNVERIFIED: graphical patrol check SIGSEGV without X server; clean predecessor and git diff --check fallback",
+    "focused": "1 PASS; 45 shifted t forgeries plus 45 swapped positive assertions",
+    "formula_check": "141 PASS",
+    "rustfmt": "PASS",
+    "clippy": "PASS -D warnings",
+    "p0": "PASS repository invariants only; P0 remains UNPROVEN",
+    "hosted_ci": "PENDING",
+    "independent_review": "PENDING",
+    "mathematical_certificate": "NOT_PROVEN"
+  },
+  "dependency_linkage": "Formula P2 independent GF(2) Bezout checker preparation -> mathematical certification not granted; P1 macOS and promotion HOLD",
+  "time_utc": "2026-11-01T18:19:34Z",
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "schedules_changed": false,
+  "disposition": "MATERIAL_SOURCE_NATIVE_PASS_REVIEW_PENDING"
+}
