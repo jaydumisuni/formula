@@ -1,0 +1,67 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "E",
+  "observed_at_utc": "2026-11-01T10:12:16.081436Z",
+  "project": "formula",
+  "repository": "jaydumisuni/formula",
+  "canonical_authority": {
+    "registry": "jaydumisuni/cookpit@aa49182ce91c5261ac49d04d9d297fea6fe39b8d:registry.json",
+    "profile": "profiles/formula.json",
+    "enabled": true,
+    "project_owned_worktree": "/home/kratos/projects/formula/.workspace/worktrees/p2-bezout-fullwidth-nonzero-shift-e-20261101"
+  },
+  "frontier": "P2 independent high-degree nonzero/nonzero GF(2)[x] Bezout witness and forgery qualification",
+  "before": {
+    "head": "f53af47b1951a2e6c63829cc08a3acea1a3c826a",
+    "state": "PR64 source tests independently cover 72 full-width zero-operand frames, but no full-width nonzero/nonzero extended-GCD witness matrix",
+    "last_verified_material_at_utc": "2026-11-01T08:17:43Z",
+    "movement": "STALLED_IMPLEMENTATION"
+  },
+  "action": {
+    "worker": "Shift E bounded Formula-owned isolated worktree; no duplicate P1 worker",
+    "branch": "supervisor/shift-e-p2-bezout-fullwidth-nonzero-20261101-1248",
+    "files": [
+      "crates/formula-check/src/gf2_polynomial_bezout.rs"
+    ],
+    "description": "Add independent wide polynomial division, extended Euclid coefficient oracle, and 12 nonzero/nonzero full-width valid plus forged-GCD and forged-coefficient matrices"
+  },
+  "after": {
+    "source_head": "fd65fa4c1d89d59a6a60291248914d2f26438ebf",
+    "material_delta": "94 inserted Rust test/helper lines; 12 full-width pairs, 36 checker accept/reject assertions",
+    "review": "PENDING",
+    "certificate": "NOT_ADMITTED",
+    "promotion": false
+  },
+  "engineering_health": {
+    "patrol": "ALLOW formula on original and isolated worktree",
+    "git_diff_check": "PASS",
+    "cargo_fmt": "PASS --all -- --check",
+    "cargo_focused": "11/11 PASS; 126 filtered",
+    "cargo_formula_check": "137/137 PASS",
+    "cargo_clippy": "PASS --all-targets --locked -D warnings",
+    "hosted_ci": "PENDING_REMOTE_PUBLICATION",
+    "independent_review": "PENDING",
+    "physical_macos": "NOT_PROVEN"
+  },
+  "implementation_movement": {
+    "material": true,
+    "kind": "tracked source-only P2 independent regression obligation",
+    "before_head": "f53af47b1951a2e6c63829cc08a3acea1a3c826a",
+    "after_head": "fd65fa4c1d89d59a6a60291248914d2f26438ebf",
+    "time_utc": "2026-11-01T10:12:16.081436Z",
+    "proof_is_not_movement": true
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent checker and frozen evidence custody",
+    "parallel": "P1 construction remains separately bound",
+    "protected_gates": [
+      "exact-head independent review",
+      "P2 mathematical certificate/admission",
+      "P1 physical/macOS qualification"
+    ]
+  },
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "disposition": "MATERIAL_NATIVE_SOURCE_COMMITTED_REVIEW_PENDING"
+}
