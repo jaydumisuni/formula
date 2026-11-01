@@ -79,6 +79,7 @@ pub enum Gf2PolynomialBezoutBundleError {
     ContractPinMismatch,
     JudgementPinMismatch,
     PayloadPinMismatch,
+    CheckerBytesPinMismatch,
     Bundle(PinnedEvidenceBundlePreflightError),
     WrongEvidenceFamily,
     Body(Gf2PolynomialBezoutError),
@@ -123,6 +124,37 @@ pub fn preflight_pinned_frozen_gf2_polynomial_bezout(
     }
     check_frozen_gf2_polynomial_bezout(frozen.payload_bytes)
         .map_err(Gf2PolynomialBezoutBundleError::Body)
+}
+
+/// Bind the frozen checker artifact bytes to a separately authenticated
+/// checker digest before accepting the evidence bundle. Matching recorded
+/// digests alone do not prove the identity of the actual checker bytes.
+/// This is structural custody only, not execution, certification or promotion.
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_pinned_frozen_gf2_polynomial_bezout_with_checker_bytes(
+    independently_pinned_judgement: ArtifactDigest,
+    independently_pinned_payload: ArtifactDigest,
+    independently_pinned_checker: ArtifactDigest,
+    independently_pinned_contract: ArtifactDigest,
+    recorded_contract: ArtifactDigest,
+    contract: &AuthorityContract,
+    recorded_metadata: &EvidenceEnvelopeMetadata,
+    checker_bytes: &[u8],
+    frozen: &FrozenEvidence<'_>,
+) -> Result<(), Gf2PolynomialBezoutBundleError> {
+    if ArtifactDigest::sha256(checker_bytes) != independently_pinned_checker {
+        return Err(Gf2PolynomialBezoutBundleError::CheckerBytesPinMismatch);
+    }
+    preflight_pinned_frozen_gf2_polynomial_bezout(
+        independently_pinned_judgement,
+        independently_pinned_payload,
+        independently_pinned_checker,
+        independently_pinned_contract,
+        recorded_contract,
+        contract,
+        recorded_metadata,
+        frozen,
+    )
 }
 
 #[cfg(test)]
@@ -439,4 +471,67 @@ mod tests {
             Err(Gf2PolynomialBezoutBundleError::WrongEvidenceFamily)
         );
     }
+    #[test]
+    fn frozen_checker_artifact_bytes_require_independent_pin() {
+        let judgement = formula_core::Judgement::new(
+            ArtifactDigest::sha256(b"checker-world"),
+            "finite-exact",
+            b"bezout-custody".to_vec(),
+            vec![],
+        );
+        let judgement_pin = judgement.structural_digest();
+        let checker_bytes = b"frozen-bezout-checker";
+        let checker_pin = ArtifactDigest::sha256(checker_bytes);
+        let contract = AuthorityContract::new(vec!["gf2-polynomial-bezout".to_owned()]);
+        let contract_pin = contract.structural_digest();
+        let valid = frame(0b1011, 0b1101, 1, 2, 3);
+        let payload_pin = ArtifactDigest::sha256(&valid);
+        let frozen = FrozenEvidence {
+            judgement: &judgement,
+            evidence_family: "gf2-polynomial-bezout",
+            payload_bytes: &valid,
+            checker_digest: checker_pin,
+        };
+        let metadata = EvidenceEnvelopeMetadata::new(
+            judgement_pin,
+            frozen.evidence_family,
+            payload_pin,
+            checker_pin,
+        );
+        let verify = |bytes: &[u8], recorded: &EvidenceEnvelopeMetadata, candidate: &FrozenEvidence<'_>| {
+            preflight_pinned_frozen_gf2_polynomial_bezout_with_checker_bytes(
+                judgement_pin,
+                payload_pin,
+                checker_pin,
+                contract_pin,
+                contract_pin,
+                &contract,
+                recorded,
+                bytes,
+                candidate,
+            )
+        };
+        assert_eq!(verify(checker_bytes, &metadata, &frozen), Ok(()));
+        assert_eq!(
+            verify(b"mutated-checker", &metadata, &frozen),
+            Err(Gf2PolynomialBezoutBundleError::CheckerBytesPinMismatch)
+        );
+        let substituted_bytes = b"producer-replaced-checker";
+        let substituted_pin = ArtifactDigest::sha256(substituted_bytes);
+        let substituted_frozen = FrozenEvidence {
+            checker_digest: substituted_pin,
+            ..frozen
+        };
+        let substituted_metadata = EvidenceEnvelopeMetadata::new(
+            judgement_pin,
+            substituted_frozen.evidence_family,
+            payload_pin,
+            substituted_pin,
+        );
+        assert_eq!(
+            verify(substituted_bytes, &substituted_metadata, &substituted_frozen),
+            Err(Gf2PolynomialBezoutBundleError::CheckerBytesPinMismatch)
+        );
+    }
+
 }
