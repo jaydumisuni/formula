@@ -1,0 +1,89 @@
+{
+  "schema": "ttg.cookpit.supervisor.cloud-dispatch.v1",
+  "shift": "A",
+  "observed_at_utc": "2026-11-01T05:02:51.494Z",
+  "project": "formula",
+  "repository": "jaydumisuni/formula",
+  "frontier": "P2 frozen GF(2)[x] Bezout checker artifact nonempty custody",
+  "canonical_routing": {
+    "registry": "jaydumisuni/cookpit@main:registry.json",
+    "registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb",
+    "profile": "profiles/formula.json",
+    "enabled": true
+  },
+  "before": {
+    "head": "f5d59357fbd95ec0dc5331023975b8623648cb2e",
+    "state": "PR #61 checker-byte digest pin matched SHA-256(empty) when both caller pin and metadata agreed; empty checker artifact admitted structurally"
+  },
+  "action": {
+    "transport": "authenticated GitHub cloud source-only fallback",
+    "worker": "Cookpit Supervisor Shift A",
+    "workspace_owner": "formula",
+    "branch": "supervisor/shift-a-p2-bezout-empty-checker-20261101-0700",
+    "changed_files": [
+      "crates/formula-check/src/gf2_polynomial_bezout.rs"
+    ],
+    "description": "Reject zero-length frozen checker artifact bytes before SHA-256 pin check; add adversarial self-consistent empty-pin regression; preserve valid nonempty and substituted checker controls"
+  },
+  "after": {
+    "source_head": "5e76f2a59254085177eac68233d1286b762ac4ae",
+    "pr": "https://github.com/jaydumisuni/formula/pull/62",
+    "state": "SOURCE_PUBLISHED_HOSTED_FOCUSED_AND_P0_PASS_REVIEW_PENDING",
+    "protected_promotion": false
+  },
+  "engineering_health": {
+    "source_blob": "5127d014a4944443a0650501050b7adf40d31bdf",
+    "source_readback": "MATCH",
+    "ancestry": "1 ahead, 0 behind exact PR #61 receipt-bearing predecessor",
+    "isolated_model": "PASS: SHA256(empty) accepted by predecessor; rejected by nonempty guard; nonempty matching pin accepted; substitution rejected",
+    "hosted_focused": "PASS: 8/8 GF2 Bezout tests, rustfmt, authority-boundary check",
+    "hosted_focused_run": "https://github.com/jaydumisuni/formula/actions/runs/41275341355",
+    "hosted_p0": "SUCCESS on source head",
+    "hosted_p0_run": "https://github.com/jaydumisuni/formula/actions/runs/41275341349",
+    "local_patrol": "UNVERIFIED: Oracle Live terminal internal error",
+    "local_worker_lease": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "physical_mac": "NOT_PROVEN",
+    "mathematical_certificate": "NOT_PROVEN"
+  },
+  "implementation_movement": {
+    "material": true,
+    "kind": "tracked Formula-owned P2 Rust implementation and adversarial regression",
+    "before_head": "f5d59357fbd95ec0dc5331023975b8623648cb2e",
+    "after_head": "5e76f2a59254085177eac68233d1286b762ac4ae",
+    "distinct_frontier": true
+  },
+  "dependency_linkage": {
+    "internal": "Formula P2 independent checker artifact custody; mathematical trust-root and promotion remain separate",
+    "blocked_gates": [
+      "independent exact-head review",
+      "KRATOS Patrol and native lease reconciliation",
+      "P1 physical/macOS acceptance",
+      "P2 certificate/trust-root admission"
+    ]
+  },
+  "supervisor_pool": {
+    "a": "CURRENT_SLOT_WITHIN_GRACE",
+    "b": "HEALTHY",
+    "c": "HEALTHY",
+    "d": "HEALTHY",
+    "e": "HEALTHY",
+    "missed": 0,
+    "catchups": 0,
+    "schedules_modified": false
+  },
+  "restrictions": {
+    "production_touched": false,
+    "stolen_device_touched": false,
+    "supervisor_schedules_modified": false,
+    "protected_merge": false,
+    "force_push": false,
+    "oracle_phase27_dispatched": false
+  },
+  "local_reconciliation": {
+    "attention": "QUEUED_KRATOS_UNREACHABLE",
+    "dispatch_directory": "/home/kratos/.local/state/ttg-cookpit/supervisors/dispatches/",
+    "patrol": "QUEUED_KRATOS_UNREACHABLE"
+  },
+  "nodie_observation": "UNVERIFIED: direct Oracle Live cloud roster internal error; no device action"
+}
