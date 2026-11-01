@@ -575,6 +575,81 @@ mod tests {
     }
 
     #[test]
+    fn full_width_bezout_syzygy_family_preserves_noncanonical_witnesses() {
+        // If (s,t) is a Bezout witness, adding (rhs/gcd)*q to s and
+        // (lhs/gcd)*q to t preserves the relation in characteristic two.
+        // Derive both quotients by independent wide polynomial division.
+        // This catches a checker that accepts only one canonical Euclid
+        // witness, truncates cancelling high terms, or ignores a coefficient.
+        let mut accepted = 0;
+        let mut high_term_cancellations = 0;
+        for (lhs, rhs) in [
+            (0x8001_u16, 0x8003_u16),
+            (0x8000, 0x8001),
+            (0x00f0, 0x005a),
+            (0x0036, 0x001e),
+            (0x0013, 0x001d),
+            (0x0021, 0x0031),
+            (0x00ff, 0x00aa),
+            (0xffff, 0xaaaa),
+            (0xdead, 0xbeef),
+        ] {
+            let (gcd_wide, s_wide, t_wide) = independent_extended_gcd(lhs, rhs);
+            let gcd = u16::try_from(gcd_wide).expect("bounded GCD");
+            assert!(s_wide <= u64::from(u16::MAX));
+            assert!(t_wide <= u64::from(u16::MAX));
+            let (lhs_quotient, lhs_remainder) = reference_div_rem(u32::from(lhs), gcd_wide);
+            let (rhs_quotient, rhs_remainder) = reference_div_rem(u32::from(rhs), gcd_wide);
+            assert_eq!((lhs_remainder, rhs_remainder), (0, 0));
+
+            for q in [1_u16, 2, 3, 0x11, 0x80, 0x100] {
+                let s_next = s_wide ^ reference_wide_product(rhs_quotient, u64::from(q));
+                let t_next = t_wide ^ reference_wide_product(lhs_quotient, u64::from(q));
+                if s_next > u64::from(u16::MAX) || t_next > u64::from(u16::MAX) {
+                    continue;
+                }
+                assert_ne!((s_next, t_next), (s_wide, t_wide));
+                let (s, t) = (s_next as u16, t_next as u16);
+                let left = reference_product(lhs, s);
+                let right = reference_product(rhs, t);
+                assert_eq!(left ^ right, u32::from(gcd));
+                if left > u32::from(u16::MAX) && right > u32::from(u16::MAX) {
+                    high_term_cancellations += 1;
+                }
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame(lhs, rhs, gcd, s, t)),
+                    Ok(()),
+                    "noncanonical lhs={lhs:#x} rhs={rhs:#x} q={q:#x}"
+                );
+                for (forged_s, forged_t) in [(s ^ 1, t), (s, t ^ 1)] {
+                    let computed =
+                        reference_product(lhs, forged_s) ^ reference_product(rhs, forged_t);
+                    assert_ne!(computed, u32::from(gcd));
+                    assert_eq!(
+                        check_frozen_gf2_polynomial_bezout(&frame(
+                            lhs, rhs, gcd, forged_s, forged_t
+                        )),
+                        Err(Gf2PolynomialBezoutError::IdentityMismatch {
+                            computed,
+                            claimed: gcd,
+                        }),
+                        "one-sided forgery lhs={lhs:#x} rhs={rhs:#x} q={q:#x}"
+                    );
+                }
+                accepted += 1;
+            }
+        }
+        assert!(
+            accepted >= 35,
+            "insufficient noncanonical witnesses: {accepted}"
+        );
+        assert!(
+            high_term_cancellations >= 2,
+            "high-degree cancellation cases were not exercised"
+        );
+    }
+
+    #[test]
     fn zero_operand_accepts_noncanonical_irrelevant_coefficient() {
         // A Bezout coefficient multiplying zero is semantically unconstrained.
         // Exact verification must not impose a false canonical-zero rule.
