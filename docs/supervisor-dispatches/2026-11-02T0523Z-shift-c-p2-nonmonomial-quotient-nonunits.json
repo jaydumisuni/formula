@@ -1,0 +1,36 @@
+{
+  "schema": "ttg.formula.supervisor-dispatch.v1",
+  "shift": "C",
+  "project": "formula",
+  "frontier": "P2_NONMONOMIAL_COMMON_FACTOR_BEZOUT_MODULAR_NONUNIT_CROSS_FAMILY",
+  "observed_utc": "2026-11-02T05:23:40Z",
+  "predecessor_head": "3750f0c06c9f0f5642aa6a72ac64a3b107b0fccb",
+  "implementation_head": "47e18e5",
+  "worktree": "/home/kratos/projects/formula/.workspace/worktrees/p2-nonmonomial-inverse-shift-c-20261102-0724",
+  "branch": "supervisor/shift-c-p2-nonmonomial-inverse-20261102-0724",
+  "action": "74-line source-only Rust integration regression independently derives 21 nonmonomial shared-factor Bezout witnesses (including degree-15 operands), checks both coefficient orientations, rejects forged unit-GCD claims, and independently proves 42 quotient nonunits cannot be admitted as modular inverses.",
+  "proof": {
+    "patrol": "xvfb-run -a patrol check exit 0; explicit ALLOW not emitted",
+    "focused": "1/1 PASS",
+    "native": "143 unit + 4 integration PASS",
+    "clippy": "PASS -D warnings",
+    "fmt": "PASS",
+    "p0_invariants": "PASS repository invariants only; P0 milestone UNPROVEN",
+    "diff_check": "PASS",
+    "p1_macos": "NOT_PROVEN",
+    "p2_certificate": "NOT_ADMITTED",
+    "hosted": "NOT_YET_VERIFIED",
+    "independent_review": "PENDING"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent checker",
+    "downstream": "P2 certificate/trust-root qualification; P9 First Light",
+    "protected": "No certificate issuance, promotion, or physical/macOS proof"
+  },
+  "protected": {
+    "production_touched": false,
+    "oracle_production_touched": false,
+    "stolen_device_touched": false,
+    "supervisor_schedules_changed": false
+  }
+}
