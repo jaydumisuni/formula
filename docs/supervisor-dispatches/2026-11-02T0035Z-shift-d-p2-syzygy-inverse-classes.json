@@ -1,0 +1,33 @@
+{
+  "schema": "ttg.formula.supervisor.dispatch.v1",
+  "project": "formula",
+  "shift": "D",
+  "time_utc": "2026-11-02T00:35:01Z",
+  "frontier": "P2_BEZOUT_SYZYGY_QUOTIENT_INVERSE_CLASS_CROSS_FAMILY",
+  "before_head": "5b0d60714fcd36f4f7940869075dc750cb10fb33",
+  "source_implementation_head": "a2583a6",
+  "action": "Add independent bounded small-domain cross-family regression for Bezout syzygy representatives, quotient inverse classes, and one-sided forged witness rejection",
+  "tracked_delta": "88 Rust integration-test lines; 2700 valid syzygy cases, 2700 one-sided forged Bezout rejections, 5400 modular-inverse direction checks",
+  "proof": {
+    "patrol": "xvfb-run patrol check exit 0; explicit ALLOW not emitted",
+    "focused": "2/2 integration PASS",
+    "formula_check": "143 unit + 2 integration PASS",
+    "clippy": "PASS -D warnings",
+    "fmt": "PASS",
+    "p0_repository_invariants": "PASS, milestone NOT PROVEN",
+    "git_diff_check": "PASS",
+    "hosted": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "p1_macos": "NOT_PROVEN",
+    "p2_certificate": "NOT_ADMITTED"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent checker/certificate core",
+    "downstream": "P2 certificate and trust-root qualification; P9 First Light later"
+  },
+  "disposition": "BOUNDED_SOURCE_IMPLEMENTATION_PROVEN_LOCALLY_PENDING_REMOTE_AND_REVIEW",
+  "production_touched": false,
+  "protected_promotion": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false
+}
