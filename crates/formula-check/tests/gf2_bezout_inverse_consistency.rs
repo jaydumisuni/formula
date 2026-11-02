@@ -137,3 +137,91 @@ fn independent_bezout_units_and_nonunits_agree_with_modular_inverse_preflight() 
         "nonunit coverage: {nonunit_directions}"
     );
 }
+
+// A Bezout coefficient pair is not unique: adding (q * rhs, q * lhs)
+// preserves the exact identity, while each coefficient's residue class
+// modulo the opposite operand stays fixed. Independently exercise that
+// equivalence against the modular-inverse checker, including nonunits.
+// This is source-only checker preparation, not a certificate or promotion.
+#[test]
+fn small_domain_syzygy_representatives_preserve_inverse_classes() {
+    let mut unit_directions = 0_u32;
+    let mut nonunit_directions = 0_u32;
+    let mut one_sided_rejections = 0_u32;
+    for lhs in 2_u16..=31 {
+        for rhs in 2_u16..=31 {
+            let (gcd, s, t) = extended_gcd(lhs, rhs);
+            for q in [1_u64, 2, 3] {
+                let shifted_s = u16::try_from(u64::from(s) ^ product(u64::from(rhs), q))
+                    .expect("bounded small-domain syzygy coefficient");
+                let shifted_t = u16::try_from(u64::from(t) ^ product(u64::from(lhs), q))
+                    .expect("bounded small-domain syzygy coefficient");
+                assert_eq!(
+                    check_frozen_gf2_polynomial_bezout(&frame([
+                        lhs, rhs, gcd, shifted_s, shifted_t,
+                    ])),
+                    Ok(()),
+                    "valid syzygy lhs={lhs:#b} rhs={rhs:#b} q={q:#b}"
+                );
+
+                // A one-sided change by rhs keeps s's quotient residue
+                // unchanged but breaks the full Bezout identity. Inverse
+                // equivalence must never be treated as Bezout authority.
+                let one_sided_s = shifted_s ^ rhs;
+                assert!(
+                    check_frozen_gf2_polynomial_bezout(&frame([
+                        lhs,
+                        rhs,
+                        gcd,
+                        one_sided_s,
+                        shifted_t,
+                    ]))
+                    .is_err(),
+                    "one-sided forged Bezout lhs={lhs:#b} rhs={rhs:#b}"
+                );
+                one_sided_rejections += 1;
+
+                for (modulus, element, original, shifted) in
+                    [(rhs, lhs, s, shifted_s), (lhs, rhs, t, shifted_t)]
+                {
+                    let reduced_element = div_rem(u64::from(element), u64::from(modulus)).1 as u16;
+                    let original_residue =
+                        div_rem(u64::from(original), u64::from(modulus)).1 as u16;
+                    let shifted_residue = div_rem(u64::from(shifted), u64::from(modulus)).1 as u16;
+                    assert_eq!(
+                        shifted_residue, original_residue,
+                        "inverse class modulus={modulus:#b} q={q:#b}"
+                    );
+                    let actual = check_frozen_gf2_polynomial_modular_inverse(&frame([
+                        modulus,
+                        reduced_element,
+                        shifted_residue,
+                    ]));
+                    if gcd == 1 {
+                        unit_directions += 1;
+                        assert_eq!(actual, Ok(()));
+                    } else {
+                        nonunit_directions += 1;
+                        assert!(
+                            matches!(
+                                actual,
+                                Err(Gf2PolynomialModularInverseError::NotInverse { .. })
+                            ),
+                            "nonunit modulus={modulus:#b} element={element:#b}"
+                        );
+                    }
+                }
+                assert_eq!(
+                    div_rem(u64::from(one_sided_s), u64::from(rhs)).1,
+                    div_rem(u64::from(shifted_s), u64::from(rhs)).1
+                );
+            }
+        }
+    }
+    assert!(unit_directions > 1000, "unit directions: {unit_directions}");
+    assert!(
+        nonunit_directions > 1000,
+        "nonunit directions: {nonunit_directions}"
+    );
+    assert_eq!(one_sided_rejections, 2700);
+}
