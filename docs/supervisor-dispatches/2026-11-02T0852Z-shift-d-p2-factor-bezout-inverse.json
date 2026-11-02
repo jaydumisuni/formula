@@ -1,0 +1,36 @@
+{
+  "schema": "ttg.formula.supervisor.dispatch.v1",
+  "shift": "D",
+  "project": "formula",
+  "time_utc": "2026-11-02T08:52:00Z",
+  "frontier": "P2_FROZEN_FACTOR_BEZOUT_INVERSE_CROSS_FAMILY_NONUNIT_CUSTODY",
+  "before_head": "cf5d798bfad5efcd42cd3b65bb425eef0786c102",
+  "source_implementation_head": "fa894257e90385193fa9c1717ce43d67c01dd2af",
+  "before_state": "PR77 draft, 147 native tests PASS; no integrated frozen factor witness check in nonmonomial Bezout/inverse quotient regression; no fresh implementation worker",
+  "worker_action": "Shift D created Patrol-preflighted isolated Formula-owned worktree; added 39 Rust integration-test lines; committed and non-force pushed source; opened stacked draft PR79",
+  "after_state": "21 nonmonomial factor pairs independently bind 42 valid factor witnesses, 42 symmetric witness permutations, 42 forged product rejections, 42 quotient nonunit inverse rejections; PR79 draft, review pending",
+  "project_pr": "https://github.com/jaydumisuni/formula/pull/79",
+  "project_worktree": "/home/kratos/projects/formula/.workspace/worktrees/p2-factor-bezout-inverse-shift-d-20261102-1046",
+  "proof": {
+    "patrol": "xvfb-run -a patrol check exit 0; no explicit ALLOW text",
+    "focused": "4/4 integration PASS",
+    "native": "143 unit + 4 integration PASS",
+    "clippy": "PASS -D warnings",
+    "fmt": "PASS",
+    "git_diff_check": "PASS",
+    "remote_source_head": "MATCH fa894257e90385193fa9c1717ce43d67c01dd2af",
+    "hosted": "IN_PROGRESS at observation; NOT PASS",
+    "independent_review": "PENDING, 0 reviews",
+    "p1_macos": "NOT_PROVEN",
+    "p2_certificate": "NOT_ADMITTED"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent frozen factor/Bezout/modular-inverse checkers",
+    "downstream": "P2 certificate/trust-root qualification and P9 First Light"
+  },
+  "disposition": "MATERIAL_SOURCE_PUBLISHED_NATIVE_PASS_REVIEW_PENDING_NO_CERTIFICATION",
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "protected_promotion": false,
+  "supervisor_schedules_changed": false
+}
