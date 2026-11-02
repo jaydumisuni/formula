@@ -147,7 +147,8 @@ fn independent_bezout_units_and_nonunits_agree_with_modular_inverse_preflight() 
 fn small_domain_syzygy_representatives_preserve_inverse_classes() {
     let mut unit_directions = 0_u32;
     let mut nonunit_directions = 0_u32;
-    let mut one_sided_rejections = 0_u32;
+    let mut one_sided_s_rejections = 0_u32;
+    let mut one_sided_t_rejections = 0_u32;
     for lhs in 2_u16..=31 {
         for rhs in 2_u16..=31 {
             let (gcd, s, t) = extended_gcd(lhs, rhs);
@@ -179,7 +180,24 @@ fn small_domain_syzygy_representatives_preserve_inverse_classes() {
                     .is_err(),
                     "one-sided forged Bezout lhs={lhs:#b} rhs={rhs:#b}"
                 );
-                one_sided_rejections += 1;
+                one_sided_s_rejections += 1;
+
+                // The symmetric forgery also preserves t's quotient class
+                // modulo lhs, but changes the full Bezout relation. Check
+                // both coefficients independently before inverse-class tests.
+                let one_sided_t = shifted_t ^ lhs;
+                assert!(
+                    check_frozen_gf2_polynomial_bezout(&frame([
+                        lhs,
+                        rhs,
+                        gcd,
+                        shifted_s,
+                        one_sided_t,
+                    ]))
+                    .is_err(),
+                    "one-sided forged t lhs={lhs:#b} rhs={rhs:#b}"
+                );
+                one_sided_t_rejections += 1;
 
                 for (modulus, element, original, shifted) in
                     [(rhs, lhs, s, shifted_s), (lhs, rhs, t, shifted_t)]
@@ -215,6 +233,10 @@ fn small_domain_syzygy_representatives_preserve_inverse_classes() {
                     div_rem(u64::from(one_sided_s), u64::from(rhs)).1,
                     div_rem(u64::from(shifted_s), u64::from(rhs)).1
                 );
+                assert_eq!(
+                    div_rem(u64::from(one_sided_t), u64::from(lhs)).1,
+                    div_rem(u64::from(shifted_t), u64::from(lhs)).1
+                );
             }
         }
     }
@@ -223,5 +245,6 @@ fn small_domain_syzygy_representatives_preserve_inverse_classes() {
         nonunit_directions > 1000,
         "nonunit directions: {nonunit_directions}"
     );
-    assert_eq!(one_sided_rejections, 2700);
+    assert_eq!(one_sided_s_rejections, 2700);
+    assert_eq!(one_sided_t_rejections, 2700);
 }

@@ -1,0 +1,33 @@
+{
+  "schema": "ttg.formula.supervisor.dispatch.v1",
+  "project": "formula",
+  "shift": "B",
+  "time_utc": "2026-11-02T02:17:23Z",
+  "frontier": "P2_BEZOUT_SYZYGY_SYMMETRIC_ONE_SIDED_FORGERY_REJECTION",
+  "before_head": "83f286daf36cf6079d6efee2ff25ce726507b348",
+  "source_implementation_head": "11103e5",
+  "action": "Extend independent bounded GF(2)[x] Bezout syzygy regression to reject 2700 one-sided t coefficient forgeries, in addition to 2700 one-sided s forgeries, while checking unchanged opposite-operand quotient residues",
+  "tracked_delta": "26 insertions, 3 deletions in project-owned Rust integration test; 2700 new t-forgery checks",
+  "proof": {
+    "patrol": "xvfb-run -a patrol check exit 0; explicit ALLOW not emitted",
+    "focused": "2/2 PASS",
+    "native": "143 unit + 2 integration PASS",
+    "clippy": "PASS -D warnings",
+    "fmt": "PASS",
+    "p0_repository_invariants": "PASS; P0 milestone NOT PROVEN",
+    "git_diff_check": "PASS",
+    "hosted": "UNVERIFIED at source commit",
+    "independent_review": "PENDING",
+    "p1_macos": "NOT_PROVEN",
+    "p2_certificate": "NOT_ADMITTED"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent checker/certificate core",
+    "downstream": "P2 certificate/trust-root qualification; P9 First Light later"
+  },
+  "disposition": "BOUNDED_SOURCE_IMPLEMENTATION_PROVEN_LOCALLY_PENDING_REMOTE_AND_REVIEW",
+  "production_touched": false,
+  "protected_promotion": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false
+}
