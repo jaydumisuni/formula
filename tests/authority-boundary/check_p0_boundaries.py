@@ -108,7 +108,9 @@ def check_workspace_shape() -> None:
 
 
 def check_checker_isolation() -> None:
-    deps = dependency_names("formula-check")
+    # P0-02 applies to the complete checker dependency closure. A direct-only
+    # check misses search crates hidden behind a local intermediate package.
+    deps = workspace_dependency_closure("formula-check")
     forbidden = deps & FORBIDDEN_CHECK_DEPS
     if forbidden:
         fail(f"formula-check crosses checker/search boundary: {sorted(forbidden)}")

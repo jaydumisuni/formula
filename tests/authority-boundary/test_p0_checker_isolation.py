@@ -57,5 +57,54 @@ class CheckerIsolationTests(unittest.TestCase):
             p0.check_checker_isolation()
 
 
+    def test_rejects_transitive_formula_engine_through_core(self):
+        core = self.root / "crates" / "formula-core"
+        core.mkdir(parents=True)
+        (core / "Cargo.toml").write_text(
+            '[dependencies]\nformula-engine = { path = "../formula-engine" }\n',
+            encoding="utf-8",
+        )
+        self.manifest.write_text(
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "formula-engine"):
+            p0.check_checker_isolation()
+
+    def test_rejects_transitive_first_light_through_target_specific_core(self):
+        core = self.root / "crates" / "formula-core"
+        core.mkdir(parents=True)
+        (core / "Cargo.toml").write_text(
+            '[target."cfg(unix)".dependencies]\n'
+            'formula-first-light = { path = "../formula-first-light" }\n',
+            encoding="utf-8",
+        )
+        self.manifest.write_text(
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "formula-first-light"):
+            p0.check_checker_isolation()
+
+    def test_unrelated_search_crate_outside_checker_closure_is_allowed(self):
+        core = self.root / "crates" / "formula-core"
+        core.mkdir(parents=True)
+        (core / "Cargo.toml").write_text(
+            '[package]\nname = "formula-core"\nversion = "0.0.0"\n',
+            encoding="utf-8",
+        )
+        engine = self.root / "crates" / "formula-engine"
+        engine.mkdir(parents=True)
+        (engine / "Cargo.toml").write_text(
+            '[package]\nname = "formula-engine"\nversion = "0.0.0"\n',
+            encoding="utf-8",
+        )
+        self.manifest.write_text(
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
+            encoding="utf-8",
+        )
+        p0.check_checker_isolation()
+
+
 if __name__ == "__main__":
     unittest.main()

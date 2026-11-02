@@ -1,0 +1,73 @@
+{
+  "schema": "ttg.supervisor.project-dispatch.v1",
+  "shift": "C",
+  "observed_at_utc": "2026-11-02T21:23:38Z",
+  "project": "formula",
+  "frontier": "P0-02 transitive checker/search isolation supporting P1 Core Identity + Authority Store",
+  "selection": "Oldest inspected source candidate: Formula prior head dated 2026-10-26; other enabled cloud candidates showed newer source work. KRATOS-local lease and receipt fairness remains unverified.",
+  "canonical_cookpit": {
+    "repository": "jaydumisuni/cookpit",
+    "main_head": "aa49182ce91c5261ac49d04d9d297fea6fe39b8d",
+    "registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb",
+    "project_enabled": true,
+    "oracle_phase27_enabled": false
+  },
+  "project_authority": {
+    "roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md",
+    "construction_branch": "supervisor/shift-e-p1-native-gate-20261026-1748",
+    "frozen_architecture_head": "50c0beb021d8bf02d59a177049b9c2cf1783b26a",
+    "project_workspace": "/home/kratos/projects/formula/.workspace/worktrees/p1-continuation-20261006"
+  },
+  "before": {
+    "head": "e05d7f59a46e4a6927a5a1ab25e0dd2566b6e2f1",
+    "state": "P0 checker isolation inspected only direct formula-check dependencies; indirect forbidden search or sealed-target dependency could pass"
+  },
+  "action": {
+    "kind": "bounded_source_only",
+    "branch": "supervisor/shift-c-p0-transitive-checker-boundary-20261102",
+    "implementation_head": "7a0d106f12f26876565ec3bd8d8630515aa32398",
+    "changes": [
+      "Check full workspace dependency closure of formula-check against forbidden formula-engine/formula-first-light crates",
+      "Add two synthetic indirect-dependency rejection cases and one unrelated-crate acceptance control"
+    ],
+    "worker": "authenticated GitHub connector cloud fallback"
+  },
+  "after": {
+    "implementation_head": "7a0d106f12f26876565ec3bd8d8630515aa32398",
+    "state": "P0-02 checker boundary now traverses local transitive dependencies, with three additional synthetic tests; no admission authority granted"
+  },
+  "proof": {
+    "source_and_test_readback": "VERIFIED",
+    "static_contract_checks": "5/5 PASS",
+    "compare_to_predecessor": "3 commits ahead, 0 behind, two scoped files",
+    "native_python_unittest": "UNVERIFIED",
+    "kratos_patrol": "UNVERIFIED",
+    "native_cargo": "UNVERIFIED",
+    "hosted_ci": "PENDING",
+    "independent_review": "PENDING"
+  },
+  "movement": {
+    "material": true,
+    "kind": "authoritative project-owned candidate head advanced",
+    "last_material_at_utc": "2026-11-02T21:23:38Z"
+  },
+  "health": {
+    "observer_pass_not_counted_as_movement": true,
+    "local_worker_lease": "UNVERIFIED",
+    "local_attention_update": "QUEUED_FOR_KRATOS_RECONCILIATION"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P0-02 checker isolation",
+    "downstream": "Formula P1 authority-store implementation",
+    "scope": "Safe source-only hardening; P0 and P1 gates remain unproven"
+  },
+  "protected_boundaries": {
+    "no_merge": true,
+    "no_force_push": true,
+    "no_credential_mutation": true,
+    "no_physical_proof_claim": true,
+    "oracle_production_touched": false,
+    "stolen_device_touched": false
+  },
+  "disposition": "MATERIAL_SOURCE_PUBLISHED_REMOTE_VERIFIED_NATIVE_PROOF_UNVERIFIED_REVIEW_PENDING"
+}
