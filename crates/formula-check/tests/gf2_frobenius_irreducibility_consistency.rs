@@ -30,10 +30,10 @@ fn gcd(mut lhs: u16, mut rhs: u16) -> u16 {
 }
 
 // In characteristic two, squaring doubles coefficient exponents.
-// The degree <= 11 test domain fits every unreduced square in u32.
+// Every u16 residue has degree <= 15; its unreduced square fits in u32.
 fn square_mod(value: u16, modulus: u16) -> u16 {
     let mut square = 0_u32;
-    for bit in 0..=11 {
+    for bit in 0..=15 {
         if value & (1_u16 << bit) != 0 {
             square ^= 1_u32 << (2 * bit);
         }
@@ -56,10 +56,8 @@ fn frobenius_irreducible(polynomial: u16) -> bool {
     if powers[degree as usize] != x_mod {
         return false;
     }
-    for prime in [2_u32, 3, 5, 7, 11] {
-        if degree % prime == 0
-            && gcd(polynomial, powers[(degree / prime) as usize] ^ x_mod) != 1
-        {
+    for prime in [2_u32, 3, 5, 7, 11, 13] {
+        if degree % prime == 0 && gcd(polynomial, powers[(degree / prime) as usize] ^ x_mod) != 1 {
             return false;
         }
     }
