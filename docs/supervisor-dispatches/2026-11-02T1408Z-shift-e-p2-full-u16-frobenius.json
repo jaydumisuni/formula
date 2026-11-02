@@ -1,0 +1,42 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "E",
+  "project": "formula",
+  "frontier": "P2_GF2_FULL_U16_FROBENIUS_GCD_CROSSCHECK_AND_HOSTED_FORMAT_FIX",
+  "time_utc": "2026-11-02T14:08:29Z",
+  "before_head": "69e891b3c14858b4e364df36a068218f5c18de2b",
+  "before_state": "Formula draft PR #81: independent Frobenius/GCD test covers 4,094 degree<=11 coefficient bitsets; exact-head hosted P0 candidate workflow failed at rustfmt; no cloud-visible fresh implementation worker; native proof not established.",
+  "test_first_head": "47f3cd725d637f2c760f49833c6072239f9d127d",
+  "source_implementation_head": "cdc622afcf153e0350b4a8c55256d10c37d6af3c",
+  "after_head": "cdc622afcf153e0350b4a8c55256d10c37d6af3c",
+  "after_state": "Independent P2 Frobenius/GCD regression now covers all 65,534 nonconstant u16 coefficient bitsets, including degree 12-15, full 16-bit residue squaring, prime degree divisor 13, and 4,720 irreducible classifications; exact rustfmt-reported condition wrapped to one line. Source-only candidate; no certificate, Judgement or P0/P2 admission.",
+  "worker_action": "Authenticated GitHub cloud source-only branch from exact PR #81 head; committed expanded regression first, then corrected bounded oracle and observed rustfmt failure; no KRATOS/Oracle runtime changes.",
+  "movement": "MATERIAL_SOURCE_DELTA_COMMITTED",
+  "health": "HOSTED_PREDECESSOR_FORMAT_FAILURE_CORRECTED_SOURCE_ONLY__NEW_HEAD_CI_AND_NATIVE_PENDING",
+  "proof": {
+    "canonical_roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md P2 independent checker and certificate-envelope core",
+    "canonical_cookpit": "jaydumisuni/cookpit main registry.json: formula enabled; Oracle phase27 absent",
+    "cloud_preflight": "Exact Formula PR #81 source head, P2 roadmap, existing independent checker, full PR diff, hosted job failure and formatter diff inspected. Oracle Live cloud roster and KRATOS terminal failed internally; local Patrol UNVERIFIED.",
+    "predecessor_hosted": "Formula PR #81 P0 Boundary Candidate Verification run 41442802613 FAILED at rustfmt line 57; preceding static P0 checks passed; no native Rust tests ran after failure",
+    "test_first_semantic_model": "Predecessor truncated square and missing 13 divisor classified only 762/65534 inputs as irreducible vs expected 4720; e.g. 0x201b incorrectly reducible; Python model only, not Rust test-first execution",
+    "independent_python_math": "65,534/65,534 Frobenius classifications matched independent exhaustive GF(2) trial-division oracle; 4,720 irreducibles with counts [0,2,1,2,3,6,9,18,30,56,99,186,335,630,1161,2182]; isolated Python proof, NOT native Rust qualification",
+    "rust_native": "UNVERIFIED",
+    "rustfmt": "SOURCE_CORRECTED_PER_EXACT_HOSTED_DIFF; NEW_HEAD_UNVERIFIED",
+    "clippy": "UNVERIFIED",
+    "patrol": "UNVERIFIED",
+    "hosted": "PENDING_NEW_HEAD",
+    "independent_review": "PENDING",
+    "p2_certification": "NOT_ADMITTED",
+    "p0_milestone": "UNPROVEN"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 frozen GF(2) polynomial irreducibility checker independent cross-check",
+    "downstream": "P2 certificate envelope and eventual P9 First Light; no authority consumed"
+  },
+  "protected_promotion": false,
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "kratos_local_dispatch_receipt": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT",
+  "attention_reconciliation": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT"
+}
