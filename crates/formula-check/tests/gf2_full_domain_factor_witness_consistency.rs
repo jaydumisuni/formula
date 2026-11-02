@@ -58,6 +58,8 @@ fn full_u16_reducibility_claims_have_independent_factor_witnesses() {
     let mut irreducibles = 0_usize;
     let mut accepted_witnesses = 0_usize;
     let mut rejected_rehashed_witnesses = 0_usize;
+    let mut accepted_swapped_witnesses = 0_usize;
+    let mut rejected_high_bit_forgeries = 0_usize;
     for polynomial in 2_u16..=u16::MAX {
         let witness = first_nontrivial_factor(polynomial);
         let irreducible = witness.is_none();
@@ -84,6 +86,45 @@ fn full_u16_reducibility_claims_have_independent_factor_witnesses() {
                 "valid factor witness polynomial={polynomial:#x}"
             );
             accepted_witnesses += 1;
+            // A genuine factorization is commutative, but high-degree edits
+            // must never be accepted through u16 product truncation.
+            assert_eq!(
+                check_frozen_gf2_polynomial_factor_witness(&factor_frame(
+                    polynomial, cofactor, factor,
+                )),
+                Ok(()),
+                "swapped factor witness polynomial={polynomial:#x}"
+            );
+            accepted_swapped_witnesses += 1;
+            for (mutated_factor, mutated_cofactor, exact_product) in [
+                (
+                    factor ^ 0x8000,
+                    cofactor,
+                    u32::from(polynomial) ^ (u32::from(cofactor) << 15),
+                ),
+                (
+                    factor,
+                    cofactor ^ 0x8000,
+                    u32::from(polynomial) ^ (u32::from(factor) << 15),
+                ),
+            ] {
+                // Both nonconstant factors remain valid frame operands, but
+                // the exact carryless product necessarily exceeds u16.
+                assert!(exact_product > u32::from(u16::MAX));
+                assert_eq!(
+                    check_frozen_gf2_polynomial_factor_witness(&factor_frame(
+                        polynomial,
+                        mutated_factor,
+                        mutated_cofactor,
+                    )),
+                    Err(Gf2PolynomialFactorWitnessError::ProductMismatch {
+                        expected: polynomial,
+                        actual: exact_product,
+                    }),
+                    "high-bit forgery polynomial={polynomial:#x}"
+                );
+                rejected_high_bit_forgeries += 1;
+            }
             assert_eq!(
                 check_frozen_gf2_polynomial_factor_witness(&factor_frame(
                     polynomial ^ 1,
@@ -104,4 +145,6 @@ fn full_u16_reducibility_claims_have_independent_factor_witnesses() {
     assert_eq!(irreducibles, 4_720);
     assert_eq!(accepted_witnesses, 60_814);
     assert_eq!(rejected_rehashed_witnesses, accepted_witnesses);
+    assert_eq!(accepted_swapped_witnesses, accepted_witnesses);
+    assert_eq!(rejected_high_bit_forgeries, 121_628);
 }

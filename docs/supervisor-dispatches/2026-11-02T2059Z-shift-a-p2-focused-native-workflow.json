@@ -1,0 +1,37 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "A",
+  "project": "formula",
+  "frontier": "P2_FULL_U16_HIGH_BIT_FACTOR_WITNESS_FOCUSED_NATIVE_CI_BINDING",
+  "time_utc": "2026-11-02T20:59:45Z",
+  "before_head": "b9b1e52ba6138412775705659f586d9237b95353",
+  "before_state": "Draft Formula PR #85 carried 60,814 swapped factor controls and 121,628 high-bit overflow negative cases, but its exact-head GitHub workflow only ran P0 boundary verification; the P2 full-domain Rust test was not executed. No active KRATOS worker/lease or local Patrol proof verified.",
+  "worker_action": "Authenticated GitHub cloud fallback: recover the existing read-only, SHA-pinned Formula P2 focused workflow from independent draft PR #84, verify the identical workflow was absent on PR #85, then add it to PR #85's existing project-owned branch without rebasing or force-pushing.",
+  "implementation_head": "12d8ef26b36a8096eef8bde0420df634eaf06e6c",
+  "after_state": "The Formula PR #85 candidate now includes a path-filtered read-only workflow that runs cargo +1.98.0 fmt --all -- --check and cargo +1.98.0 test -p formula-check --locked --test gf2_full_domain_factor_witness_consistency. Exact-head hosted run not yet returned; not qualified or admitted.",
+  "movement": "MATERIAL_TRACKED_CI_QUALIFICATION_IMPLEMENTATION_COMMITTED",
+  "health": "GITHUB_WORKFLOW_SOURCE_READBACK_MATCH; HOSTED_EXACT_HEAD_PENDING; NATIVE_RUST_UNVERIFIED; KRATOS_PATROL_UNVERIFIED; INDEPENDENT_REVIEW_PENDING",
+  "proof": {
+    "canonical_registry": "jaydumisuni/cookpit main:registry.json formula enabled; oracle-phase27-prep absent",
+    "roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md P2 independent checker/certificate-envelope core",
+    "preflight": "Exact PR #85 head, frozen roadmap, full-domain Rust regression and prior PR #84 SHA-pinned workflow inspected via authenticated GitHub; KRATOS Patrol unavailable because Oracle Live cloud roster failed internally",
+    "workflow_path": ".github/workflows/p2-gf2-full-domain-factor-witness.yml",
+    "workflow_blob_sha": "79684c55d5d7638d36e236021bb77ff2b0774bab",
+    "workflow_source": "Existing project-owned PR #84 at exact head 6ceda5059344e96829fdb3acaff5cabb4ed1ce40; its focused hosted run 41505233280 previously succeeded on that different candidate, not PR #85",
+    "source_readback": "Exact workflow blob and PR #85 remote head 12d8ef26b36a8096eef8bde0420df634eaf06e6c matched",
+    "hosted_exact_head": "PENDING; no run returned at initial post-commit observation",
+    "native_rust": "UNVERIFIED on this head",
+    "independent_review": "PENDING",
+    "p2_mathematical_admission": "NOT_GRANTED"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 GF(2)[x] factor-witness exact u32 product custody",
+    "downstream": "Independent P2 certificate-envelope qualification and P9 First Light; no authority consumed"
+  },
+  "protected_promotion": false,
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "kratos_local_dispatch_receipt": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT",
+  "attention_reconciliation": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT"
+}
