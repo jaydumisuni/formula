@@ -93,7 +93,9 @@ fn frobenius_gcd_oracle_cross_checks_full_u16_nonconstant_domain() {
     // Known monic irreducible counts over GF(2), degrees 1 through 15.
     assert_eq!(
         irreducibles_by_degree,
-        [0, 2, 1, 2, 3, 6, 9, 18, 30, 56, 99, 186, 335, 630, 1161, 2182]
+        [
+            0, 2, 1, 2, 3, 6, 9, 18, 30, 56, 99, 186, 335, 630, 1161, 2182
+        ]
     );
     assert_eq!(irreducibles_by_degree.iter().sum::<usize>(), 4720);
 }
