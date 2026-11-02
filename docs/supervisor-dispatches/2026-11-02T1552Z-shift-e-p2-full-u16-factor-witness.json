@@ -1,0 +1,35 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "E",
+  "project": "formula",
+  "frontier": "P2_FULL_U16_FACTOR_WITNESS_AND_IRREDUCIBILITY_CROSS_FAMILY_CUSTODY",
+  "time_utc": "2026-11-02T15:51:57.955Z",
+  "before_head": "483a63ac707e48a70329941e842969abc69e6296",
+  "before_state": "Draft Formula PR #82: full 65,534 nonconstant u16 polynomial Frobenius/GCD oracle, hosted P0 candidate CI PASS, but no full-domain independent factor-witness cross-family regression; exact-head independent review pending.",
+  "implementation_head": "b4b51185b5147074536d192ed2ec05574be88d1d",
+  "after_state": "New source-only Rust regression independently divides each nonconstant u16 polynomial to recover a nontrivial factor and cofactor for every reducible polynomial, checks the production factor witness and irreducibility preflights agree, and rejects rehashed polynomial identities. Expected 4,720 irreducible and 60,814 reducible classifications. No certification or promotion.",
+  "worker_action": "Authenticated GitHub cloud source-only branch created from exact PR #82 head; added isolated P2 test; Oracle Live cloud roster and KRATOS terminal failed internally, so no local workspace or physical claims.",
+  "movement": "MATERIAL_SOURCE_DELTA_COMMITTED",
+  "health": "SOURCE_ONLY_IMPLEMENTATION; HOSTED_AND_NATIVE_QUALIFICATION_PENDING",
+  "proof": {
+    "canonical_roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md P2 independent checker/certificate-envelope core",
+    "canonical_cookpit": "jaydumisuni/cookpit main registry.json formula enabled; oracle-phase27-prep absent",
+    "cloud_preflight": "Exact PR #82 source, Rust production irreducibility/factor-witness preflights, tests, current roadmap and handoff inspected; KRATOS Patrol UNVERIFIED",
+    "independent_math": "Python long-division enumeration over all 65,534 nonconstant u16 polynomials produced 4,720 irreducibles and 60,814 reducibles; this is not native Rust proof",
+    "rust_native": "UNVERIFIED",
+    "rustfmt": "UNVERIFIED",
+    "hosted": "PENDING_NEW_HEAD",
+    "independent_review": "PENDING",
+    "p0_p2_admission": "NOT_GRANTED"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent GF(2) irreducibility and factor witness preflights",
+    "downstream": "P2 certificate-envelope proof, eventual P9 First Light; no authority consumed"
+  },
+  "protected_promotion": false,
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "kratos_local_dispatch_receipt": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT",
+  "attention_reconciliation": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT"
+}
