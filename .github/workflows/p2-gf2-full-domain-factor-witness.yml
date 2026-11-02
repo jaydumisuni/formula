@@ -1,0 +1,35 @@
+name: Formula P2 GF2 full-domain factor witness candidate
+
+on:
+  pull_request:
+    paths:
+      - "crates/formula-check/tests/gf2_full_domain_factor_witness_consistency.rs"
+      - "crates/formula-check/src/gf2_polynomial_factor_witness.rs"
+      - "crates/formula-check/src/gf2_polynomial_irreducibility.rs"
+      - ".github/workflows/p2-gf2-full-domain-factor-witness.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  factor-witness-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt
+
+      - name: Verify formatting
+        run: cargo +1.98.0 fmt --all -- --check
+
+      - name: Exercise independent full-domain factor witness regression
+        run: cargo +1.98.0 test -p formula-check --locked --test gf2_full_domain_factor_witness_consistency
+
+      - name: Preserve mathematical authority boundary
+        run: |
+          echo "Source-only P2 factor-witness regression candidate."
+          echo "No certificate, Judgement, trust-root or promotion authority."

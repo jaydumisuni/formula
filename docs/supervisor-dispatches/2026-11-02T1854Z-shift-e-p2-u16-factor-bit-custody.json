@@ -1,0 +1,39 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "E",
+  "project": "formula",
+  "frontier": "P2_FULL_U16_FACTOR_COFACTOR_ONE_BIT_MUTATION_CUSTODY",
+  "time_utc": "2026-11-02T18:54:08Z",
+  "before_head": "e166824c7c9111b60e0766961003689bf954050c",
+  "before_state": "Draft PR #83 exact-head P0 Boundary Candidate Verification SUCCESS at 2026-11-02T17:14:59Z workflow 41489347681; full-u16 factor test covered 60,814 valid witnesses and forged polynomial hashes, but not one-bit changes to either factor across the full domain. No fresh implementation worker/lease verified. Independent PR #83 review absent.",
+  "worker_action": "Authenticated GitHub cloud source-only edit in Formula-owned stacked draft branch; add full-domain factor/cofactor constant-bit tamper rejection and commuted-witness preservation assertions; align formatting before PR.",
+  "implementation_head": "858f54224dc24aaa97e4af9410f82dc798fbc957",
+  "after_state": "Draft Formula PR #84 published on exact PR #83 head. Source-only test adds 32 lines and covers both factor mutations and swapped factor acceptance for every reducible u16 polynomial. Project source not merged; native qualification/review outstanding. Exact-head hosted CI run 41504961215 identified one rustfmt layout failure; the exact diagnostic was consumed in source fix 858f54224dc24aaa97e4af9410f82dc798fbc957, with no mathematical assertion changes. Added narrowly path-filtered, read-only, SHA-pinned hosted workflow to execute the exact full-domain Rust integration regression (the existing P0 workflow only compiles it).",
+  "movement": "MATERIAL_TRACKED_IMPLEMENTATION_DELTA_PUBLISHED",
+  "health": "INDEPENDENT_ALGEBRA_PASS; HOSTED_P0_FORMAT_CORRECTION_CONSUMED; FOCUSED_NATIVE_RUST_WORKFLOW_ADDED; HOSTED_EXACT_HEAD_PENDING; KRATOS_PATROL_UNVERIFIED; INDEPENDENT_REVIEW_PENDING",
+  "proof": {
+    "source_pr": "https://github.com/jaydumisuni/formula/pull/84",
+    "predecessor_pr": "https://github.com/jaydumisuni/formula/pull/83",
+    "predecessor_hosted_pass": "https://github.com/jaydumisuni/formula/actions/runs/41489347681",
+    "independent_model": "Python polynomial long division and separate carryless multiplication across all 65,534 nonconstant u16 bitsets: 4,720 irreducible, 60,814 reducible, 60,814 commuted witness products preserved, 121,628 one-bit factor/cofactor mutations changed the frozen product. Model evidence, not native Rust test proof.",
+    "github_compare": "e166824c7c9111b60e0766961003689bf954050c...87b43722e02294fe299435eadd1813a47edac522: ahead 2, behind 0, 1 modified test file",
+    "hosted_exact_head": "PENDING_AFTER_FOCUSED_WORKFLOW_COMMIT",
+    "kratos_patrol": "UNVERIFIED; Oracle Live roster failed internally twice and workstation target could not be authenticated",
+    "active_worker_lease": "UNVERIFIED; cloud source-only dispatch completed",
+    "independent_review": "PENDING",
+    "p2_mathematical_admission": "NOT_GRANTED",
+    "physical_proof": "NOT_CLAIMED",
+    "hosted_initial_failure": "https://github.com/jaydumisuni/formula/actions/runs/41504961215: rustfmt required factor_frame arguments on separate lines; corrected at exact source commit 858f54224dc24aaa97e4af9410f82dc798fbc957",
+    "focused_native_workflow": ".github/workflows/p2-gf2-full-domain-factor-witness.yml: cargo +1.98.0 test -p formula-check --locked --test gf2_full_domain_factor_witness_consistency; hosted result pending"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent frozen GF(2)[x] factor-witness preflight",
+    "downstream": "P2 certificate-envelope independent checker and P9 First Light remain gated"
+  },
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "protected_promotion": false,
+  "kratos_local_dispatch_receipt": "QUEUED_UNTIL_ORACLE_LIVE_RECOVERY",
+  "attention_reconciliation": "QUEUED_UNTIL_ORACLE_LIVE_RECOVERY"
+}

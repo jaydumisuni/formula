@@ -58,6 +58,8 @@ fn full_u16_reducibility_claims_have_independent_factor_witnesses() {
     let mut irreducibles = 0_usize;
     let mut accepted_witnesses = 0_usize;
     let mut rejected_rehashed_witnesses = 0_usize;
+    let mut accepted_commuted_witnesses = 0_usize;
+    let mut rejected_one_bit_factor_forgeries = 0_usize;
     for polynomial in 2_u16..=u16::MAX {
         let witness = first_nontrivial_factor(polynomial);
         let irreducible = witness.is_none();
@@ -97,6 +99,36 @@ fn full_u16_reducibility_claims_have_independent_factor_witnesses() {
                 "rehashed factor forgery polynomial={polynomial:#x}"
             );
             rejected_rehashed_witnesses += 1;
+            // A producer cannot change either frozen factor by one coefficient
+            // and keep the original product identity. In GF(2)[x], flipping
+            // the constant bit changes the product by the opposite factor.
+            // Conversely, swapping the factors preserves a valid witness.
+            assert_eq!(
+                check_frozen_gf2_polynomial_factor_witness(&factor_frame(
+                    polynomial, cofactor, factor,
+                )),
+                Ok(()),
+                "commuted witness polynomial={polynomial:#x}"
+            );
+            accepted_commuted_witnesses += 1;
+            for (forged_factor, forged_cofactor, forged_product) in [
+                (factor ^ 1, cofactor, polynomial ^ cofactor),
+                (factor, cofactor ^ 1, polynomial ^ factor),
+            ] {
+                assert_eq!(
+                    check_frozen_gf2_polynomial_factor_witness(&factor_frame(
+                        polynomial,
+                        forged_factor,
+                        forged_cofactor,
+                    )),
+                    Err(Gf2PolynomialFactorWitnessError::ProductMismatch {
+                        expected: polynomial,
+                        actual: u32::from(forged_product),
+                    }),
+                    "one-bit factor forgery polynomial={polynomial:#x}"
+                );
+                rejected_one_bit_factor_forgeries += 1;
+            }
         } else {
             irreducibles += 1;
         }
@@ -104,4 +136,6 @@ fn full_u16_reducibility_claims_have_independent_factor_witnesses() {
     assert_eq!(irreducibles, 4_720);
     assert_eq!(accepted_witnesses, 60_814);
     assert_eq!(rejected_rehashed_witnesses, accepted_witnesses);
+    assert_eq!(accepted_commuted_witnesses, accepted_witnesses);
+    assert_eq!(rejected_one_bit_factor_forgeries, 2 * accepted_witnesses);
 }
