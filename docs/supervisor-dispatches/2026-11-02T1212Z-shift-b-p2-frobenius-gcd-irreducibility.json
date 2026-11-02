@@ -1,0 +1,38 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "B",
+  "project": "formula",
+  "frontier": "P2_GF2_FROBENIUS_GCD_IRREDUCIBILITY_INDEPENDENT_ORACLE",
+  "time_utc": "2026-11-02T12:12:07Z",
+  "before_head": "fdc2759851710a92b3fce446b10677d9c39872c3",
+  "before_state": "Draft Formula PR #80: degree<=7 independent coefficient-convolution factor/irreducibility cross-check; exact-head review pending; last verified source dispatch 2026-11-02T10:39:02Z; no fresh cloud-visible implementation worker.",
+  "source_implementation_head": "8e38ec708687ac36d5527bd9e3b2b9da61587a09",
+  "after_head": "8e38ec708687ac36d5527bd9e3b2b9da61587a09",
+  "after_state": "New project-owned Rust integration regression uses independent Frobenius squaring and Euclidean GCD to cross-check both truthful and forged frozen irreducibility claims for all 4094 nonconstant degree<=11 GF(2)[x] polynomials; 412 irreducibles; source-only; review and native qualification pending.",
+  "worker_action": "Cloud GitHub exact-head source-only branch from PR #80; add bounded independent mathematical regression and project-owned receipt; no KRATOS physical execution.",
+  "movement": "MATERIAL_SOURCE_DELTA_COMMITTED",
+  "health": "SOURCE_READBACK_PENDING_NATIVE_AND_HOSTED_QUALIFICATION",
+  "proof": {
+    "canonical_roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md P2 independent checker and certificate-envelope core",
+    "cloud_preflight": "Exact Formula PR #80 head and frozen checker APIs inspected; Oracle Live roster failed twice; KRATOS Patrol unavailable, not PASS",
+    "independent_python_math": "4094/4094 Frobenius classifications agree with independent trial-division oracle; 412 irreducibles by degree; this is isolated math validation, NOT Rust project qualification",
+    "rust_native": "UNVERIFIED",
+    "rustfmt": "UNVERIFIED",
+    "clippy": "UNVERIFIED",
+    "patrol": "UNVERIFIED",
+    "hosted": "PENDING",
+    "independent_review": "PENDING",
+    "p2_certification": "NOT_ADMITTED",
+    "p0_milestone": "UNPROVEN"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent checker source preflight",
+    "downstream": "P2 frozen evidence-envelope authority and P9 First Light"
+  },
+  "protected_promotion": false,
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "kratos_local_dispatch_receipt": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT",
+  "attention_reconciliation": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT"
+}
