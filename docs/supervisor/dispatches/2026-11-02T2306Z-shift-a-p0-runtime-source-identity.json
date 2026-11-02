@@ -1,0 +1,74 @@
+{
+  "schema": "ttg.supervisor.project-dispatch.v1",
+  "shift": "A",
+  "observed_at_utc": "2026-11-02T23:06:02Z",
+  "project": "formula",
+  "frontier": "P0-04 canonical First-Light runtime dependency source identity",
+  "selection": "Oldest observed eligible remote candidate movement among enabled projects (Formula P0-02 at 2026-11-02T21:24Z); KRATOS local leases and dispatch fairness unavailable",
+  "canonical_cookpit": {
+    "repository": "jaydumisuni/cookpit",
+    "main_head": "aa49182ce91c5261ac49d04d9d297fea6fe39b8d",
+    "registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb",
+    "project_enabled": true,
+    "oracle_phase27_enabled": false
+  },
+  "project_authority": {
+    "roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md",
+    "frozen_architecture_head": "50c0beb021d8bf02d59a177049b9c2cf1783b26a",
+    "canonical_workspace": "/home/kratos/projects/formula/.workspace/worktrees/p1-continuation-20261006",
+    "predecessor_pr": "https://github.com/jaydumisuni/formula/pull/86"
+  },
+  "before": {
+    "head": "ff49a2fbaf5abcc925e025dc79ce8950aafb7046",
+    "state": "P0-04 runtime closure compares only dependency package names; external registry or alternate path source with an expected name is not rejected"
+  },
+  "action": {
+    "kind": "bounded_source_only",
+    "transport": "authenticated GitHub cloud fallback",
+    "branch": "supervisor/shift-a-p0-runtime-source-identity-20261103-0100",
+    "test_first_commit": "6b61d8375426ca9ffa5133e026dd0ff5bd960813",
+    "implementation_commit": "8d435e954b944a0b2cbb0256701e4a893a57159c",
+    "changes": [
+      "Require each transitive First-Light runtime dependency to resolve to the exact local workspace crate manifest, not merely a matching package name",
+      "Add registry impersonation, workspace-inherited registry, alternate local source, and valid local dependency regressions"
+    ]
+  },
+  "after": {
+    "implementation_head": "8d435e954b944a0b2cbb0256701e4a893a57159c",
+    "state": "P0-04 local runtime dependency closure checks both package name and canonical source manifest identity; no P0 admission"
+  },
+  "proof": {
+    "source_and_test_readback": "VERIFIED",
+    "structural_contract": "VERIFIED",
+    "predecessor_compare": "2 commits ahead, 0 behind; 2 scoped files",
+    "native_python_unittest": "UNVERIFIED",
+    "kratos_patrol": "UNVERIFIED",
+    "native_cargo": "UNVERIFIED",
+    "hosted_ci": "PENDING",
+    "independent_review": "PENDING"
+  },
+  "movement": {
+    "material": true,
+    "kind": "project-owned candidate implementation head advanced",
+    "last_material_at_utc": "2026-11-02T23:06:02Z"
+  },
+  "health": {
+    "local_worker_lease": "UNVERIFIED",
+    "local_attention_update": "QUEUED_FOR_KRATOS_RECONCILIATION",
+    "observer_freshness_not_material_movement": true
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P0 reproducible source and checker isolation",
+    "downstream": "Formula P1 authority-store and P9 local First-Light proof",
+    "scope": "Safe source-only preparatory correction; P0/P1/P9 remain gated"
+  },
+  "protected_boundaries": {
+    "no_merge": true,
+    "no_force_push": true,
+    "no_credential_mutation": true,
+    "no_physical_proof_claim": true,
+    "oracle_production_touched": false,
+    "stolen_device_touched": false
+  },
+  "disposition": "MATERIAL_SOURCE_PUBLISHED_STATIC_READBACK_NATIVE_UNVERIFIED_REVIEW_PENDING"
+}
