@@ -25,13 +25,21 @@ fn zero_operand_bezout_identity_cannot_be_reinterpreted_as_a_modular_unit() {
         for free_coefficient in [0_u16, 1, 0x8000, 0xffff] {
             assert_eq!(
                 check_frozen_gf2_polynomial_bezout(&frame([
-                    0, modulus, modulus, free_coefficient, 1,
+                    0,
+                    modulus,
+                    modulus,
+                    free_coefficient,
+                    1,
                 ])),
                 Ok(())
             );
             assert_eq!(
                 check_frozen_gf2_polynomial_bezout(&frame([
-                    modulus, 0, modulus, 1, free_coefficient,
+                    modulus,
+                    0,
+                    modulus,
+                    1,
+                    free_coefficient,
                 ])),
                 Ok(())
             );
@@ -54,9 +62,7 @@ fn zero_operand_bezout_identity_cannot_be_reinterpreted_as_a_modular_unit() {
         // The zero residue times any reduced candidate remains zero.
         for candidate in [0_u16, 1, modulus >> 1] {
             assert_eq!(
-                check_frozen_gf2_polynomial_modular_inverse(&frame([
-                    modulus, 0, candidate,
-                ])),
+                check_frozen_gf2_polynomial_modular_inverse(&frame([modulus, 0, candidate,])),
                 Err(Gf2PolynomialModularInverseError::NotInverse { remainder: 0 })
             );
             rejected_zero_inverses += 1;
