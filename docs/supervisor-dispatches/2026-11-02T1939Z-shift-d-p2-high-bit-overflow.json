@@ -1,0 +1,36 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "D",
+  "project": "formula",
+  "frontier": "P2_FULL_U16_FACTOR_WITNESS_HIGH_BIT_OVERFLOW_FORGERY_CUSTODY",
+  "time_utc": "2026-11-02T19:39:55Z",
+  "before_head": "e166824c7c9111b60e0766961003689bf954050c",
+  "before_state": "Formula draft PR #83; exact-head P0 Boundary Candidate Verification SUCCESS, full-domain factor-witness/irreducibility cross-check exists, but no per-witness high-bit overflow tampering matrix. Independent review and native P2 qualification unverified.",
+  "worker_action": "Authenticated GitHub source-only branch from exact PR #83 head; extended project-owned full-domain Rust integration regression. Oracle Live roster and KRATOS terminal failed internally, so no KRATOS Patrol or local workspace action.",
+  "implementation_head": "fa769c8b96cdb13f76a633fb67774cc014ae83b9",
+  "after_head": "fa769c8b96cdb13f76a633fb67774cc014ae83b9",
+  "after_state": "Draft PR #85 adds full-domain swapped-factor acceptance and exact-u32 product mismatch for tampering either factor's high bit; 60,814 swapped controls and 121,628 overflow forgeries. Source only; no certificate or promotion.",
+  "movement": "MATERIAL_TEST_SOURCE_DELTA_COMMITTED",
+  "health": "GITHUB_SOURCE_READBACK_PASS; SYNTHETIC_MATH_PASS; HOSTED_NATIVE_REVIEW_PENDING",
+  "proof": {
+    "canonical_registry": "jaydumisuni/cookpit main:registry.json formula enabled, oracle-phase27-prep absent",
+    "roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md P2 independent checker/certificate-envelope core",
+    "preflight": "Exact PR #83 head and frozen checker/source inspected; GitHub diff shows +43 Rust lines, no trailing whitespace; KRATOS Patrol UNVERIFIED",
+    "synthetic_math": "Independent Python polynomial long division plus carryless multiplication checked 60,814 reducible u16 polynomials, 60,814 valid swapped factorizations, and 121,628 exact high-bit overflow product mismatches; not native Rust proof",
+    "hosted": "PENDING_EXACT_HEAD",
+    "rust_native": "UNVERIFIED",
+    "rustfmt": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "p0_p2_p9_admission": "NOT_GRANTED"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 GF(2) factor-witness and irreducibility independent preflights",
+    "downstream": "P2 certificate-envelope proof and eventual P9 First Light; no authority consumed"
+  },
+  "protected_promotion": false,
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "kratos_local_dispatch_receipt": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT",
+  "attention_reconciliation": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT"
+}
