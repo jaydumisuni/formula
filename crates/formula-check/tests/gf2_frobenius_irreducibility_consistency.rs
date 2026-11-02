@@ -30,10 +30,10 @@ fn gcd(mut lhs: u16, mut rhs: u16) -> u16 {
 }
 
 // In characteristic two, squaring doubles coefficient exponents.
-// The degree <= 11 test domain fits every unreduced square in u32.
+// Every u16 residue has degree <= 15; its unreduced square fits in u32.
 fn square_mod(value: u16, modulus: u16) -> u16 {
     let mut square = 0_u32;
-    for bit in 0..=11 {
+    for bit in 0..=15 {
         if value & (1_u16 << bit) != 0 {
             square ^= 1_u32 << (2 * bit);
         }
@@ -56,10 +56,8 @@ fn frobenius_irreducible(polynomial: u16) -> bool {
     if powers[degree as usize] != x_mod {
         return false;
     }
-    for prime in [2_u32, 3, 5, 7, 11] {
-        if degree % prime == 0
-            && gcd(polynomial, powers[(degree / prime) as usize] ^ x_mod) != 1
-        {
+    for prime in [2_u32, 3, 5, 7, 11, 13] {
+        if degree % prime == 0 && gcd(polynomial, powers[(degree / prime) as usize] ^ x_mod) != 1 {
             return false;
         }
     }
@@ -67,11 +65,11 @@ fn frobenius_irreducible(polynomial: u16) -> bool {
 }
 
 #[test]
-fn frobenius_gcd_oracle_cross_checks_all_degree_eleven_or_lower_claims() {
-    // 4,094 nonconstant coefficient bitsets, including both degree-one
-    // polynomials where x must first be reduced modulo the polynomial.
-    let mut irreducibles_by_degree = [0_usize; 12];
-    for polynomial in 2_u16..=4095 {
+fn frobenius_gcd_oracle_cross_checks_full_u16_nonconstant_domain() {
+    // All 65,534 nonconstant u16 coefficient bitsets, including degree-one
+    // inputs where x must first be reduced modulo the polynomial.
+    let mut irreducibles_by_degree = [0_usize; 16];
+    for polynomial in 2_u16..=u16::MAX {
         let expected = frobenius_irreducible(polynomial);
         let degree = (15 - polynomial.leading_zeros()) as usize;
         if expected {
@@ -92,10 +90,12 @@ fn frobenius_gcd_oracle_cross_checks_all_degree_eleven_or_lower_claims() {
             "forged Frobenius/GCD claim polynomial={polynomial:#x}"
         );
     }
-    // Known monic irreducible counts over GF(2), degrees 1 through 11.
+    // Known monic irreducible counts over GF(2), degrees 1 through 15.
     assert_eq!(
         irreducibles_by_degree,
-        [0, 2, 1, 2, 3, 6, 9, 18, 30, 56, 99, 186]
+        [
+            0, 2, 1, 2, 3, 6, 9, 18, 30, 56, 99, 186, 335, 630, 1161, 2182
+        ]
     );
-    assert_eq!(irreducibles_by_degree.iter().sum::<usize>(), 412);
+    assert_eq!(irreducibles_by_degree.iter().sum::<usize>(), 4720);
 }
