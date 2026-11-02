@@ -3,6 +3,9 @@
 //! This is not certificate issuance, trust-root admission, or promotion.
 
 use formula_check::gf2_polynomial_bezout::check_frozen_gf2_polynomial_bezout;
+use formula_check::gf2_polynomial_factor_witness::{
+    Gf2PolynomialFactorWitnessError, check_frozen_gf2_polynomial_factor_witness,
+};
 use formula_check::gf2_polynomial_modular_inverse::{
     Gf2PolynomialModularInverseError, check_frozen_gf2_polynomial_modular_inverse,
 };
@@ -301,6 +304,8 @@ fn bounded_nonunit_pairs_reject_all_forged_unit_bezout_coefficients() {
 fn nonmonomial_common_factors_preserve_bezout_but_never_create_modular_units() {
     let mut factor_pairs = 0_u32;
     let mut nonunit_directions = 0_u32;
+    let mut factor_witnesses = 0_u32;
+    let mut forged_factor_claims = 0_u32;
     for (base_lhs, base_rhs) in [
         (0b101_u16, 0b111_u16),
         (0b1011, 0b1101),
@@ -338,6 +343,38 @@ fn nonmonomial_common_factors_preserve_bezout_but_never_create_modular_units() {
             assert!(check_frozen_gf2_polynomial_bezout(&frame([lhs, rhs, 1, s, t])).is_err());
             factor_pairs += 1;
 
+            // A separate frozen factor witness independently establishes
+            // reducibility of each scaled operand. Neither valid factor
+            // evidence nor a forged product claim may create quotient-unit
+            // authority: the inverse preflight below must still reject.
+            for (polynomial, cofactor) in [(lhs, base_lhs), (rhs, base_rhs)] {
+                assert_eq!(
+                    check_frozen_gf2_polynomial_factor_witness(&frame([
+                        polynomial, factor, cofactor,
+                    ])),
+                    Ok(())
+                );
+                assert_eq!(
+                    check_frozen_gf2_polynomial_factor_witness(&frame([
+                        polynomial, cofactor, factor,
+                    ])),
+                    Ok(())
+                );
+                factor_witnesses += 1;
+                assert_eq!(
+                    check_frozen_gf2_polynomial_factor_witness(&frame([
+                        polynomial ^ 1,
+                        factor,
+                        cofactor,
+                    ])),
+                    Err(Gf2PolynomialFactorWitnessError::ProductMismatch {
+                        expected: polynomial ^ 1,
+                        actual: u32::from(polynomial),
+                    })
+                );
+                forged_factor_claims += 1;
+            }
+
             for (modulus, element, coefficient) in [(rhs, lhs, s), (lhs, rhs, t)] {
                 let reduced_element = div_rem(u64::from(element), u64::from(modulus)).1 as u16;
                 let reduced_coefficient =
@@ -365,4 +402,6 @@ fn nonmonomial_common_factors_preserve_bezout_but_never_create_modular_units() {
     }
     assert_eq!(factor_pairs, 21);
     assert_eq!(nonunit_directions, 42);
+    assert_eq!(factor_witnesses, 42);
+    assert_eq!(forged_factor_claims, 42);
 }
