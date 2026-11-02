@@ -292,3 +292,77 @@ fn bounded_nonunit_pairs_reject_all_forged_unit_bezout_coefficients() {
     assert_eq!(nonunit_pairs, 98);
     assert_eq!(rejected_claims, 25_088);
 }
+
+// A shared nonmonomial factor can be cancelled from the independent Bezout
+// equation, but it cannot be cancelled into an inverse in either quotient.
+// Derive the witnesses from coprime base operands rather than trusting the
+// production GCD or inverse checker. This remains non-authoritative P2 proof.
+#[test]
+fn nonmonomial_common_factors_preserve_bezout_but_never_create_modular_units() {
+    let mut factor_pairs = 0_u32;
+    let mut nonunit_directions = 0_u32;
+    for (base_lhs, base_rhs) in [
+        (0b101_u16, 0b111_u16),
+        (0b1011, 0b1101),
+        (0b10011, 0b101),
+        (0b100101, 0b100011),
+        (0x4001, 0x4000),
+    ] {
+        let (base_gcd, s, t) = extended_gcd(base_lhs, base_rhs);
+        assert_eq!(base_gcd, 1, "independent coprime base");
+        let factors: &[u16] = if base_lhs == 0x4001 {
+            &[0b11] // Degree-15 products stay inside the frozen u16 frame.
+        } else {
+            &[0b11, 0b111, 0b1011, 0b1101, 0b10011]
+        };
+        for &factor in factors {
+            let lhs = u16::try_from(product(u64::from(base_lhs), u64::from(factor)))
+                .expect("bounded factored lhs");
+            let rhs = u16::try_from(product(u64::from(base_rhs), u64::from(factor)))
+                .expect("bounded factored rhs");
+            let (actual_gcd, _, _) = extended_gcd(lhs, rhs);
+            assert_eq!(actual_gcd, factor, "independent common-factor GCD");
+            assert_eq!(
+                product(u64::from(lhs), u64::from(s)) ^ product(u64::from(rhs), u64::from(t)),
+                u64::from(factor),
+                "independent factored Bezout identity"
+            );
+            assert_eq!(
+                check_frozen_gf2_polynomial_bezout(&frame([lhs, rhs, factor, s, t])),
+                Ok(())
+            );
+            assert_eq!(
+                check_frozen_gf2_polynomial_bezout(&frame([rhs, lhs, factor, t, s])),
+                Ok(())
+            );
+            assert!(check_frozen_gf2_polynomial_bezout(&frame([lhs, rhs, 1, s, t])).is_err());
+            factor_pairs += 1;
+
+            for (modulus, element, coefficient) in [(rhs, lhs, s), (lhs, rhs, t)] {
+                let reduced_element = div_rem(u64::from(element), u64::from(modulus)).1 as u16;
+                let reduced_coefficient =
+                    div_rem(u64::from(coefficient), u64::from(modulus)).1 as u16;
+                let (quotient_gcd, _, _) = extended_gcd(modulus, reduced_element);
+                assert_eq!(quotient_gcd, factor, "independent quotient nonunit");
+                let remainder = div_rem(
+                    product(u64::from(reduced_element), u64::from(reduced_coefficient)),
+                    u64::from(modulus),
+                )
+                .1 as u16;
+                assert_ne!(remainder, 1, "common factor forbids an inverse");
+                assert_eq!(
+                    check_frozen_gf2_polynomial_modular_inverse(&frame([
+                        modulus,
+                        reduced_element,
+                        reduced_coefficient,
+                    ])),
+                    Err(Gf2PolynomialModularInverseError::NotInverse { remainder }),
+                    "modulus={modulus:#x} element={element:#x} factor={factor:#x}"
+                );
+                nonunit_directions += 1;
+            }
+        }
+    }
+    assert_eq!(factor_pairs, 21);
+    assert_eq!(nonunit_directions, 42);
+}
