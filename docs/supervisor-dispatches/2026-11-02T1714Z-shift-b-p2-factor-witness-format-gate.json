@@ -1,0 +1,36 @@
+{
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "B",
+  "project": "formula",
+  "frontier": "P2_FULL_U16_FACTOR_WITNESS_EXACT_HEAD_FORMAT_GATE_REPAIR",
+  "time_utc": "2026-11-02T17:14:45Z",
+  "before_head": "affaecf8c8a8ec4e53d1c47243785297e6e58ce1",
+  "before_state": "Draft Formula PR #83 exact-head P0 Boundary Candidate Verification run 41475932587 FAILED at cargo +1.98.0 fmt --all -- --check; Rust tests skipped; project P2 certification not admitted.",
+  "worker_action": "Authenticated GitHub cloud source-only edit to project-owned draft PR #83; applied precisely two rustfmt hunks from hosted job logs to the existing factor-witness integration regression.",
+  "implementation_head": "34cabdfb463833c7514819ac980f47e34ddaa195",
+  "after_state": "Published source formatting correction for 2 rustfmt-diagnosed hunks without changing mathematical assertions; exact branch readback confirmed. New-head hosted workflow started; result not yet admitted.",
+  "movement": "MATERIAL_REVIEW_AND_CI_FAILURE_CONSUMED_IN_CANDIDATE_CHANGE",
+  "health": "SOURCE_READBACK_PASS; HOSTED_CI_IN_PROGRESS; NATIVE_P2_AND_PATROL_UNVERIFIED",
+  "proof": {
+    "failing_workflow": "https://github.com/jaydumisuni/formula/actions/runs/41475932587",
+    "failure": "Verify formatting: two exact diff hunks in gf2_full_domain_factor_witness_consistency.rs; compiler and downstream P0 checks skipped",
+    "new_workflow": "https://github.com/jaydumisuni/formula/actions/runs/41489271428",
+    "new_workflow_state_at_receipt": "IN_PROGRESS",
+    "source_blob": "be326bd35d4dd8cef3bd4c2343dbb08180f8cc5e",
+    "readback": "Exact GitHub branch HEAD 34cabdfb463833c7514819ac980f47e34ddaa195 and both replacement hunks confirmed",
+    "rustfmt_native": "UNVERIFIED until hosted exact-head workflow completes",
+    "kratos_patrol": "UNVERIFIED; Oracle Live cloud roster and KRATOS terminal failed internally",
+    "independent_review": "PENDING",
+    "mathematical_admission": "NOT_GRANTED"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 full-domain independent factor witness cross-check",
+    "downstream": "P2 independent checker/certificate envelope; P9 First Light remains gated"
+  },
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "protected_promotion": false,
+  "kratos_local_dispatch_receipt": "QUEUED_UNTIL_ORACLE_LIVE_RECOVERY",
+  "attention_reconciliation": "QUEUED_UNTIL_ORACLE_LIVE_RECOVERY"
+}
