@@ -1,0 +1,57 @@
+{
+  "schema": "ttg.formula.supervisor-dispatch.v1",
+  "shift": "A",
+  "project": "formula",
+  "frontier": "P2_ZERO_OPERAND_BEZOUT_TO_QUOTIENT_NONUNIT_CROSS_FAMILY",
+  "observed_utc": "2026-11-02T07:04:54Z",
+  "before": {
+    "head": "cf5d798bfad5efcd42cd3b65bb425eef0786c102",
+    "pr": 77,
+    "movement": "STALLED_IMPLEMENTATION",
+    "last_confirmed_material_utc": "2026-11-02T05:24:06Z"
+  },
+  "after": {
+    "implementation_head": "584eb4ef05d959b39330117a42a3b29bfbc10dba",
+    "branch": "supervisor/shift-a-p2-zero-operand-cross-family-20261102-0900",
+    "movement": "MATERIAL_SOURCE_PUBLISHED",
+    "review": "PENDING",
+    "promotion": "HOLD"
+  },
+  "worker": {
+    "type": "authenticated_github_cloud_fallback",
+    "action": "Add independent cross-family zero-operand boundary regression in project-owned source branch; no runtime/device/production changes"
+  },
+  "worktree": "CLOUD_SOURCE_BRANCH_ONLY; KRATOS_WORKTREE_UNAVAILABLE",
+  "change": {
+    "file": "crates/formula-check/tests/gf2_zero_operand_cross_family.rs",
+    "scope": "56 valid Bezout orientations, 56 forged unit-GCD rejections, 21 zero-inverse rejections, both-zero and constant-modulus guards"
+  },
+  "proof": {
+    "independent_algebra": "PASS: 56 valid zero-product Bezout orientations and 21 zero-residue products independently checked in local Python; not native Rust proof",
+    "rust_native": "UNVERIFIED: rustc/cargo unavailable in fallback container",
+    "patrol": "UNVERIFIED: Oracle Live node roster failed; KRATOS project preflight unavailable",
+    "hosted": "PENDING",
+    "independent_review": "PENDING",
+    "p0": "NOT_PROVEN",
+    "p1_macos": "NOT_PROVEN",
+    "p2_certificate": "NOT_ADMITTED"
+  },
+  "health": {
+    "oracle_roster": "UNVERIFIED",
+    "source_static": "READ_BACK_PENDING",
+    "native": "UNVERIFIED",
+    "production_touched": false,
+    "stolen_device_touched": false,
+    "supervisor_schedules_changed": false
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P2 independent checker regression",
+    "downstream": "P2 certificate-envelope/trust-root qualification; P9 First Light",
+    "authority": "No certificate issuance, protected promotion or physical/macOS proof"
+  },
+  "queued_kratos": [
+    "Reconcile branch and receipt with canonical project worktree on Oracle reconnection",
+    "Run Patrol/preflight and cargo test -p formula-check --locked on exact head",
+    "Run rustfmt and strict Clippy, then reconcile hosted CI and independent review"
+  ]
+}
