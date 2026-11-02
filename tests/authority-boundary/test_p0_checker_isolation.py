@@ -61,11 +61,11 @@ class CheckerIsolationTests(unittest.TestCase):
         core = self.root / "crates" / "formula-core"
         core.mkdir(parents=True)
         (core / "Cargo.toml").write_text(
-            '[dependencies]\\nformula-engine = { path = "../formula-engine" }\\n',
+            '[dependencies]\nformula-engine = { path = "../formula-engine" }\n',
             encoding="utf-8",
         )
         self.manifest.write_text(
-            '[dependencies]\\nformula-core = { path = "../formula-core" }\\n',
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
             encoding="utf-8",
         )
         with self.assertRaisesRegex(AssertionError, "formula-engine"):
@@ -75,12 +75,12 @@ class CheckerIsolationTests(unittest.TestCase):
         core = self.root / "crates" / "formula-core"
         core.mkdir(parents=True)
         (core / "Cargo.toml").write_text(
-            '[target."cfg(unix)".dependencies]\\n'
-            'formula-first-light = { path = "../formula-first-light" }\\n',
+            '[target."cfg(unix)".dependencies]\n'
+            'formula-first-light = { path = "../formula-first-light" }\n',
             encoding="utf-8",
         )
         self.manifest.write_text(
-            '[dependencies]\\nformula-core = { path = "../formula-core" }\\n',
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
             encoding="utf-8",
         )
         with self.assertRaisesRegex(AssertionError, "formula-first-light"):
@@ -90,17 +90,17 @@ class CheckerIsolationTests(unittest.TestCase):
         core = self.root / "crates" / "formula-core"
         core.mkdir(parents=True)
         (core / "Cargo.toml").write_text(
-            '[package]\\nname = "formula-core"\\nversion = "0.0.0"\\n',
+            '[package]\nname = "formula-core"\nversion = "0.0.0"\n',
             encoding="utf-8",
         )
         engine = self.root / "crates" / "formula-engine"
         engine.mkdir(parents=True)
         (engine / "Cargo.toml").write_text(
-            '[package]\\nname = "formula-engine"\\nversion = "0.0.0"\\n',
+            '[package]\nname = "formula-engine"\nversion = "0.0.0"\n',
             encoding="utf-8",
         )
         self.manifest.write_text(
-            '[dependencies]\\nformula-core = { path = "../formula-core" }\\n',
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
             encoding="utf-8",
         )
         p0.check_checker_isolation()
