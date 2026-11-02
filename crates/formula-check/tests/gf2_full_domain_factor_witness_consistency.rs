@@ -42,7 +42,10 @@ fn first_nontrivial_factor(polynomial: u16) -> Option<(u16, u16)> {
         let past_last_monic = 1_u16 << (factor_degree + 1);
         for factor in first_monic..past_last_monic {
             if let Some(cofactor) = quotient_if_divides(polynomial, factor) {
-                assert!(cofactor >= 2, "nontrivial cofactor polynomial={polynomial:#x}");
+                assert!(
+                    cofactor >= 2,
+                    "nontrivial cofactor polynomial={polynomial:#x}"
+                );
                 return Some((factor, cofactor));
             }
         }
@@ -83,7 +86,9 @@ fn full_u16_reducibility_claims_have_independent_factor_witnesses() {
             accepted_witnesses += 1;
             assert_eq!(
                 check_frozen_gf2_polynomial_factor_witness(&factor_frame(
-                    polynomial ^ 1, factor, cofactor,
+                    polynomial ^ 1,
+                    factor,
+                    cofactor,
                 )),
                 Err(Gf2PolynomialFactorWitnessError::ProductMismatch {
                     expected: polynomial ^ 1,
