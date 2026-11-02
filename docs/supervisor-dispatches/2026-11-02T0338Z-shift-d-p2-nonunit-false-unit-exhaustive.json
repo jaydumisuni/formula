@@ -1,0 +1,35 @@
+{
+  "schema": "ttg.formula.supervisor-dispatch.v1",
+  "shift": "D",
+  "project": "formula",
+  "frontier": "P2_NONUNIT_FALSE_UNIT_BEZOUT_EXHAUSTIVE_PRODUCER_NEGATIVE",
+  "observed_utc": "2026-11-02T03:38:01Z",
+  "predecessor_head": "b651d8f74c606c20031f083cfa66e41f49e2f08b",
+  "implementation_head": "87f881462491bd2a4cf15ba1c56a948dc41ee5d4",
+  "worktree": "/home/kratos/projects/formula/.workspace/worktrees/p2-nonunit-false-unit-shift-d-20261102-0536",
+  "branch": "supervisor/shift-d-p2-nonunit-false-unit-20261102-0536",
+  "action": "Bounded source-only Rust integration regression exhaustively rejects 25,088 false unit-GCD Bezout claims across 98 nonunit GF(2) polynomial operand pairs; independent carryless polynomial oracle verifies impossibility before checker rejection.",
+  "proof": {
+    "patrol": "xvfb-run -a patrol check exit 0; explicit ALLOW not emitted",
+    "focused": "3/3 PASS",
+    "native": "143 unit + 3 integration PASS",
+    "clippy": "PASS -D warnings",
+    "fmt": "PASS",
+    "p0_invariants": "PASS repository invariants only; P0 milestone not proven",
+    "diff_check": "PASS",
+    "p2_certification": "NOT_ADMITTED",
+    "p1_macos": "NOT_PROVEN",
+    "review": "PENDING; predecessor PR75 had 0 submitted reviews"
+  },
+  "dependency_linkage": {
+    "upstream": "Formula independent P2 checker",
+    "downstream": "P2 certificate and P9 First Light",
+    "authority": "No certificate issuance or promotion"
+  },
+  "protected": {
+    "production_touched": false,
+    "oracle_production_touched": false,
+    "stolen_device_touched": false,
+    "supervisor_schedules_changed": false
+  }
+}
