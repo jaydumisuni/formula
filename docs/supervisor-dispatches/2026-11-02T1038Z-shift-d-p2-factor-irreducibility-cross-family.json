@@ -1,0 +1,36 @@
+{
+  "after_state": "Independent enumeration of 254 degree<=7 nonconstant polynomials: 41 irreducible, 213 reducible, 1284 accepted factor witnesses, 1325 forged factor claims rejected; P2 source-only; review pending",
+  "before_head": "8bdb5c2a1bdae4bc3db49d2b6b90af184e5a5980",
+  "before_state": "PR79 draft; independent exact-head review pending; no fresh implementation worker; last verified material movement 2026-11-02T08:53:25Z",
+  "dependency_linkage": {
+    "downstream": "P2 frozen evidence envelope and P9 First Light",
+    "upstream": "Formula P2 independent factor/irreducibility preflight"
+  },
+  "disposition": "SOURCE_COMMITTED_REVIEW_PENDING",
+  "frontier": "P2_GF2_EXHAUSTIVE_FACTOR_IRREDUCIBILITY_CROSS_FAMILY",
+  "health": "NATIVE_148_PASS_REVIEW_PENDING",
+  "movement": "MATERIAL_SOURCE_DELTA_COMMITTED",
+  "production_touched": false,
+  "project": "formula",
+  "project_worktree": "/home/kratos/projects/formula/.workspace/worktrees/p2-factor-irreducibility-shift-d-20261102-1236",
+  "proof": {
+    "clippy": "PASS -D warnings",
+    "diff_check": "PASS",
+    "fmt": "PASS",
+    "focused": "1/1 PASS",
+    "hosted": "UNVERIFIED",
+    "independent_review": "PENDING",
+    "native": "143 unit + 5 integration PASS",
+    "p0_boundary": "PASS repository invariants; P0 milestone UNPROVEN",
+    "p2_certification": "NOT_ADMITTED",
+    "patrol": "ALLOW"
+  },
+  "protected_promotion": false,
+  "schema": "ttg.cookpit.supervisor.dispatch.v1",
+  "shift": "D",
+  "source_implementation_head": "3c0298f5f8d9780a546728acbd1b0745b578f90f",
+  "stolen_device_touched": false,
+  "supervisor_schedules_changed": false,
+  "time_utc": "2026-11-02T10:39:02.463216+00:00",
+  "worker_action": "Patrol allow in isolated Formula worktree; add 112-line independent coefficient-convolution cross-family integration regression; run focused and full native proof; non-force publication"
+}
