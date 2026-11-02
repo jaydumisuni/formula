@@ -248,3 +248,47 @@ fn small_domain_syzygy_representatives_preserve_inverse_classes() {
     assert_eq!(one_sided_s_rejections, 2700);
     assert_eq!(one_sided_t_rejections, 2700);
 }
+
+// An untrusted producer must not turn a genuine nonunit GCD into unit
+// authority by choosing alternate bounded Bezout coefficients. Independently
+// exhaust the coefficient domain, rather than trusting a checker's rejection
+// alone. This is P2 source-only negative evidence, not certification.
+#[test]
+fn bounded_nonunit_pairs_reject_all_forged_unit_bezout_coefficients() {
+    let mut nonunit_pairs = 0_u32;
+    let mut rejected_claims = 0_u32;
+    for lhs in 2_u16..=15 {
+        for rhs in 2_u16..=15 {
+            let (gcd, s, t) = extended_gcd(lhs, rhs);
+            if gcd == 1 {
+                continue;
+            }
+            nonunit_pairs += 1;
+            assert_eq!(
+                check_frozen_gf2_polynomial_bezout(&frame([lhs, rhs, gcd, s, t])),
+                Ok(()),
+                "genuine nonunit witness lhs={lhs:#b} rhs={rhs:#b}"
+            );
+            for forged_s in 0_u16..=15 {
+                for forged_t in 0_u16..=15 {
+                    let relation = product(u64::from(lhs), u64::from(forged_s))
+                        ^ product(u64::from(rhs), u64::from(forged_t));
+                    assert_ne!(
+                        relation, 1,
+                        "independent nonunit impossibility lhs={lhs:#b} rhs={rhs:#b}"
+                    );
+                    assert!(
+                        check_frozen_gf2_polynomial_bezout(&frame([
+                            lhs, rhs, 1, forged_s, forged_t,
+                        ]))
+                        .is_err(),
+                        "forged unit claim lhs={lhs:#b} rhs={rhs:#b} s={forged_s:#b} t={forged_t:#b}"
+                    );
+                    rejected_claims += 1;
+                }
+            }
+        }
+    }
+    assert_eq!(nonunit_pairs, 98);
+    assert_eq!(rejected_claims, 25_088);
+}
