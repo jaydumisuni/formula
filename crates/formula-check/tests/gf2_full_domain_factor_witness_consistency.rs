@@ -117,7 +117,9 @@ fn full_u16_reducibility_claims_have_independent_factor_witnesses() {
             ] {
                 assert_eq!(
                     check_frozen_gf2_polynomial_factor_witness(&factor_frame(
-                        polynomial, forged_factor, forged_cofactor,
+                        polynomial,
+                        forged_factor,
+                        forged_cofactor,
                     )),
                     Err(Gf2PolynomialFactorWitnessError::ProductMismatch {
                         expected: polynomial,
