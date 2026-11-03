@@ -33,11 +33,13 @@
     "changes": [
       "Traverse checker dependency closure by manifest identity and reject forbidden search source paths even under renamed package identities",
       "Bind known Formula package names to exact canonical local crate manifests; permit unrelated external utility dependencies under P0-02",
-      "Add five synthetic fixture regressions covering direct/transitive impersonation and a positive local dependency control"
-    ]
+      "Add five synthetic fixture regressions covering direct/transitive impersonation and a positive local dependency control",
+      "Consume hosted failure into candidate: include forbidden source path in rejection diagnostic so the renamed-source regression asserts the actual rejected path"
+    ],
+    "ci_diagnostic_correction_commit": "4972dbd3832305fb71f3a7eac5780a538334e097"
   },
   "after": {
-    "implementation_head": "d9403d9f1fd7cbd744935fdd8bd93f463d4ad6b4",
+    "implementation_head": "4972dbd3832305fb71f3a7eac5780a538334e097",
     "state": "Draft PR #88 contains checker-source identity hardening and five new regression cases; no P0 admission."
   },
   "proof": {
@@ -48,14 +50,19 @@
     "native_python_unittest": "UNVERIFIED",
     "kratos_patrol": "UNVERIFIED_ORACLE_TRANSPORT_FAILURE",
     "native_cargo": "UNVERIFIED",
-    "hosted_exact_head": "PENDING",
+    "hosted_exact_head": "PENDING_CORRECTED_HEAD",
     "independent_review": "PENDING",
-    "p0_admission": "NOT_GRANTED"
+    "p0_admission": "NOT_GRANTED",
+    "first_hosted_run": {
+      "run": "https://github.com/jaydumisuni/formula/actions/runs/41554474477",
+      "head": "d9403d9f1fd7cbd744935fdd8bd93f463d4ad6b4",
+      "result": "FAIL: 29/30 unit tests passed; renamed search source rejection correctly occurred but error message did not include expected source path"
+    }
   },
   "movement": {
     "material": true,
     "kind": "project-owned candidate source and test HEAD advanced",
-    "last_material_at_utc": "2026-11-03T00:40:03Z"
+    "last_material_at_utc": "2026-11-03T00:41:00Z"
   },
   "health": {
     "oracle_cloud_roster": "UNVERIFIED_INTERNAL_ERROR",
@@ -86,5 +93,5 @@
     "stolen_device_touched": false
   },
   "kratos_local_dispatch_receipt": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT",
-  "disposition": "MATERIAL_SOURCE_PUBLISHED_STATIC_READBACK_NATIVE_UNVERIFIED_REVIEW_PENDING"
+  "disposition": "MATERIAL_SOURCE_PUBLISHED_HOSTED_FAILURE_CONSUMED_CORRECTED_HEAD_CI_PENDING"
 }
