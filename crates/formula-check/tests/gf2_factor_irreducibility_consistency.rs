@@ -110,3 +110,34 @@ fn exhaustive_small_polynomials_bind_factor_and_irreducibility_claims() {
     assert_eq!(accepted_witnesses, 1_284);
     assert_eq!(rejected_forgeries, accepted_witnesses + irreducible_count);
 }
+
+// A degree-15 boundary witness checks the full-width product and the
+// independent irreducibility decision together; no certificate is issued.
+#[test]
+fn high_degree_factor_witness_and_irreducibility_agree() {
+    let polynomial = 0x8000_u16; // x^15 = x^7 * x^8
+    assert_eq!(independent_product(0x80, 0x100), u32::from(polynomial));
+    assert_eq!(
+        check_frozen_gf2_polynomial_factor_witness(&factor_frame(polynomial, 0x80, 0x100)),
+        Ok(())
+    );
+    assert_eq!(
+        check_frozen_gf2_polynomial_irreducibility(&[0x80, 0x00, 0]),
+        Ok(())
+    );
+    assert_eq!(
+        check_frozen_gf2_polynomial_irreducibility(&[0x80, 0x00, 1]),
+        Err(Gf2PolynomialIrreducibilityError::IrreducibilityMismatch {
+            expected: false,
+            actual: true,
+        })
+    );
+    // A 30-degree product cannot be truncated into the 16-bit claim.
+    assert_eq!(
+        check_frozen_gf2_polynomial_factor_witness(&factor_frame(polynomial, 0x8000, 0x8000)),
+        Err(Gf2PolynomialFactorWitnessError::ProductMismatch {
+            expected: polynomial,
+            actual: 0x4000_0000,
+        })
+    );
+}
