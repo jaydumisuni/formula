@@ -119,6 +119,22 @@ class NetworkFreeRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "external dependencies"):
             p0.check_canonical_runtime_has_no_external_dependencies()
 
+    def test_rejects_canonical_path_with_mismatched_manifest_package_name(self):
+        core = self.root / "crates" / "formula-core"
+        core.mkdir(parents=True)
+        (core / "Cargo.toml").write_text(
+            '[package]\nname = "impostor-core"\nversion = "0.0.0"\n',
+            encoding="utf-8",
+        )
+        crate = self.root / "crates" / "formula-first-light"
+        (crate / "Cargo.toml").write_text(
+            '[package]\nname = "formula-first-light"\nversion = "0.0.0"\n'
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "external dependencies"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
     def test_rejects_std_network_use_in_first_light_runtime(self):
         self.source.write_text(
             "use std::net::TcpStream;\npub fn connect() { let _ = TcpStream::connect(\"127.0.0.1:9\"); }\n",
