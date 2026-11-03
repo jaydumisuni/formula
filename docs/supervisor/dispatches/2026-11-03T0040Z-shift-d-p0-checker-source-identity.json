@@ -1,0 +1,90 @@
+{
+  "schema": "ttg.supervisor.project-dispatch.v1",
+  "shift": "D",
+  "observed_at_utc": "2026-11-03T00:40:03Z",
+  "project": "formula",
+  "frontier": "P0-02 checker/search dependency source identity and transitive closure",
+  "selection": "Oldest verified eligible cloud material movement among enabled project candidates: Formula PR #87 2026-11-02T23:07:09Z; KRATOS local worker leases and local dispatch fairness unverified.",
+  "canonical_cookpit": {
+    "repository": "jaydumisuni/cookpit",
+    "main_head": "aa49182ce91c5261ac49d04d9d297fea6fe39b8d",
+    "registry_blob": "b3d88fe65be9b5514b46d1b8d028c844bc4b78eb",
+    "formula_enabled": true,
+    "oracle_phase27_enabled": false
+  },
+  "project_authority": {
+    "roadmap": "docs/roadmap/2026-08-28-implementation-roadmap.md",
+    "frozen_architecture_head": "50c0beb021d8bf02d59a177049b9c2cf1783b26a",
+    "canonical_workspace": "/home/kratos/projects/formula/.workspace/worktrees/p1-continuation-20261006",
+    "predecessor_pr": "https://github.com/jaydumisuni/formula/pull/87",
+    "candidate_pr": "https://github.com/jaydumisuni/formula/pull/88"
+  },
+  "before": {
+    "head": "3824a3c2dc2bd0c4db83ccfa604125b5f37ee420",
+    "state": "Checker closure rejected forbidden dependency names but did not validate canonical source manifest identity; allowed-name registry and alternate-source masquerades could evade P0-02 static guard."
+  },
+  "action": {
+    "kind": "bounded_source_only",
+    "transport": "authenticated GitHub cloud fallback",
+    "branch": "supervisor/shift-d-p0-checker-source-identity-20261103-0236",
+    "test_first_commit": "58ba7264b7c57a6fe0300995f4f4c05c7065b2db",
+    "test_fixture_correction_commit": "007cd3e72f2386effb4c345d57ca50b4070af7c7",
+    "implementation_commit": "d9403d9f1fd7cbd744935fdd8bd93f463d4ad6b4",
+    "changes": [
+      "Traverse checker dependency closure by manifest identity and reject forbidden search source paths even under renamed package identities",
+      "Bind known Formula package names to exact canonical local crate manifests; permit unrelated external utility dependencies under P0-02",
+      "Add five synthetic fixture regressions covering direct/transitive impersonation and a positive local dependency control"
+    ]
+  },
+  "after": {
+    "implementation_head": "d9403d9f1fd7cbd744935fdd8bd93f463d4ad6b4",
+    "state": "Draft PR #88 contains checker-source identity hardening and five new regression cases; no P0 admission."
+  },
+  "proof": {
+    "exact_source_and_test_readback": "VERIFIED",
+    "predecessor_compare": "3 commits ahead, 0 behind; 2 scoped files before receipt",
+    "structural_guard_contract": "VERIFIED_STATIC",
+    "fixture_newline_correction": "VERIFIED",
+    "native_python_unittest": "UNVERIFIED",
+    "kratos_patrol": "UNVERIFIED_ORACLE_TRANSPORT_FAILURE",
+    "native_cargo": "UNVERIFIED",
+    "hosted_exact_head": "PENDING",
+    "independent_review": "PENDING",
+    "p0_admission": "NOT_GRANTED"
+  },
+  "movement": {
+    "material": true,
+    "kind": "project-owned candidate source and test HEAD advanced",
+    "last_material_at_utc": "2026-11-03T00:40:03Z"
+  },
+  "health": {
+    "oracle_cloud_roster": "UNVERIFIED_INTERNAL_ERROR",
+    "kratos_terminal": "UNVERIFIED_INTERNAL_ERROR",
+    "local_worker_lease": "UNVERIFIED",
+    "local_attention_update": "QUEUED_FOR_KRATOS_RECONCILIATION",
+    "observer_freshness_not_material_movement": true
+  },
+  "supervisor_pool": {
+    "A": "HEALTHY",
+    "B": "HEALTHY",
+    "C": "HEALTHY",
+    "D": "CURRENT_SLOT_WITHIN_GRACE",
+    "E": "HEALTHY",
+    "schedules_changed": false,
+    "catchup_needed": false
+  },
+  "dependency_linkage": {
+    "upstream": "Formula P0-02 checker/search separation",
+    "downstream": "Formula P1 authority store, P2 independent checker, and P9 First Light; no authority consumed"
+  },
+  "protected_boundaries": {
+    "no_merge": true,
+    "no_force_push": true,
+    "no_credential_mutation": true,
+    "no_physical_proof_claim": true,
+    "oracle_production_touched": false,
+    "stolen_device_touched": false
+  },
+  "kratos_local_dispatch_receipt": "QUEUED_UNTIL_ORACLE_LIVE_RECONNECT",
+  "disposition": "MATERIAL_SOURCE_PUBLISHED_STATIC_READBACK_NATIVE_UNVERIFIED_REVIEW_PENDING"
+}
