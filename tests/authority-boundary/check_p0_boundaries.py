@@ -108,12 +108,29 @@ def check_workspace_shape() -> None:
 
 
 def check_checker_isolation() -> None:
-    # P0-02 applies to the complete checker dependency closure. A direct-only
-    # check misses search crates hidden behind a local intermediate package.
-    deps = workspace_dependency_closure("formula-check")
-    forbidden = deps & FORBIDDEN_CHECK_DEPS
-    if forbidden:
-        fail(f"formula-check crosses checker/search boundary: {sorted(forbidden)}")
+    # P0-02 covers the complete checker closure. Dependency names alone are
+    # insufficient: a registry package or alternate local source can claim
+    # an allowed Formula crate name while bypassing the frozen workspace.
+    seen_manifests: set[Path] = set()
+    pending = [(ROOT / "crates" / "formula-check" / "Cargo.toml").resolve()]
+    forbidden_sources = {
+        (ROOT / "crates" / name / "Cargo.toml").resolve()
+        for name in FORBIDDEN_CHECK_DEPS
+    }
+    while pending:
+        manifest = pending.pop()
+        if manifest in seen_manifests:
+            continue
+        seen_manifests.add(manifest)
+        for dependency, dependency_manifest in dependency_entries(manifest):
+            if dependency in FORBIDDEN_CHECK_DEPS or dependency_manifest in forbidden_sources:
+                fail(f"formula-check crosses checker/search boundary: {dependency}")
+            if dependency in EXPECTED_LOCK_PACKAGES:
+                expected = (ROOT / "crates" / dependency / "Cargo.toml").resolve()
+                if dependency_manifest != expected or not expected.is_file():
+                    fail(f"formula-check dependency {dependency} lacks canonical local source")
+            if dependency_manifest is not None and dependency_manifest.is_file():
+                pending.append(dependency_manifest)
 
 
 def check_sealed_fixture_isolation() -> None:
