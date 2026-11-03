@@ -86,6 +86,71 @@ class CheckerIsolationTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "formula-first-light"):
             p0.check_checker_isolation()
 
+    def test_rejects_registry_masquerade_of_local_checker_dependency(self):
+        self.manifest.write_text(
+            '[dependencies]\\nformula-core = "0.0.0"\\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "canonical local source"):
+            p0.check_checker_isolation()
+
+    def test_rejects_alternate_local_manifest_with_expected_checker_name(self):
+        alternate = self.root / "crates" / "alternate-core"
+        alternate.mkdir(parents=True)
+        (alternate / "Cargo.toml").write_text(
+            '[package]\\nname = "formula-core"\\nversion = "0.0.0"\\n',
+            encoding="utf-8",
+        )
+        self.manifest.write_text(
+            '[dependencies]\\nformula-core = { path = "../alternate-core" }\\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "canonical local source"):
+            p0.check_checker_isolation()
+
+    def test_rejects_search_source_directory_with_renamed_package(self):
+        engine = self.root / "crates" / "formula-engine"
+        engine.mkdir(parents=True)
+        (engine / "Cargo.toml").write_text(
+            '[package]\\nname = "renamed-search"\\nversion = "0.0.0"\\n',
+            encoding="utf-8",
+        )
+        self.manifest.write_text(
+            '[dependencies]\\nrenamed-search = { path = "../formula-engine" }\\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "formula-engine"):
+            p0.check_checker_isolation()
+
+    def test_rejects_transitive_registry_masquerade_from_local_core(self):
+        core = self.root / "crates" / "formula-core"
+        core.mkdir(parents=True)
+        (core / "Cargo.toml").write_text(
+            '[package]\\nname = "formula-core"\\nversion = "0.0.0"\\n'
+            '[dependencies]\\nformula-store = "0.0.0"\\n',
+            encoding="utf-8",
+        )
+        self.manifest.write_text(
+            '[dependencies]\\nformula-core = { path = "../formula-core" }\\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "canonical local source"):
+            p0.check_checker_isolation()
+
+    def test_allows_canonical_local_checker_dependency_with_external_utility(self):
+        core = self.root / "crates" / "formula-core"
+        core.mkdir(parents=True)
+        (core / "Cargo.toml").write_text(
+            '[package]\\nname = "formula-core"\\nversion = "0.0.0"\\n'
+            '[dependencies]\\nsha2 = "0.10"\\n',
+            encoding="utf-8",
+        )
+        self.manifest.write_text(
+            '[dependencies]\\nformula-core = { path = "../formula-core" }\\n',
+            encoding="utf-8",
+        )
+        p0.check_checker_isolation()
+
     def test_unrelated_search_crate_outside_checker_closure_is_allowed(self):
         core = self.root / "crates" / "formula-core"
         core.mkdir(parents=True)
