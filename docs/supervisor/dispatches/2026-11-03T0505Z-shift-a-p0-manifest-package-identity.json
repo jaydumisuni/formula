@@ -1,0 +1,36 @@
+{
+  "schema": "ttg.supervisor.project-dispatch.v1",
+  "shift": "A",
+  "observed_at_utc": "2026-11-03T05:05:00Z",
+  "project": "formula",
+  "frontier": "P0-04 canonical local runtime manifest package identity",
+  "before": {
+    "head": "3824a3c2dc2bd0c4db83ccfa604125b5f37ee420",
+    "state": "Canonical manifest path accepted even when manifest package.name differs from dependency name"
+  },
+  "action": {
+    "kind": "bounded_source_only",
+    "transport": "authenticated GitHub cloud fallback",
+    "branch": "supervisor/shift-a-p0-runtime-source-identity-20261103-0100",
+    "test_commit": "eab94c25d2739c30a060b6b4cfec4f4d9ae16604",
+    "fix_commit": "6b77a134d5be95b97e583fb2ccd0a117e545b707",
+    "detail": "Reject canonical path dependency when manifest package.name does not match resolved dependency identity"
+  },
+  "after": {
+    "head": "6b77a134d5be95b97e583fb2ccd0a117e545b707",
+    "state": "Runtime closure checks canonical path and declared package name"
+  },
+  "proof": {
+    "source_readback": "PASS",
+    "regression_readback": "PASS",
+    "native_test": "UNVERIFIED",
+    "kratos_patrol": "UNVERIFIED",
+    "independent_review": "PENDING"
+  },
+  "health": "UNVERIFIED_LOCAL",
+  "movement": "MATERIAL_SOURCE_COMMITTED",
+  "dependency_linkage": null,
+  "production_touched": false,
+  "stolen_device_touched": false,
+  "protected_admission": "HOLD"
+}
