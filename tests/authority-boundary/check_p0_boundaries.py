@@ -123,8 +123,13 @@ def check_checker_isolation() -> None:
             continue
         seen_manifests.add(manifest)
         for dependency, dependency_manifest in dependency_entries(manifest):
-            if dependency in FORBIDDEN_CHECK_DEPS or dependency_manifest in forbidden_sources:
+            if dependency in FORBIDDEN_CHECK_DEPS:
                 fail(f"formula-check crosses checker/search boundary: {dependency}")
+            if dependency_manifest in forbidden_sources:
+                fail(
+                    "formula-check crosses checker/search boundary: "
+                    f"{dependency_manifest.relative_to(ROOT)} (declared {dependency})"
+                )
             if dependency in EXPECTED_LOCK_PACKAGES:
                 expected = (ROOT / "crates" / dependency / "Cargo.toml").resolve()
                 if dependency_manifest != expected or not expected.is_file():
