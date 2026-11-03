@@ -133,14 +133,31 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
     # package admitted elsewhere in the workspace by later implementation
     # stages. Traverse the declared runtime dependency closure and reject any
     # external package reachable from that path.
+    # A package name alone is not source identity. A registry/Git package
+    # called "formula-core", or a different local directory with that name,
+    # must not impersonate the frozen First-Light workspace crate.
     runtime_crates: set[str] = set()
-    for root in CANONICAL_RUNTIME_ROOTS:
-        runtime_crates.add(root)
-        runtime_crates.update(workspace_dependency_closure(root))
-
-    external = runtime_crates - EXPECTED_LOCK_PACKAGES
-    if external:
-        fail(f"P0 canonical runtime acquired external dependencies: {sorted(external)}")
+    pending = list(CANONICAL_RUNTIME_ROOTS)
+    while pending:
+        crate = pending.pop()
+        if crate in runtime_crates:
+            continue
+        runtime_crates.add(crate)
+        manifest = ROOT / "crates" / crate / "Cargo.toml"
+        for dependency, dependency_manifest in dependency_entries(manifest):
+            expected = (ROOT / "crates" / dependency / "Cargo.toml").resolve()
+            if (
+                dependency not in EXPECTED_LOCK_PACKAGES
+                or dependency_manifest is None
+                or dependency_manifest != expected
+                or not dependency_manifest.is_file()
+                or load_toml(dependency_manifest).get("package", {}).get("name") != dependency
+            ):
+                fail(
+                    "P0 canonical runtime acquired external dependencies: "
+                    f"{dependency} (source is not the frozen local workspace crate)"
+                )
+            pending.append(dependency)
     for crate in runtime_crates:
         source_root = ROOT / "crates" / crate / "src"
         if not source_root.exists():

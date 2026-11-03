@@ -63,6 +63,78 @@ class NetworkFreeRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "external dependencies"):
             p0.check_canonical_runtime_has_no_external_dependencies()
 
+    def test_rejects_registry_package_masquerading_as_local_runtime_crate(self):
+        crate = self.root / "crates" / "formula-first-light"
+        (crate / "Cargo.toml").write_text(
+            '[package]\nname = "formula-first-light"\nversion = "0.0.0"\nedition = "2021"\n'
+            '[dependencies]\nformula-core = "0.0.0"\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "external dependencies"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
+    def test_rejects_workspace_inherited_registry_runtime_dependency(self):
+        (self.root / "Cargo.toml").write_text(
+            '[workspace]\nmembers = []\n'
+            '[workspace.dependencies]\nformula-core = "0.0.0"\n',
+            encoding="utf-8",
+        )
+        crate = self.root / "crates" / "formula-first-light"
+        (crate / "Cargo.toml").write_text(
+            '[package]\nname = "formula-first-light"\nversion = "0.0.0"\nedition = "2021"\n'
+            '[dependencies]\nformula-core = { workspace = true }\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "external dependencies"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
+    def test_allows_exact_local_runtime_dependency_without_external_packages(self):
+        core = self.root / "crates" / "formula-core"
+        core.mkdir(parents=True)
+        (core / "Cargo.toml").write_text(
+            '[package]\nname = "formula-core"\nversion = "0.0.0"\n',
+            encoding="utf-8",
+        )
+        crate = self.root / "crates" / "formula-first-light"
+        (crate / "Cargo.toml").write_text(
+            '[package]\nname = "formula-first-light"\nversion = "0.0.0"\nedition = "2021"\n'
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
+            encoding="utf-8",
+        )
+        p0.check_canonical_runtime_has_no_external_dependencies()
+
+    def test_rejects_local_package_identity_outside_frozen_runtime_workspace(self):
+        other = self.root / "crates" / "unexpected-core"
+        other.mkdir(parents=True)
+        (other / "Cargo.toml").write_text(
+            '[package]\nname = "formula-core"\nversion = "0.0.0"\n',
+            encoding="utf-8",
+        )
+        crate = self.root / "crates" / "formula-first-light"
+        (crate / "Cargo.toml").write_text(
+            '[package]\nname = "formula-first-light"\nversion = "0.0.0"\nedition = "2021"\n'
+            '[dependencies]\nformula-core = { path = "../unexpected-core" }\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "external dependencies"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
+    def test_rejects_canonical_path_with_mismatched_manifest_package_name(self):
+        core = self.root / "crates" / "formula-core"
+        core.mkdir(parents=True)
+        (core / "Cargo.toml").write_text(
+            '[package]\nname = "impostor-core"\nversion = "0.0.0"\n',
+            encoding="utf-8",
+        )
+        crate = self.root / "crates" / "formula-first-light"
+        (crate / "Cargo.toml").write_text(
+            '[package]\nname = "formula-first-light"\nversion = "0.0.0"\n'
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "external dependencies"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
     def test_rejects_std_network_use_in_first_light_runtime(self):
         self.source.write_text(
             "use std::net::TcpStream;\npub fn connect() { let _ = TcpStream::connect(\"127.0.0.1:9\"); }\n",
