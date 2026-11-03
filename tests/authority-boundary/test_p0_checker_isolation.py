@@ -88,7 +88,7 @@ class CheckerIsolationTests(unittest.TestCase):
 
     def test_rejects_registry_masquerade_of_local_checker_dependency(self):
         self.manifest.write_text(
-            '[dependencies]\\nformula-core = "0.0.0"\\n',
+            '[dependencies]\nformula-core = "0.0.0"\n',
             encoding="utf-8",
         )
         with self.assertRaisesRegex(AssertionError, "canonical local source"):
@@ -98,11 +98,11 @@ class CheckerIsolationTests(unittest.TestCase):
         alternate = self.root / "crates" / "alternate-core"
         alternate.mkdir(parents=True)
         (alternate / "Cargo.toml").write_text(
-            '[package]\\nname = "formula-core"\\nversion = "0.0.0"\\n',
+            '[package]\nname = "formula-core"\nversion = "0.0.0"\n',
             encoding="utf-8",
         )
         self.manifest.write_text(
-            '[dependencies]\\nformula-core = { path = "../alternate-core" }\\n',
+            '[dependencies]\nformula-core = { path = "../alternate-core" }\n',
             encoding="utf-8",
         )
         with self.assertRaisesRegex(AssertionError, "canonical local source"):
@@ -112,11 +112,11 @@ class CheckerIsolationTests(unittest.TestCase):
         engine = self.root / "crates" / "formula-engine"
         engine.mkdir(parents=True)
         (engine / "Cargo.toml").write_text(
-            '[package]\\nname = "renamed-search"\\nversion = "0.0.0"\\n',
+            '[package]\nname = "renamed-search"\nversion = "0.0.0"\n',
             encoding="utf-8",
         )
         self.manifest.write_text(
-            '[dependencies]\\nrenamed-search = { path = "../formula-engine" }\\n',
+            '[dependencies]\nrenamed-search = { path = "../formula-engine" }\n',
             encoding="utf-8",
         )
         with self.assertRaisesRegex(AssertionError, "formula-engine"):
@@ -126,12 +126,12 @@ class CheckerIsolationTests(unittest.TestCase):
         core = self.root / "crates" / "formula-core"
         core.mkdir(parents=True)
         (core / "Cargo.toml").write_text(
-            '[package]\\nname = "formula-core"\\nversion = "0.0.0"\\n'
-            '[dependencies]\\nformula-store = "0.0.0"\\n',
+            '[package]\nname = "formula-core"\nversion = "0.0.0"\n'
+            '[dependencies]\nformula-store = "0.0.0"\n',
             encoding="utf-8",
         )
         self.manifest.write_text(
-            '[dependencies]\\nformula-core = { path = "../formula-core" }\\n',
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
             encoding="utf-8",
         )
         with self.assertRaisesRegex(AssertionError, "canonical local source"):
@@ -141,12 +141,12 @@ class CheckerIsolationTests(unittest.TestCase):
         core = self.root / "crates" / "formula-core"
         core.mkdir(parents=True)
         (core / "Cargo.toml").write_text(
-            '[package]\\nname = "formula-core"\\nversion = "0.0.0"\\n'
-            '[dependencies]\\nsha2 = "0.10"\\n',
+            '[package]\nname = "formula-core"\nversion = "0.0.0"\n'
+            '[dependencies]\nsha2 = "0.10"\n',
             encoding="utf-8",
         )
         self.manifest.write_text(
-            '[dependencies]\\nformula-core = { path = "../formula-core" }\\n',
+            '[dependencies]\nformula-core = { path = "../formula-core" }\n',
             encoding="utf-8",
         )
         p0.check_checker_isolation()
