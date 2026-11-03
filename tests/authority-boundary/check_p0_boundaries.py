@@ -151,6 +151,7 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
                 or dependency_manifest is None
                 or dependency_manifest != expected
                 or not dependency_manifest.is_file()
+                or load_toml(dependency_manifest).get("package", {}).get("name") != dependency
             ):
                 fail(
                     "P0 canonical runtime acquired external dependencies: "
