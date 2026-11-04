@@ -141,3 +141,29 @@ fn high_degree_factor_witness_and_irreducibility_agree() {
         })
     );
 }
+
+
+// A distinct degree-15 binomial exercises nonmonomial factors without
+// borrowing the frozen checker's multiplication implementation.
+#[test]
+fn high_degree_binomial_factorization_is_independently_bound() {
+    let polynomial = 0x8001_u16; // x^15 + 1 = (x + 1) * (1 + ... + x^14)
+    let factor = 0x0003_u16;
+    let cofactor = 0x7fff_u16;
+    assert_eq!(independent_product(factor, cofactor), u32::from(polynomial));
+    assert_eq!(
+        check_frozen_gf2_polynomial_factor_witness(&factor_frame(polynomial, factor, cofactor)),
+        Ok(())
+    );
+    assert_eq!(
+        check_frozen_gf2_polynomial_irreducibility(&[0x80, 0x01, 0]),
+        Ok(())
+    );
+    assert_eq!(
+        check_frozen_gf2_polynomial_factor_witness(&factor_frame(0x8000, factor, cofactor)),
+        Err(Gf2PolynomialFactorWitnessError::ProductMismatch {
+            expected: 0x8000,
+            actual: u32::from(polynomial),
+        })
+    );
+}
