@@ -962,6 +962,19 @@ mod tests {
                     .kind(),
                 io::ErrorKind::InvalidData
             );
+            // A symlink to otherwise correct bytes cannot become the final
+            // immutable authority name after publication.
+            fs::remove_file(&alias).unwrap();
+            fs::remove_file(&path).unwrap();
+            fs::write(&alias, bytes).unwrap();
+            std::os::unix::fs::symlink(&alias, &path).unwrap();
+            assert_eq!(
+                store
+                    .finish_new_blob_installation(&path, digest)
+                    .unwrap_err()
+                    .kind(),
+                io::ErrorKind::InvalidData
+            );
         }
         fs::remove_dir_all(root).unwrap();
     }
