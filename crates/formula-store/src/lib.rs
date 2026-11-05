@@ -1511,6 +1511,11 @@ mod tests {
             store.contains(digest).unwrap_err().kind(),
             io::ErrorKind::InvalidData
         );
+        // Restoring the original bytes must recover verified presence without
+        // changing the content address or granting authority to corrupt bytes.
+        fs::write(store.blob_path(digest), b"present").unwrap();
+        assert!(store.contains(digest).unwrap());
+        assert_eq!(store.get(digest).unwrap(), b"present");
         fs::remove_dir_all(root).unwrap();
     }
 
