@@ -1821,6 +1821,10 @@ mod tests {
         let digest = store.put(b"original").unwrap();
         fs::write(store.blob_path(digest), b"tampered").unwrap();
         assert_eq!(
+            store.contains(digest).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
             store.get(digest).unwrap_err().kind(),
             io::ErrorKind::InvalidData
         );
