@@ -158,6 +158,9 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("1\r\n{}", current.to_hex()),
         format!("1\n{}\r", current.to_hex()),
         format!("1\n{}\0", current.to_hex()),
+        format!("1\t\n{}", current.to_hex()),
+        format!("1\n\t{}", current.to_hex()),
+        format!("１\n{}", current.to_hex()),
         format!("1\0\n{}", current.to_hex()),
     ];
     for alternative in alternatives {
