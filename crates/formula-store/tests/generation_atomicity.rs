@@ -599,3 +599,44 @@ fn directory_substitution_at_active_pointer_is_rejected() {
     assert_eq!(index.active_generation().unwrap(), (2, next));
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn directory_substitution_at_history_leaf_blocks_replay_and_recovers() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-directory-history-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let current = store.put(b"current").unwrap();
+    let next = store.put(b"next").unwrap();
+    index.publish(&store, 1, current).unwrap();
+
+    let history = root.join("index/generations/1.manifest");
+    let original = fs::read(&history).unwrap();
+    fs::remove_file(&history).unwrap();
+    fs::create_dir(&history).unwrap();
+
+    assert_eq!(
+        index.historical_manifest(1).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 2, next).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(history.is_dir());
+    assert!(!root.join("index/generations/2.manifest").exists());
+
+    fs::remove_dir(&history).unwrap();
+    fs::write(&history, original).unwrap();
+    assert_eq!(index.active_generation().unwrap(), (1, current));
+    index.publish(&store, 2, next).unwrap();
+    assert_eq!(index.active_generation().unwrap(), (2, next));
+    fs::remove_dir_all(root).unwrap();
+}
