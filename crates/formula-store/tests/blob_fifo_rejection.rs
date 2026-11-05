@@ -37,3 +37,33 @@ fn fifo_blob_leaf_is_rejected_without_blocking_or_replacement() {
     assert!(fs::symlink_metadata(&leaf).unwrap().file_type().is_fifo());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn directory_blob_leaf_is_rejected_without_replacement() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "formula-directory-blob-{}-{nonce}",
+        std::process::id()
+    ));
+    let store = BlobStore::new(&root);
+    let bytes = b"immutable artifact cannot be a directory";
+    let digest = ArtifactDigest::sha256(bytes);
+    let leaf = store.blob_path(digest);
+    fs::create_dir_all(&leaf).unwrap();
+
+    for result in [
+        store.get(digest).map(|_| ()),
+        store.contains(digest).map(|_| ()),
+        store.put(bytes).map(|_| ()),
+    ] {
+        assert!(
+            result.is_err(),
+            "directory leaf must never satisfy blob authority"
+        );
+    }
+    assert!(fs::symlink_metadata(&leaf).unwrap().is_dir());
+    fs::remove_dir_all(root).unwrap();
+}
