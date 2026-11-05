@@ -162,6 +162,9 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("1\n\t{}", current.to_hex()),
         format!("１\n{}", current.to_hex()),
         format!("1\0\n{}", current.to_hex()),
+        format!("1\u{2028}{}", current.to_hex()),
+        format!("1\u{2029}{}", current.to_hex()),
+        format!("1\n\u{200b}{}", current.to_hex()),
     ];
     for alternative in alternatives {
         fs::write(&pointer, &alternative).unwrap();
