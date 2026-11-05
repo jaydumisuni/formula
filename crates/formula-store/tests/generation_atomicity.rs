@@ -561,3 +561,33 @@ fn oversized_active_pointer_blocks_public_replay_and_publication() {
     assert_eq!(fs::read(pointer).unwrap(), oversized);
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn directory_substitution_at_active_pointer_is_rejected() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-directory-active-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let current = store.put(b"current").unwrap();
+    let next = store.put(b"next").unwrap();
+    index.publish(&store, 1, current).unwrap();
+
+    let pointer = root.join("index/active-generation");
+    fs::remove_file(&pointer).unwrap();
+    fs::create_dir(&pointer).unwrap();
+
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 2, next).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("index/generations/2.manifest").exists());
+    assert!(pointer.is_dir());
+    fs::remove_dir_all(root).unwrap();
+}
