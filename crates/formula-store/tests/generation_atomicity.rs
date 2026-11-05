@@ -576,6 +576,7 @@ fn directory_substitution_at_active_pointer_is_rejected() {
     index.publish(&store, 1, current).unwrap();
 
     let pointer = root.join("index/active-generation");
+    let original_pointer = fs::read(&pointer).unwrap();
     fs::remove_file(&pointer).unwrap();
     fs::create_dir(&pointer).unwrap();
 
@@ -589,5 +590,12 @@ fn directory_substitution_at_active_pointer_is_rejected() {
     );
     assert!(!root.join("index/generations/2.manifest").exists());
     assert!(pointer.is_dir());
+
+    // Removing the hostile directory must restore the ordinary publication path.
+    fs::remove_dir(&pointer).unwrap();
+    fs::write(&pointer, original_pointer).unwrap();
+    assert_eq!(index.active_generation().unwrap(), (1, current));
+    index.publish(&store, 2, next).unwrap();
+    assert_eq!(index.active_generation().unwrap(), (2, next));
     fs::remove_dir_all(root).unwrap();
 }
