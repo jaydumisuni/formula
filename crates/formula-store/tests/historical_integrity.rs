@@ -158,6 +158,8 @@ fn invisible_history_name_alias_blocks_successor_publication() {
         "1\u{e007f}.manifest",
         "1\u{fe0f}.manifest",
         "1\u{e0100}.manifest",
+        "1\u{034f}.manifest",
+        "1\u{180e}.manifest",
         "１.manifest",
     ] {
         let path = root.join("index/generations").join(alias);
