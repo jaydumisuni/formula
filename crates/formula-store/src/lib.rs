@@ -605,7 +605,12 @@ impl GenerationIndex {
         for entry in fs::read_dir(&generations)? {
             let entry = entry?;
             let name = entry.file_name();
-            let name = name.to_string_lossy();
+            let name = name.to_str().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "non-UTF-8 generation history name",
+                )
+            })?;
             if let Some(number) = name.strip_suffix(".manifest") {
                 let recorded = number.parse::<u64>().map_err(|_| {
                     io::Error::new(
@@ -866,7 +871,12 @@ impl GenerationIndex {
         let (generation, digest) = self.active_generation_pointer()?;
         for entry in fs::read_dir(self.root.join("generations"))? {
             let name = entry?.file_name();
-            let name = name.to_string_lossy();
+            let name = name.to_str().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "non-UTF-8 generation history name",
+                )
+            })?;
             if let Some(number) = name.strip_suffix(".manifest") {
                 let recorded = number.parse::<u64>().map_err(|_| {
                     io::Error::new(
@@ -898,7 +908,12 @@ impl GenerationIndex {
         for entry in fs::read_dir(self.root.join("generations"))? {
             let entry = entry?;
             let name = entry.file_name();
-            let name = name.to_string_lossy();
+            let name = name.to_str().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "non-UTF-8 generation history name",
+                )
+            })?;
             if let Some(generation) = Self::verified_history_entry_number(&name, active.0)? {
                 let digest = self.historical_manifest(generation)?;
                 if !store.contains(digest)? {

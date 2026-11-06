@@ -288,3 +288,32 @@ fn concurrent_successor_publishers_preserve_monotonic_authority() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(unix)]
+#[test]
+fn non_utf8_history_name_blocks_replay_and_successor_publication() {
+    use std::os::unix::ffi::OsStringExt;
+    let root = std::env::temp_dir().join(format!("formula-history-nonutf8-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let current = store.put(b"current").unwrap();
+    let next = store.put(b"next").unwrap();
+    index.publish(&store, 1, current).unwrap();
+    let name = std::ffi::OsString::from_vec(b"2\xff.manifest".to_vec());
+    fs::write(root.join("index/generations").join(name), current.to_hex()).unwrap();
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 2, next).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("index/generations/2.manifest").exists());
+    fs::remove_dir_all(root).unwrap();
+}
