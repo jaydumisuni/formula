@@ -139,6 +139,36 @@ fn noncanonical_history_alias_cannot_be_replayed_or_published() {
 }
 
 #[test]
+fn invisible_history_name_alias_blocks_successor_publication() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-history-invisible-alias-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let current = store.put(b"current manifest").unwrap();
+    let next = store.put(b"next manifest").unwrap();
+    index.publish(&store, 1, current).unwrap();
+
+    for alias in ["1\u{200b}.manifest", "1\u{2060}.manifest", "１.manifest"] {
+        let path = root.join("index/generations").join(alias);
+        fs::write(&path, current.to_hex()).unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 2, next).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(!root.join("index/generations/2.manifest").exists());
+        fs::remove_file(path).unwrap();
+    }
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn noncanonical_active_pointer_spellings_fail_closed() {
     let root = std::env::temp_dir().join(format!("formula-active-spelling-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
