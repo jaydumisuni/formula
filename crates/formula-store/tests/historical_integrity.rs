@@ -151,7 +151,7 @@ fn invisible_history_name_alias_blocks_successor_publication() {
     let next = store.put(b"next manifest").unwrap();
     index.publish(&store, 1, current).unwrap();
 
-    for alias in ["1\u{200b}.manifest", "1\u{2060}.manifest", "１.manifest"] {
+    for alias in ["1\u{200b}.manifest", "1\u{2060}.manifest", "1\u{e0020}.manifest", "1\u{e007f}.manifest", "１.manifest"] {
         let path = root.join("index/generations").join(alias);
         fs::write(&path, current.to_hex()).unwrap();
         assert_eq!(
