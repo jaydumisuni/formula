@@ -153,6 +153,8 @@ fn invisible_history_name_alias_blocks_successor_publication() {
 
     for alias in [
         "1\u{200b}.manifest",
+        "1\u{00ad}.manifest",
+        "1\u{202f}.manifest",
         "1\u{2060}.manifest",
         "1\u{e0020}.manifest",
         "1\u{e007f}.manifest",
