@@ -365,8 +365,12 @@ fn non_utf8_history_name_blocks_replay_and_successor_publication() {
     let current = store.put(b"current").unwrap();
     let next = store.put(b"next").unwrap();
     index.publish(&store, 1, current).unwrap();
-    let name = std::ffi::OsString::from_vec(b"2\xff.manifest".to_vec());
-    fs::write(root.join("index/generations").join(name), current.to_hex()).unwrap();
+    // Invalid UTF-8 must fail closed whether it precedes or follows a
+    // plausible generation number; neither spelling can be silently skipped.
+    for bytes in [b"2\xff.manifest".as_slice(), b"\xff2.manifest".as_slice()] {
+        let name = std::ffi::OsString::from_vec(bytes.to_vec());
+        fs::write(root.join("index/generations").join(name), current.to_hex()).unwrap();
+    }
     assert_eq!(
         index.active_generation().unwrap_err().kind(),
         io::ErrorKind::InvalidData
