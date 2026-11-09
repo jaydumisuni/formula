@@ -159,6 +159,7 @@ fn invisible_history_name_alias_blocks_successor_publication() {
         "1\u{202f}.manifest",
         "1\u{2060}.manifest",
         "1\u{2063}.manifest",
+        "1\u{2064}.manifest",
         "1\u{e0020}.manifest",
         "1\u{e007f}.manifest",
         "1\u{fe0f}.manifest",
