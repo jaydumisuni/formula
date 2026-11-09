@@ -152,6 +152,9 @@ fn invisible_history_name_alias_blocks_successor_publication() {
     index.publish(&store, 1, current).unwrap();
 
     for alias in [
+        "1.0.manifest",
+        "1e0.manifest",
+        "0x1.manifest",
         "1\u{200b}.manifest",
         "1\u{200a}.manifest",
         "1\u{2009}.manifest",
