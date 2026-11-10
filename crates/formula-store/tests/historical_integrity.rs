@@ -180,6 +180,9 @@ fn invisible_history_name_alias_blocks_successor_publication() {
         "1\u{2066}.manifest",
         "1\u{2069}.manifest",
         "１.manifest",
+        "١.manifest", // Arabic-Indic digit one must not alias ASCII authority
+        "۱.manifest", // Extended Arabic-Indic digit one
+        "१.manifest", // Devanagari digit one
     ] {
         let path = root.join("index/generations").join(alias);
         fs::write(&path, current.to_hex()).unwrap();
