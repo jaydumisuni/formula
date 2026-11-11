@@ -193,6 +193,10 @@ fn invisible_history_name_alias_blocks_successor_publication() {
             io::ErrorKind::InvalidData
         );
         assert_eq!(
+            index.verified_active_generation(&store).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
             index.publish(&store, 2, next).unwrap_err().kind(),
             io::ErrorKind::InvalidData
         );
