@@ -272,6 +272,45 @@ fn uppercase_historical_digest_cannot_replay_or_authorize_successor() {
 }
 
 #[test]
+fn historical_digest_with_trailing_newline_cannot_authorize_replay_or_successor() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-history-trailing-newline-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let older = store.put(b"older manifest").unwrap();
+    let current = store.put(b"current manifest").unwrap();
+    let successor = store.put(b"successor manifest").unwrap();
+    index.publish(&store, 1, older).unwrap();
+    index.publish(&store, 2, current).unwrap();
+
+    // The historical leaf is an exact digest record, not a line-oriented
+    // text file. The current active pointer must not conceal its mutation.
+    let history = root.join("index/generations/1.manifest");
+    fs::write(&history, format!("{}\n", older.to_hex())).unwrap();
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 3, successor).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("index/generations/3.manifest").exists());
+    assert_eq!(
+        fs::read_to_string(root.join("index/active-generation")).unwrap(),
+        format!("2\n{}", current.to_hex())
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn noncanonical_active_pointer_spellings_fail_closed() {
     let root = std::env::temp_dir().join(format!("formula-active-spelling-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
