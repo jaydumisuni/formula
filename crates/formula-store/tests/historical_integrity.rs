@@ -288,6 +288,10 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
             index.publish(&store, 2, next).unwrap_err().kind(),
             io::ErrorKind::InvalidData
         );
+        assert_eq!(
+            index.verified_active_generation(&store).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
         assert_eq!(fs::read_to_string(&pointer).unwrap(), alternative);
         assert!(!root.join("index/generations/2.manifest").exists());
     }
