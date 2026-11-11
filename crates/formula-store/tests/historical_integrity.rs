@@ -183,6 +183,8 @@ fn invisible_history_name_alias_blocks_successor_publication() {
         "١.manifest", // Arabic-Indic digit one must not alias ASCII authority
         "۱.manifest", // Extended Arabic-Indic digit one
         "१.manifest", // Devanagari digit one
+        "๑.manifest", // Thai digit one must not alias ASCII authority
+        "一.manifest", // CJK numeral one is not an ASCII generation
     ] {
         let path = root.join("index/generations").join(alias);
         fs::write(&path, current.to_hex()).unwrap();
