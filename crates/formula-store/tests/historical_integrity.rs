@@ -277,6 +277,15 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("1\n\u{061c}{}", current.to_hex()),
         format!("1\n\u{200e}{}", current.to_hex()),
         format!("1\n\u{200f}{}", current.to_hex()),
+        // Digest identity is lowercase ASCII hex, not merely a parseable hash.
+        format!("1\n{}", current.to_hex().to_uppercase()),
+        format!("1\n{}", {
+            let mut hex = current.to_hex();
+            if let Some((i, ch)) = hex.char_indices().find(|(_, ch)| ch.is_ascii_alphabetic()) {
+                hex.replace_range(i..i + 1, &ch.to_ascii_uppercase().to_string());
+            }
+            hex
+        }),
     ];
     for alternative in alternatives {
         fs::write(&pointer, &alternative).unwrap();
