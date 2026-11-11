@@ -91,6 +91,29 @@ fn verified_replay_rejects_corrupt_older_manifest_blob() {
 }
 
 #[test]
+fn verified_replay_rejects_missing_older_manifest_blob() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-verified-replay-missing-older-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let older = store.put(b"older manifest").unwrap();
+    let current = store.put(b"current manifest").unwrap();
+    index.publish(&store, 1, older).unwrap();
+    index.publish(&store, 2, current).unwrap();
+
+    fs::remove_file(store.blob_path(older)).unwrap();
+    assert_eq!(index.active_generation().unwrap(), (2, current));
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap_err().kind(),
+        io::ErrorKind::NotFound
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn verified_replay_rejects_missing_active_manifest_blob() {
     let root = std::env::temp_dir().join(format!(
         "formula-verified-replay-missing-active-{}",
