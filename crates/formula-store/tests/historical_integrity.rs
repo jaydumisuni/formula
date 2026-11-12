@@ -441,6 +441,13 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
     let alternatives = [
         format!("01\n{}", current.to_hex()),
         format!("+1\n{}", current.to_hex()),
+        format!("-1\n{}", current.to_hex()),
+        format!(" 1\n{}", current.to_hex()),
+        format!("1.0\n{}", current.to_hex()),
+        format!("1e0\n{}", current.to_hex()),
+        format!("0x1\n{}", current.to_hex()),
+        format!("1\n{} ", current.to_hex()),
+
         format!("1 \n{}", current.to_hex()),
         format!("{canonical}\n"),
         format!("1\r\n{}", current.to_hex()),
