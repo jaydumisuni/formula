@@ -423,6 +423,24 @@ fn historical_digest_unicode_format_aliases_fail_closed() {
             format!("2\n{}", current.to_hex())
         );
     }
+    // Prefix aliases are equally noncanonical; they must not be normalized
+    // into the historical digest during replay or successor publication.
+    for prefix in ["\u{feff}", "\u{2060}", "\u{200b}", "\u{2066}", "\u{2069}"] {
+        fs::write(&history, format!("{}{}", prefix, older.to_hex())).unwrap();
+        assert_eq!(
+            index.historical_manifest(1).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 3, successor).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(!root.join("index/generations/3.manifest").exists());
+    }
     fs::remove_dir_all(root).unwrap();
 }
 
