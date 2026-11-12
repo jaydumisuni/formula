@@ -441,6 +441,15 @@ fn historical_digest_unicode_format_aliases_fail_closed() {
         );
         assert!(!root.join("index/generations/3.manifest").exists());
     }
+    // Embedded Unicode controls must not be discarded by digest parsers.
+    for marker in ["\u{200b}", "\u{2060}", "\u{fe0f}"] {
+        let digest = older.to_hex();
+        fs::write(&history, format!("{}{}{}", &digest[..32], marker, &digest[32..])).unwrap();
+        assert_eq!(index.historical_manifest(1).unwrap_err().kind(), io::ErrorKind::InvalidData);
+        assert_eq!(index.verified_active_generation(&store).unwrap_err().kind(), io::ErrorKind::InvalidData);
+        assert_eq!(index.publish(&store, 3, successor).unwrap_err().kind(), io::ErrorKind::InvalidData);
+        assert!(!root.join("index/generations/3.manifest").exists());
+    }
     fs::remove_dir_all(root).unwrap();
 }
 
