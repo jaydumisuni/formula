@@ -460,6 +460,10 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("１\n{}", current.to_hex()),
         format!("\u{0661}\n{}", current.to_hex()),
         format!("\u{1d7cf}\n{}", current.to_hex()),
+        // Other Unicode numeric glyphs must not alias ASCII generation 1.
+        format!("\u{0967}\n{}", current.to_hex()),
+        format!("\u{00b9}\n{}", current.to_hex()),
+        format!("\u{2160}\n{}", current.to_hex()),
         format!("1\0\n{}", current.to_hex()),
         format!("1\u{2028}{}", current.to_hex()),
         format!("1\u{2029}{}", current.to_hex()),
