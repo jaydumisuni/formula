@@ -141,3 +141,28 @@ fn high_degree_factor_witness_and_irreducibility_agree() {
         })
     );
 }
+
+// x^15 + 1 has a nontrivial factorization with a degree-14 cofactor.
+// This checks a dense high-degree product independently of the monomial case.
+#[test]
+fn high_degree_alternating_factorization_agrees_across_checkers() {
+    let polynomial = 0x8001_u16;
+    let factor = 0x0003_u16; // x + 1
+    let cofactor = 0x7fff_u16; // 1 + x + ... + x^14
+    assert_eq!(independent_product(factor, cofactor), u32::from(polynomial));
+    assert_eq!(
+        check_frozen_gf2_polynomial_factor_witness(&factor_frame(polynomial, factor, cofactor)),
+        Ok(())
+    );
+    assert_eq!(
+        check_frozen_gf2_polynomial_irreducibility(&[0x80, 0x01, 0]),
+        Ok(())
+    );
+    assert_eq!(
+        check_frozen_gf2_polynomial_irreducibility(&[0x80, 0x01, 1]),
+        Err(Gf2PolynomialIrreducibilityError::IrreducibilityMismatch {
+            expected: false,
+            actual: true,
+        })
+    );
+}
