@@ -417,6 +417,8 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("1\u{2028}{}", current.to_hex()),
         format!("1\u{2029}{}", current.to_hex()),
         format!("1\n\u{200b}{}", current.to_hex()),
+        format!("1\n\u{200c}{}", current.to_hex()),
+        format!("1\n\u{200d}{}", current.to_hex()),
         format!("1\u{fe0f}\n{}", current.to_hex()),
         format!("1\u{e0100}\n{}", current.to_hex()),
         format!("1\n\u{fe0f}{}", current.to_hex()),
