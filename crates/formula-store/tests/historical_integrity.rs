@@ -499,6 +499,9 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("1\n{}\u{200b}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\u{2060}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\u{feff}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        // NUL and variation selectors inside the digest cannot be ignored.
+        format!("1\n{}\0{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{fe0f}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\t\n{}", current.to_hex()),
         format!("1\n\t{}", current.to_hex()),
         format!("1\u{000b}\n{}", current.to_hex()),
