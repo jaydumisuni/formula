@@ -507,6 +507,11 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("1\n{}\r{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\t{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\n{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        // Unicode line separators and joiners cannot be normalized within a digest.
+        format!("1\n{}\u{2028}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{2029}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{200c}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{200d}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         // NUL and variation selectors inside the digest cannot be ignored.
         format!("1\n{}\0{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\u{fe0f}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
