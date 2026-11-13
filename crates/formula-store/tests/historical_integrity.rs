@@ -492,6 +492,9 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         // DEL and non-breaking space are not canonical digest bytes.
         format!("1\n{}\u{007f}", current.to_hex()),
         format!("1\n{}\u{00a0}", current.to_hex()),
+        // Embedded control/space bytes must not be normalized into a valid hash.
+        format!("1\n{}\u{007f}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{00a0}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\t\n{}", current.to_hex()),
         format!("1\n\t{}", current.to_hex()),
         format!("1\u{000b}\n{}", current.to_hex()),
