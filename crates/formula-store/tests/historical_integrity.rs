@@ -613,6 +613,12 @@ fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
         format!("{}\r\n", older.to_hex()),
         format!("\u{feff}{}", older.to_hex()),
         format!("{}\t", older.to_hex()),
+        // Historical leaves must not normalize invisible formatting or controls.
+        format!("{}\u{200b}", older.to_hex()),
+        format!("{}\u{2060}", older.to_hex()),
+        format!("{}\u{202e}", older.to_hex()),
+        format!("{}\u{00a0}", older.to_hex()),
+        format!("{}\u{007f}", older.to_hex()),
     ] {
         fs::write(&history, &malformed).unwrap();
         assert_eq!(
