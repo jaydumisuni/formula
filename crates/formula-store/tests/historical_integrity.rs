@@ -499,6 +499,10 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("1\n{}\u{200b}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\u{2060}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\u{feff}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        // Directionality controls embedded in a digest must never acquire hash identity.
+        format!("1\n{}\u{202e}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{2066}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{061c}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         // NUL and variation selectors inside the digest cannot be ignored.
         format!("1\n{}\0{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\u{fe0f}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
