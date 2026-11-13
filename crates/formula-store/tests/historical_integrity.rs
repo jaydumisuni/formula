@@ -515,6 +515,10 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         // NUL and variation selectors inside the digest cannot be ignored.
         format!("1\n{}\0{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\u{fe0f}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        // Other default-ignorable code points must not alias a canonical digest.
+        format!("1\n{}\u{00ad}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{180e}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{2063}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         // Supplementary variation selectors and combining marks cannot alias digest identity.
         format!("1\n{}\u{e0100}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\u{0301}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
