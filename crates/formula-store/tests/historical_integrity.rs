@@ -619,6 +619,11 @@ fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
         format!("{}\u{202e}", older.to_hex()),
         format!("{}\u{00a0}", older.to_hex()),
         format!("{}\u{007f}", older.to_hex()),
+        // Historical digest identity must also reject embedded invisible aliases.
+        format!("{}\u{200d}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        format!("{}\u{fe0f}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        format!("{}\u{2068}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        format!("{}\u{2069}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
     ] {
         fs::write(&history, &malformed).unwrap();
         assert_eq!(
