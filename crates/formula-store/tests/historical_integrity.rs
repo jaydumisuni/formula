@@ -611,6 +611,8 @@ fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
         format!("{}{}", older.to_hex(), " ".repeat(129)),
         format!("{}\0", older.to_hex()),
         format!("{}\r\n", older.to_hex()),
+        format!("\u{feff}{}", older.to_hex()),
+        format!("{}\t", older.to_hex()),
     ] {
         fs::write(&history, &malformed).unwrap();
         assert_eq!(
