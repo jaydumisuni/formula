@@ -607,20 +607,27 @@ fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
     // An oversized immutable history leaf must not be truncated into a
     // plausible digest or skipped while a later active pointer remains valid.
     let history = root.join("index/generations/1.manifest");
-    fs::write(&history, format!("{}{}", older.to_hex(), " ".repeat(129))).unwrap();
-    assert_eq!(
-        index.active_generation().unwrap_err().kind(),
-        io::ErrorKind::InvalidData
-    );
-    assert_eq!(
-        index.verified_active_generation(&store).unwrap_err().kind(),
-        io::ErrorKind::InvalidData
-    );
-    assert_eq!(
-        index.publish(&store, 3, next).unwrap_err().kind(),
-        io::ErrorKind::InvalidData
-    );
-    assert!(!root.join("index/generations/3.manifest").exists());
+    for malformed in [
+        format!("{}{}", older.to_hex(), " ".repeat(129)),
+        format!("{}\0", older.to_hex()),
+        format!("{}\r\n", older.to_hex()),
+    ] {
+        fs::write(&history, &malformed).unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.verified_active_generation(&store).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 3, next).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(fs::read_to_string(&history).unwrap(), malformed);
+        assert!(!root.join("index/generations/3.manifest").exists());
+    }
     fs::remove_dir_all(root).unwrap();
 }
 
