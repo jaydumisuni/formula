@@ -495,6 +495,10 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         // Embedded control/space bytes must not be normalized into a valid hash.
         format!("1\n{}\u{007f}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\n{}\u{00a0}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        // Invisible Unicode format bytes inside the digest are not hexadecimal.
+        format!("1\n{}\u{200b}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{2060}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!("1\n{}\u{feff}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
         format!("1\t\n{}", current.to_hex()),
         format!("1\n\t{}", current.to_hex()),
         format!("1\u{000b}\n{}", current.to_hex()),
