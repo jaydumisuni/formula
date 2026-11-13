@@ -589,6 +589,41 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
     fs::remove_dir_all(root).unwrap();
 }
 
+#[test]
+fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-history-oversized-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let older = store.put(b"older manifest").unwrap();
+    let current = store.put(b"current manifest").unwrap();
+    let next = store.put(b"next manifest").unwrap();
+    index.publish(&store, 1, older).unwrap();
+    index.publish(&store, 2, current).unwrap();
+
+    // An oversized immutable history leaf must not be truncated into a
+    // plausible digest or skipped while a later active pointer remains valid.
+    let history = root.join("index/generations/1.manifest");
+    fs::write(&history, format!("{}{}", older.to_hex(), " ".repeat(129))).unwrap();
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 3, next).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("index/generations/3.manifest").exists());
+    fs::remove_dir_all(root).unwrap();
+}
+
 #[cfg(target_os = "linux")]
 #[test]
 fn publication_waits_for_exclusive_index_directory_lock() {
