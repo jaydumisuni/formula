@@ -631,6 +631,11 @@ fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
         format!("{}\u{feff}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
         format!("{}\u{200e}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
         format!("{}\u{200f}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        // Bidirectional isolate controls must not be accepted inside a digest.
+        format!("{}\u{2066}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        format!("{}\u{2067}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        format!("{}\u{2068}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        format!("{}\u{2069}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
         // Invisible separators inside a digest must not be normalized into authority.
         format!("{}\u{200c}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
         format!("{}\u{2028}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
