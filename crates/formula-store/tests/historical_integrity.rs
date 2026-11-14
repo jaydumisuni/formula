@@ -610,6 +610,9 @@ fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
     for malformed in [
         format!("{}{}", older.to_hex(), " ".repeat(129)),
         format!("{}\0", older.to_hex()),
+        // Embedded control bytes cannot be interpreted as digest delimiters.
+        format!("{}\0{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        format!("{}\r{}", &older.to_hex()[..32], &older.to_hex()[32..]),
         format!("{}\r\n", older.to_hex()),
         format!("\u{feff}{}", older.to_hex()),
         format!("{}\t", older.to_hex()),
