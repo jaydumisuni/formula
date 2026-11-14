@@ -640,3 +640,38 @@ fn directory_substitution_at_history_leaf_blocks_replay_and_recovers() {
     assert_eq!(index.active_generation().unwrap(), (2, next));
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn noncanonical_active_pointer_framing_blocks_replay_and_publication() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-generation-active-framing-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let current = store.put(b"current").unwrap();
+    let next = store.put(b"next").unwrap();
+    index.publish(&store, 1, current).unwrap();
+    let pointer = root.join("index/active-generation");
+    let canonical = fs::read(&pointer).unwrap();
+
+    for prefix in [b"\xef\xbb\xbf".as_slice(), b" ".as_slice(), b"+".as_slice()] {
+        let mut malformed = prefix.to_vec();
+        malformed.extend_from_slice(&canonical);
+        fs::write(&pointer, &malformed).unwrap();
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 2, next).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert!(!root.join("index/generations/2.manifest").exists());
+        assert_eq!(fs::read(&pointer).unwrap(), malformed);
+    }
+    fs::write(&pointer, canonical).unwrap();
+    assert_eq!(index.active_generation().unwrap(), (1, current));
+    fs::remove_dir_all(root).unwrap();
+}
