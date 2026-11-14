@@ -627,6 +627,10 @@ fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
         // Combining grapheme joiners and supplementary variation selectors are not digest bytes.
         format!("{}\u{034f}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
         format!("{}\u{e0100}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        // Invisible separators inside a digest must not be normalized into authority.
+        format!("{}\u{200c}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        format!("{}\u{2028}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        format!("{}\u{2029}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
     ] {
         fs::write(&history, &malformed).unwrap();
         assert_eq!(
