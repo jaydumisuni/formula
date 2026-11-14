@@ -445,18 +445,40 @@ fn historical_digest_unicode_format_aliases_fail_closed() {
     // Reject them consistently before replay or successor publication.
     for suffix in ["\u{200b}", "\u{2060}", "\u{fe0f}", "\u{202e}"] {
         fs::write(&history, format!("{}{}", older.to_hex(), suffix)).unwrap();
-        assert_eq!(index.historical_manifest(1).unwrap_err().kind(), io::ErrorKind::InvalidData);
-        assert_eq!(index.verified_active_generation(&store).unwrap_err().kind(), io::ErrorKind::InvalidData);
-        assert_eq!(index.publish(&store, 3, successor).unwrap_err().kind(), io::ErrorKind::InvalidData);
+        assert_eq!(
+            index.historical_manifest(1).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.verified_active_generation(&store).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 3, successor).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
         assert!(!root.join("index/generations/3.manifest").exists());
     }
     // Embedded Unicode controls must not be discarded by digest parsers.
     for marker in ["\u{200b}", "\u{2060}", "\u{fe0f}"] {
         let digest = older.to_hex();
-        fs::write(&history, format!("{}{}{}", &digest[..32], marker, &digest[32..])).unwrap();
-        assert_eq!(index.historical_manifest(1).unwrap_err().kind(), io::ErrorKind::InvalidData);
-        assert_eq!(index.verified_active_generation(&store).unwrap_err().kind(), io::ErrorKind::InvalidData);
-        assert_eq!(index.publish(&store, 3, successor).unwrap_err().kind(), io::ErrorKind::InvalidData);
+        fs::write(
+            &history,
+            format!("{}{}{}", &digest[..32], marker, &digest[32..]),
+        )
+        .unwrap();
+        assert_eq!(
+            index.historical_manifest(1).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.verified_active_generation(&store).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 3, successor).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
         assert!(!root.join("index/generations/3.manifest").exists());
     }
     fs::remove_dir_all(root).unwrap();
@@ -483,7 +505,6 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("1e0\n{}", current.to_hex()),
         format!("0x1\n{}", current.to_hex()),
         format!("1\n{} ", current.to_hex()),
-
         format!("1 \n{}", current.to_hex()),
         format!("{canonical}\n"),
         format!("1\r\n{}", current.to_hex()),
@@ -493,36 +514,128 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
         format!("1\n{}\u{007f}", current.to_hex()),
         format!("1\n{}\u{00a0}", current.to_hex()),
         // Embedded control/space bytes must not be normalized into a valid hash.
-        format!("1\n{}\u{007f}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{00a0}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!(
+            "1\n{}\u{007f}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{00a0}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
         // Invisible Unicode format bytes inside the digest are not hexadecimal.
-        format!("1\n{}\u{200b}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{2060}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{feff}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!(
+            "1\n{}\u{200b}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{2060}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{feff}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
         // Directionality controls embedded in a digest must never acquire hash identity.
-        format!("1\n{}\u{202e}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{2066}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{061c}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!(
+            "1\n{}\u{202e}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{2066}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{061c}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
         // Embedded ASCII line controls cannot split or reframe digest identity.
-        format!("1\n{}\r{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\t{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\n{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!(
+            "1\n{}\r{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\t{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\n{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
         // Unicode line separators and joiners cannot be normalized within a digest.
-        format!("1\n{}\u{2028}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{2029}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{200c}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{200d}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!(
+            "1\n{}\u{2028}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{2029}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{200c}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{200d}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
         // NUL and variation selectors inside the digest cannot be ignored.
-        format!("1\n{}\0{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{fe0f}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!(
+            "1\n{}\0{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{fe0f}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
         // Other default-ignorable code points must not alias a canonical digest.
-        format!("1\n{}\u{00ad}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{180e}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{2063}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!(
+            "1\n{}\u{00ad}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{180e}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{2063}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
         // Supplementary variation selectors and combining marks cannot alias digest identity.
-        format!("1\n{}\u{e0100}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{0301}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
-        format!("1\n{}\u{034f}{}", &current.to_hex()[..32], &current.to_hex()[32..]),
+        format!(
+            "1\n{}\u{e0100}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{0301}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
+        format!(
+            "1\n{}\u{034f}{}",
+            &current.to_hex()[..32],
+            &current.to_hex()[32..]
+        ),
         format!("1\t\n{}", current.to_hex()),
         format!("1\n\t{}", current.to_hex()),
         format!("1\u{000b}\n{}", current.to_hex()),
@@ -591,10 +704,8 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
 
 #[test]
 fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
-    let root = std::env::temp_dir().join(format!(
-        "formula-history-oversized-{}",
-        std::process::id()
-    ));
+    let root =
+        std::env::temp_dir().join(format!("formula-history-oversized-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
@@ -629,7 +740,11 @@ fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
         format!("{}\u{2069}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
         // Combining grapheme joiners and supplementary variation selectors are not digest bytes.
         format!("{}\u{034f}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
-        format!("{}\u{e0100}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
+        format!(
+            "{}\u{e0100}{}",
+            &older.to_hex()[..32],
+            &older.to_hex()[32..]
+        ),
         // Embedded BOM and directional marks cannot acquire historical digest identity.
         format!("{}\u{feff}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
         format!("{}\u{200e}{}", &older.to_hex()[..32], &older.to_hex()[32..]),
@@ -798,5 +913,56 @@ fn non_utf8_history_name_blocks_replay_and_successor_publication() {
         io::ErrorKind::InvalidData
     );
     assert!(!root.join("index/generations/2.manifest").exists());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn mixed_case_historical_digest_cannot_authorize_successor() {
+    let root =
+        std::env::temp_dir().join(format!("formula-history-mixed-case-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let older = store.put(b"older manifest").unwrap();
+    let current = store.put(b"current manifest").unwrap();
+    let successor = store.put(b"successor manifest").unwrap();
+    index.publish(&store, 1, older).unwrap();
+    index.publish(&store, 2, current).unwrap();
+
+    // A one-character case mutation preserves the digest's byte width and
+    // numeric value under permissive hex decoders, but not its canonical identity.
+    let mut alias = older.to_hex();
+    let (position, letter) = alias
+        .char_indices()
+        .find(|(_, c)| matches!(c, 'a'..='f'))
+        .expect("SHA-256 test digest contains a hexadecimal letter");
+    alias.replace_range(
+        position..position + 1,
+        &letter.to_ascii_uppercase().to_string(),
+    );
+    assert_eq!(alias.len(), 64);
+    let history = root.join("index/generations/1.manifest");
+    fs::write(&history, &alias).unwrap();
+    assert_eq!(
+        index.historical_manifest(1).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 3, successor).unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert!(!root.join("index/generations/3.manifest").exists());
+    assert_eq!(
+        fs::read_to_string(root.join("index/active-generation")).unwrap(),
+        format!("2\n{}", current.to_hex())
+    );
     fs::remove_dir_all(root).unwrap();
 }
