@@ -481,6 +481,10 @@ fn historical_digest_unicode_format_aliases_fail_closed() {
             io::ErrorKind::InvalidData
         );
         assert!(!root.join("index/generations/3.manifest").exists());
+        assert_eq!(
+            fs::read_to_string(root.join("index/active-generation")).unwrap(),
+            format!("2\n{}", current.to_hex())
+        );
     }
     fs::remove_dir_all(root).unwrap();
 }
