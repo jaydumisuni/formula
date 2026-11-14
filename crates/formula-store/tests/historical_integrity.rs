@@ -459,8 +459,9 @@ fn historical_digest_unicode_format_aliases_fail_closed() {
         );
         assert!(!root.join("index/generations/3.manifest").exists());
     }
-    // Embedded Unicode controls must not be discarded by digest parsers.
-    for marker in ["\u{200b}", "\u{2060}", "\u{fe0f}"] {
+    // Embedded formatting and ASCII record controls must not split or alias
+    // an immutable historical digest during replay or successor publication.
+    for marker in ["\u{200b}", "\u{2060}", "\u{fe0f}", "\u{000b}", "\u{000c}"] {
         let digest = older.to_hex();
         fs::write(
             &history,
