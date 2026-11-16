@@ -59,6 +59,8 @@ def _parse_sha256_file(path: Path) -> dict[str, str]:
         name = parts[1].lstrip("*").strip()
         if not name:
             raise ProofError(f"missing filename in {path.name}")
+        if name in result:
+            raise ProofError(f"duplicate sha256 filename in {path.name}: {name}")
         result[name] = parts[0]
     return result
 
