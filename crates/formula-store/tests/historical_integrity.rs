@@ -988,7 +988,8 @@ fn historical_digest_prefixed_control_bytes_fail_closed() {
     index.publish(&store, 2, current).unwrap();
 
     let history = root.join("index/generations/1.manifest");
-    for prefix in ["\0", "\r", "\t", "\u{feff}"] {
+    // Every leading control/format alias must fail closed before historical replay.
+    for prefix in ["\0", "\r", "\t", "\u{000b}", "\u{000c}", "\u{feff}"] {
         let malformed = format!("{}{}", prefix, older.to_hex());
         fs::write(&history, &malformed).unwrap();
         assert_eq!(
