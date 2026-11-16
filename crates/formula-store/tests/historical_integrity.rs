@@ -971,3 +971,44 @@ fn mixed_case_historical_digest_cannot_authorize_successor() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn historical_digest_prefixed_control_bytes_fail_closed() {
+    let root = std::env::temp_dir().join(format!(
+        "formula-history-prefixed-control-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let older = store.put(b"older manifest").unwrap();
+    let current = store.put(b"current manifest").unwrap();
+    let successor = store.put(b"successor manifest").unwrap();
+    index.publish(&store, 1, older).unwrap();
+    index.publish(&store, 2, current).unwrap();
+
+    let history = root.join("index/generations/1.manifest");
+    for prefix in ["\0", "\r", "\t", "\u{feff}"] {
+        let malformed = format!("{}{}", prefix, older.to_hex());
+        fs::write(&history, &malformed).unwrap();
+        assert_eq!(
+            index.historical_manifest(1).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.active_generation().unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(
+            index.publish(&store, 3, successor).unwrap_err().kind(),
+            io::ErrorKind::InvalidData
+        );
+        assert_eq!(fs::read_to_string(&history).unwrap(), malformed);
+        assert!(!root.join("index/generations/3.manifest").exists());
+        assert_eq!(
+            fs::read_to_string(root.join("index/active-generation")).unwrap(),
+            format!("2\n{}", current.to_hex())
+        );
+    }
+    fs::remove_dir_all(root).unwrap();
+}
