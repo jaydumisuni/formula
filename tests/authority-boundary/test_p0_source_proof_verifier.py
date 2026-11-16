@@ -98,6 +98,15 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             with self.assertRaisesRegex(mod.ProofError, "malformed sha256 filename marker"):
                 mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_nul_sha256_filename_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            digest_path = evidence / "cargo-metadata.sha256"
+            digest_path.write_bytes(digest_path.read_bytes().replace(b"cargo-metadata.json", b"cargo-metadata.json\x00", 1))
+            with self.assertRaisesRegex(mod.ProofError, "NUL byte in sha256 filename"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
     def test_source_manifest_drift_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

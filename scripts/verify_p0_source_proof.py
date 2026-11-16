@@ -61,6 +61,8 @@ def _parse_sha256_file(path: Path) -> dict[str, str]:
             raise ProofError(f"malformed sha256 filename marker in {path.name}")
         name = raw_name[1:] if raw_name.startswith("*") else raw_name
         name = name.strip()
+        if "\x00" in name:
+            raise ProofError(f"NUL byte in sha256 filename in {path.name}")
         if not name:
             raise ProofError(f"missing filename in {path.name}")
         if name in result:
