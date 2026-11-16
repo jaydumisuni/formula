@@ -56,7 +56,11 @@ def _parse_sha256_file(path: Path) -> dict[str, str]:
         parts = line.split(maxsplit=1)
         if len(parts) != 2 or not HEX64.fullmatch(parts[0]):
             raise ProofError(f"malformed sha256 line in {path.name}: {raw!r}")
-        name = parts[1].lstrip("*").strip()
+        raw_name = parts[1]
+        if raw_name.startswith("**"):
+            raise ProofError(f"malformed sha256 filename marker in {path.name}")
+        name = raw_name[1:] if raw_name.startswith("*") else raw_name
+        name = name.strip()
         if not name:
             raise ProofError(f"missing filename in {path.name}")
         if name in result:

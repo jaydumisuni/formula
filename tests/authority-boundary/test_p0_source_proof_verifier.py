@@ -88,6 +88,16 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             with self.assertRaisesRegex(mod.ProofError, "duplicate sha256 filename"):
                 mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_repeated_binary_filename_marker_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            digest_path = evidence / "cargo-metadata.sha256"
+            original = digest_path.read_text()
+            digest_path.write_text(original.replace("  ", "  **", 1))
+            with self.assertRaisesRegex(mod.ProofError, "malformed sha256 filename marker"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
     def test_source_manifest_drift_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
