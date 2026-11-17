@@ -51,8 +51,8 @@ def _text(path: Path) -> str:
 def _parse_sha256_file(path: Path) -> dict[str, str]:
     result: dict[str, str] = {}
     for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line:
+        line = raw.lstrip()
+        if not line.strip():
             continue
         parts = line.split(maxsplit=1)
         if len(parts) != 2 or not HEX64.fullmatch(parts[0]):
@@ -61,7 +61,8 @@ def _parse_sha256_file(path: Path) -> dict[str, str]:
         if raw_name.startswith("**"):
             raise ProofError(f"malformed sha256 filename marker in {path.name}")
         name = raw_name[1:] if raw_name.startswith("*") else raw_name
-        name = name.strip()
+        if name != name.strip():
+            raise ProofError(f"noncanonical sha256 filename whitespace in {path.name}")
         if "\x00" in name:
             raise ProofError(f"NUL byte in sha256 filename in {path.name}")
         if any(ch in ("\u061c", "\u200e", "\u200f") or "\u202a" <= ch <= "\u202e" or "\u2066" <= ch <= "\u2069" for ch in name):

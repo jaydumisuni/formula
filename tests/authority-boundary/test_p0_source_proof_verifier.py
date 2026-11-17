@@ -150,6 +150,15 @@ class P0SourceProofVerifierTests(unittest.TestCase):
                     with self.assertRaisesRegex(mod.ProofError, "format control in sha256 filename"):
                         mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_trailing_whitespace_sha256_filename_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            digest_path = evidence / "cargo-metadata.sha256"
+            digest_path.write_text(digest_path.read_text().replace("cargo-metadata.json", "cargo-metadata.json ", 1))
+            with self.assertRaisesRegex(mod.ProofError, "noncanonical sha256 filename whitespace"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
     def test_source_manifest_drift_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
