@@ -179,6 +179,11 @@ def check_fixture_identity() -> None:
             fail(f"P0 fixture digest sidecar missing: {fixture.name}")
         if digest_file.is_symlink():
             fail(f"P0 fixture digest sidecar must not be a symlink: {fixture.name}")
+        sidecar_stat = digest_file.lstat()
+        if not stat.S_ISREG(sidecar_stat.st_mode):
+            fail(f"P0 fixture digest sidecar must be a regular file: {fixture.name}")
+        if sidecar_stat.st_nlink != 1:
+            fail(f"P0 fixture digest sidecar must not be hardlinked: {fixture.name}")
         sidecar = digest_file.read_bytes()
         if re.fullmatch(rb"[0-9a-f]{64}  " + re.escape(fixture.name.encode("utf-8")) + rb"\n", sidecar) is None:
             fail(f"P0 fixture digest sidecar is not canonical SHA-256: {fixture.name}")
