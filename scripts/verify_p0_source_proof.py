@@ -7,6 +7,7 @@ import json
 import re
 import subprocess
 import sys
+import unicodedata
 from pathlib import Path
 
 EXPECTED_SCHEMA = "formula.p0-01.source-proof.v1"
@@ -65,6 +66,8 @@ def _parse_sha256_file(path: Path) -> dict[str, str]:
             raise ProofError(f"NUL byte in sha256 filename in {path.name}")
         if any(ch in ("\u061c", "\u200e", "\u200f") or "\u202a" <= ch <= "\u202e" or "\u2066" <= ch <= "\u2069" for ch in name):
             raise ProofError(f"bidirectional control in sha256 filename in {path.name}")
+        if any(unicodedata.category(ch) == "Cf" for ch in name):
+            raise ProofError(f"format control in sha256 filename in {path.name}")
         if not name:
             raise ProofError(f"missing filename in {path.name}")
         if name in result:
