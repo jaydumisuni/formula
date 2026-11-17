@@ -50,6 +50,25 @@ class FixtureIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "canonical SHA-256"):
             p0.check_fixture_identity()
 
+    def test_accepts_canonical_fixture_with_matching_digest(self):
+        import hashlib
+        fixture = self.fixtures / "extra.json"
+        raw = b'{"value":1}\n'
+        fixture.write_bytes(raw)
+        fixture.with_suffix(".sha256").write_text(
+            hashlib.sha256(raw).hexdigest() + "  extra.json\n", encoding="ascii"
+        )
+        p0.check_fixture_identity()
+
+    def test_rejects_canonical_fixture_with_incorrect_digest(self):
+        fixture = self.fixtures / "extra.json"
+        fixture.write_bytes(b'{"value":1}\n')
+        fixture.with_suffix(".sha256").write_text(
+            "0" * 64 + "  extra.json\n", encoding="ascii"
+        )
+        with self.assertRaisesRegex(AssertionError, "identity changed"):
+            p0.check_fixture_identity()
+
     def test_rejects_nested_fixture_without_digest_sidecar(self):
         nested = self.fixtures / "cases"
         nested.mkdir()
