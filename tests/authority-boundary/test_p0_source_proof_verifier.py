@@ -119,6 +119,19 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             with self.assertRaisesRegex(mod.ProofError, "NUL byte in sha256 filename"):
                 mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_ascii_control_sha256_filename_fails_closed(self):
+        for control in ("\x01", "\x07", "\x1b", "\x7f"):
+            with self.subTest(control=hex(ord(control))):
+                with tempfile.TemporaryDirectory() as td:
+                    root = Path(td)
+                    evidence = self.make_bundle(root)
+                    digest_path = evidence / "cargo-metadata.sha256"
+                    digest_path.write_text(digest_path.read_text().replace(
+                        "cargo-metadata.json", "cargo-" + control + "metadata.json", 1
+                    ))
+                    with self.assertRaisesRegex(mod.ProofError, "control byte in sha256 filename"):
+                        mod.verify(root, evidence, require_live_checkout=False)
+
     def test_bidirectional_control_sha256_filename_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

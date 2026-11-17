@@ -65,6 +65,8 @@ def _parse_sha256_file(path: Path) -> dict[str, str]:
             raise ProofError(f"noncanonical sha256 filename whitespace in {path.name}")
         if "\x00" in name:
             raise ProofError(f"NUL byte in sha256 filename in {path.name}")
+        if any(unicodedata.category(ch) == "Cc" for ch in name):
+            raise ProofError(f"control byte in sha256 filename in {path.name}")
         if any(ch in ("\u061c", "\u200e", "\u200f") or "\u202a" <= ch <= "\u202e" or "\u2066" <= ch <= "\u2069" for ch in name):
             raise ProofError(f"bidirectional control in sha256 filename in {path.name}")
         if any(unicodedata.category(ch) == "Cf" for ch in name):
