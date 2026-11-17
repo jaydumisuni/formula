@@ -69,6 +69,32 @@ class FixtureIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "identity changed"):
             p0.check_fixture_identity()
 
+    def test_rejects_symlinked_fixture(self):
+        import hashlib
+        external = self.root / "external.json"
+        raw = b'{"value":1}\n'
+        external.write_bytes(raw)
+        fixture = self.fixtures / "extra.json"
+        fixture.symlink_to(external)
+        fixture.with_suffix(".sha256").write_text(
+            hashlib.sha256(raw).hexdigest() + "  extra.json\n", encoding="ascii"
+        )
+        with self.assertRaisesRegex(AssertionError, "fixture must not be a symlink"):
+            p0.check_fixture_identity()
+
+    def test_rejects_symlinked_digest_sidecar(self):
+        import hashlib
+        fixture = self.fixtures / "extra.json"
+        raw = b'{"value":1}\n'
+        fixture.write_bytes(raw)
+        external = self.root / "external.sha256"
+        external.write_text(
+            hashlib.sha256(raw).hexdigest() + "  extra.json\n", encoding="ascii"
+        )
+        fixture.with_suffix(".sha256").symlink_to(external)
+        with self.assertRaisesRegex(AssertionError, "sidecar must not be a symlink"):
+            p0.check_fixture_identity()
+
     def test_rejects_nested_fixture_without_digest_sidecar(self):
         nested = self.fixtures / "cases"
         nested.mkdir()

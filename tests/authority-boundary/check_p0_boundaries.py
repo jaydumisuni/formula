@@ -157,6 +157,8 @@ def check_fixture_identity() -> None:
     if not fixtures:
         fail("P0 fixture set is empty")
     for fixture in fixtures:
+        if fixture.is_symlink():
+            fail(f"P0 fixture must not be a symlink: {fixture.name}")
         raw = fixture.read_bytes()
         parsed = json.loads(raw)
         canonical = json.dumps(parsed, sort_keys=True, separators=(",", ":")) + "\n"
@@ -165,6 +167,8 @@ def check_fixture_identity() -> None:
         digest_file = fixture.with_suffix(".sha256")
         if not digest_file.is_file():
             fail(f"P0 fixture digest sidecar missing: {fixture.name}")
+        if digest_file.is_symlink():
+            fail(f"P0 fixture digest sidecar must not be a symlink: {fixture.name}")
         sidecar = digest_file.read_bytes()
         if re.fullmatch(rb"[0-9a-f]{64}  " + re.escape(fixture.name.encode("utf-8")) + rb"\n", sidecar) is None:
             fail(f"P0 fixture digest sidecar is not canonical SHA-256: {fixture.name}")
