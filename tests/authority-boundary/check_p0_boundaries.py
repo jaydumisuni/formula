@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import stat
 import sys
 import tomllib
 from pathlib import Path
@@ -164,6 +165,8 @@ def check_fixture_identity() -> None:
     for fixture in fixtures:
         if fixture.is_symlink():
             fail(f"P0 fixture must not be a symlink: {fixture.name}")
+        if not stat.S_ISREG(fixture.lstat().st_mode):
+            fail(f"P0 fixture must be a regular file: {fixture.name}")
         raw = fixture.read_bytes()
         parsed = json.loads(raw)
         canonical = json.dumps(parsed, sort_keys=True, separators=(",", ":")) + "\n"

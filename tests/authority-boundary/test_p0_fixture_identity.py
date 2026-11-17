@@ -116,6 +116,13 @@ class FixtureIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "fixture subdirectory must not be a symlink"):
             p0.check_fixture_identity()
 
+    def test_rejects_fifo_fixture_before_read(self):
+        import os
+        fifo = self.fixtures / "pipe.json"
+        os.mkfifo(fifo)
+        with self.assertRaisesRegex(AssertionError, "fixture must be a regular file"):
+            p0.check_fixture_identity()
+
     def test_rejects_nested_fixture_without_digest_sidecar(self):
         nested = self.fixtures / "cases"
         nested.mkdir()
