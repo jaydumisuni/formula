@@ -79,7 +79,7 @@ class FixtureIdentityTests(unittest.TestCase):
         fixture.with_suffix(".sha256").write_text(
             hashlib.sha256(raw).hexdigest() + "  extra.json\n", encoding="ascii"
         )
-        with self.assertRaisesRegex(AssertionError, "fixture must not be a symlink"):
+        with self.assertRaisesRegex(AssertionError, "fixture tree must not contain symlinks"):
             p0.check_fixture_identity()
 
     def test_rejects_symlinked_digest_sidecar(self):
@@ -92,7 +92,7 @@ class FixtureIdentityTests(unittest.TestCase):
             hashlib.sha256(raw).hexdigest() + "  extra.json\n", encoding="ascii"
         )
         fixture.with_suffix(".sha256").symlink_to(external)
-        with self.assertRaisesRegex(AssertionError, "sidecar must not be a symlink"):
+        with self.assertRaisesRegex(AssertionError, "fixture tree must not contain symlinks"):
             p0.check_fixture_identity()
 
     def test_rejects_symlinked_fixture_root_directory(self):
@@ -113,7 +113,14 @@ class FixtureIdentityTests(unittest.TestCase):
         real = self.root / "external-cases"
         real.mkdir()
         (self.fixtures / "cases").symlink_to(real, target_is_directory=True)
-        with self.assertRaisesRegex(AssertionError, "fixture subdirectory must not be a symlink"):
+        with self.assertRaisesRegex(AssertionError, "fixture tree must not contain symlinks"):
+            p0.check_fixture_identity()
+
+    def test_rejects_unrelated_symlink_in_fixture_tree(self):
+        external = self.root / "outside.txt"
+        external.write_text("external", encoding="utf-8")
+        (self.fixtures / "notes.txt").symlink_to(external)
+        with self.assertRaisesRegex(AssertionError, "fixture tree must not contain symlinks"):
             p0.check_fixture_identity()
 
     def test_rejects_fifo_fixture_before_read(self):

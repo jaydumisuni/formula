@@ -157,8 +157,8 @@ def check_fixture_identity() -> None:
     if fixture_dir.is_symlink():
         fail("P0 fixture directory must not be a symlink")
     for directory in fixture_dir.rglob("*"):
-        if directory.is_symlink() and directory.is_dir():
-            fail(f"P0 fixture subdirectory must not be a symlink: {directory.name}")
+        if directory.is_symlink():
+            fail(f"P0 fixture tree must not contain symlinks: {directory.name}")
     fixtures = sorted(fixture_dir.rglob("*.json"))
     if not fixtures:
         fail("P0 fixture set is empty")
