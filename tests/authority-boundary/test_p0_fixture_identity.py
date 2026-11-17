@@ -123,6 +123,20 @@ class FixtureIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "fixture must be a regular file"):
             p0.check_fixture_identity()
 
+    def test_rejects_hardlinked_fixture_even_with_matching_digest(self):
+        import hashlib
+        import os
+        external = self.root / "external.json"
+        raw = b'{"value":1}\n'
+        external.write_bytes(raw)
+        fixture = self.fixtures / "extra.json"
+        os.link(external, fixture)
+        fixture.with_suffix(".sha256").write_text(
+            hashlib.sha256(raw).hexdigest() + "  extra.json\n", encoding="ascii"
+        )
+        with self.assertRaisesRegex(AssertionError, "fixture must not be hardlinked"):
+            p0.check_fixture_identity()
+
     def test_rejects_nested_fixture_without_digest_sidecar(self):
         nested = self.fixtures / "cases"
         nested.mkdir()
