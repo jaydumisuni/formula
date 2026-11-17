@@ -28,6 +28,28 @@ class FixtureIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "digest"):
             p0.check_fixture_identity()
 
+    def test_rejects_digest_sidecar_with_extra_fields(self):
+        import hashlib
+        fixture = self.fixtures / "extra.json"
+        raw = b'{"value":1}\n'
+        fixture.write_bytes(raw)
+        fixture.with_suffix(".sha256").write_text(
+            hashlib.sha256(raw).hexdigest() + "  wrong.json\n", encoding="ascii"
+        )
+        with self.assertRaisesRegex(AssertionError, "canonical SHA-256"):
+            p0.check_fixture_identity()
+
+    def test_rejects_uppercase_digest_sidecar(self):
+        import hashlib
+        fixture = self.fixtures / "extra.json"
+        raw = b'{"value":1}\n'
+        fixture.write_bytes(raw)
+        fixture.with_suffix(".sha256").write_text(
+            hashlib.sha256(raw).hexdigest().upper() + "  extra.json\n", encoding="ascii"
+        )
+        with self.assertRaisesRegex(AssertionError, "canonical SHA-256"):
+            p0.check_fixture_identity()
+
     def test_rejects_nested_fixture_without_digest_sidecar(self):
         nested = self.fixtures / "cases"
         nested.mkdir()

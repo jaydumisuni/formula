@@ -165,7 +165,10 @@ def check_fixture_identity() -> None:
         digest_file = fixture.with_suffix(".sha256")
         if not digest_file.is_file():
             fail(f"P0 fixture digest sidecar missing: {fixture.name}")
-        expected = digest_file.read_text(encoding="ascii").strip().split()[0]
+        sidecar = digest_file.read_bytes()
+        if re.fullmatch(rb"[0-9a-f]{64}  " + re.escape(fixture.name.encode("utf-8")) + rb"\n", sidecar) is None:
+            fail(f"P0 fixture digest sidecar is not canonical SHA-256: {fixture.name}")
+        expected = sidecar[:64].decode("ascii")
         actual = hashlib.sha256(raw).hexdigest()
         if actual != expected:
             fail(f"P0 fixture identity changed for {fixture.name}: expected {expected}, got {actual}")
