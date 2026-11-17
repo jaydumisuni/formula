@@ -63,7 +63,7 @@ def _parse_sha256_file(path: Path) -> dict[str, str]:
         name = name.strip()
         if "\x00" in name:
             raise ProofError(f"NUL byte in sha256 filename in {path.name}")
-        if any("\u202a" <= ch <= "\u202e" or "\u2066" <= ch <= "\u2069" for ch in name):
+        if any(ch in ("\u061c", "\u200e", "\u200f") or "\u202a" <= ch <= "\u202e" or "\u2066" <= ch <= "\u2069" for ch in name):
             raise ProofError(f"bidirectional control in sha256 filename in {path.name}")
         if not name:
             raise ProofError(f"missing filename in {path.name}")
