@@ -133,13 +133,13 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
         raise ProofError("cargo-version.txt is not Cargo 1.98.0")
 
     metadata_digest_lines = _parse_sha256_file(evidence / "cargo-metadata.sha256")
-    metadata_expected = None
-    for name, digest in metadata_digest_lines.items():
-        if Path(name).name == "cargo-metadata.json":
-            metadata_expected = digest
-            break
-    if metadata_expected is None:
-        raise ProofError("cargo-metadata.sha256 does not bind cargo-metadata.json")
+    metadata_matches = [
+        digest for name, digest in metadata_digest_lines.items()
+        if Path(name).name == "cargo-metadata.json"
+    ]
+    if len(metadata_matches) != 1:
+        raise ProofError("cargo-metadata.sha256 must bind exactly one cargo-metadata.json")
+    metadata_expected = metadata_matches[0]
     if _sha256(evidence / "cargo-metadata.json") != metadata_expected:
         raise ProofError("cargo-metadata.json digest mismatch")
 
