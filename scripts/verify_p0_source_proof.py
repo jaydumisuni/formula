@@ -50,7 +50,10 @@ def _text(path: Path) -> str:
 
 def _parse_sha256_file(path: Path) -> dict[str, str]:
     result: dict[str, str] = {}
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    content = path.read_text(encoding="utf-8")
+    if any(ch in content for ch in ("\u0085", "\u2028", "\u2029")):
+        raise ProofError(f"noncanonical line separator in {path.name}")
+    for raw in content.splitlines():
         line = raw.lstrip()
         if not line.strip():
             continue

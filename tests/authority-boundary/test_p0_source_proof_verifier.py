@@ -163,6 +163,19 @@ class P0SourceProofVerifierTests(unittest.TestCase):
                     with self.assertRaisesRegex(mod.ProofError, "format control in sha256 filename"):
                         mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_unicode_line_separators_sha256_filename_fail_closed(self):
+        for separator in ("\u0085", "\u2028", "\u2029"):
+            with self.subTest(separator=hex(ord(separator))):
+                with tempfile.TemporaryDirectory() as td:
+                    root = Path(td)
+                    evidence = self.make_bundle(root)
+                    digest_path = evidence / "cargo-metadata.sha256"
+                    digest_path.write_text(digest_path.read_text().replace(
+                        "cargo-metadata.json", "cargo-" + separator + "metadata.json", 1
+                    ))
+                    with self.assertRaisesRegex(mod.ProofError, "noncanonical line separator"):
+                        mod.verify(root, evidence, require_live_checkout=False)
+
     def test_trailing_whitespace_sha256_filename_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
