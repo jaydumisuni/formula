@@ -153,6 +153,11 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
 
 def check_fixture_identity() -> None:
     fixture_dir = ROOT / "tests/authority-boundary/fixtures"
+    if fixture_dir.is_symlink():
+        fail("P0 fixture directory must not be a symlink")
+    for directory in fixture_dir.rglob("*"):
+        if directory.is_symlink() and directory.is_dir():
+            fail(f"P0 fixture subdirectory must not be a symlink: {directory.name}")
     fixtures = sorted(fixture_dir.rglob("*.json"))
     if not fixtures:
         fail("P0 fixture set is empty")
