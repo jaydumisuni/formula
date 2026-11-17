@@ -158,6 +158,21 @@ class FixtureIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "sidecar must not be hardlinked"):
             p0.check_fixture_identity()
 
+    def test_rejects_nested_hardlinked_digest_sidecar(self):
+        import hashlib
+        import os
+        nested = self.fixtures / "cases"
+        nested.mkdir()
+        raw = b'{"value":1}\n'
+        (nested / "extra.json").write_bytes(raw)
+        external = self.root / "external.sha256"
+        external.write_text(
+            hashlib.sha256(raw).hexdigest() + "  extra.json\n", encoding="ascii"
+        )
+        os.link(external, nested / "extra.sha256")
+        with self.assertRaisesRegex(AssertionError, "sidecar must not be hardlinked"):
+            p0.check_fixture_identity()
+
     def test_rejects_nested_fixture_without_digest_sidecar(self):
         nested = self.fixtures / "cases"
         nested.mkdir()
