@@ -19,7 +19,7 @@ def sha(data: bytes) -> str:
 
 
 class P0SourceProofVerifierTests(unittest.TestCase):
-    def make_bundle(self, root: Path) -> Path:
+    def make_bundle(self, root: Path, *, branch: str = mod.EXPECTED_BRANCH) -> Path:
         manifests = {
             "rust-toolchain.toml": b'[toolchain]\nchannel = "1.98.0"\n',
             "Cargo.toml": b"[workspace]\nresolver = \"2\"\n",
@@ -38,7 +38,7 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             "schema": mod.EXPECTED_SCHEMA,
             "status": mod.EXPECTED_STATUS,
             "git_head": head,
-            "git_branch": mod.EXPECTED_BRANCH,
+            "git_branch": branch,
             "frozen_architecture": mod.EXPECTED_ARCH,
             "worktree_state": "clean",
             "rust_toolchain": mod.EXPECTED_TOOLCHAIN,
@@ -46,7 +46,7 @@ class P0SourceProofVerifierTests(unittest.TestCase):
         }
         (evidence / "record.json").write_text(json.dumps(record, sort_keys=True) + "\n")
         (evidence / "git-head.txt").write_text(head + "\n")
-        (evidence / "git-branch.txt").write_text(mod.EXPECTED_BRANCH + "\n")
+        (evidence / "git-branch.txt").write_text(branch + "\n")
         (evidence / "frozen-architecture.txt").write_text(mod.EXPECTED_ARCH + "\n")
         (evidence / "worktree-state.txt").write_text("clean\n")
         (evidence / "rustc-version.txt").write_text("rustc 1.98.0 (test)\nrelease: 1.98.0\n")
@@ -70,6 +70,22 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             result = mod.verify(root, evidence, require_live_checkout=False)
             self.assertEqual(result["status"], mod.EXPECTED_STATUS)
             self.assertEqual(result["git_head"], "a" * 40)
+
+    def test_current_construction_branch_bundle_verifies_without_authority(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            branch = "c3/p1-continuation-20261006"
+            evidence = self.make_bundle(root, branch=branch)
+            result = mod.verify(root, evidence, require_live_checkout=False)
+            self.assertEqual(result["git_branch"], branch)
+            self.assertEqual(result["status"], mod.EXPECTED_STATUS)
+
+    def test_unadmitted_branch_bundle_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root, branch="untrusted/p0")
+            with self.assertRaisesRegex(mod.ProofError, "git_branch not admitted"):
+                mod.verify(root, evidence, require_live_checkout=False)
 
     def test_tampered_evidence_file_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:

@@ -12,6 +12,7 @@ from pathlib import Path
 
 EXPECTED_SCHEMA = "formula.p0-01.source-proof.v1"
 EXPECTED_STATUS = "CANDIDATE_HOST_EVIDENCE_NOT_AUTHORITY"
+ALLOWED_BRANCHES = frozenset(("impl/p0-first-light", "c3/p1-continuation-20261006"))
 EXPECTED_BRANCH = "impl/p0-first-light"
 EXPECTED_ARCH = "50c0beb021d8bf02d59a177049b9c2cf1783b26a"
 EXPECTED_TOOLCHAIN = "1.98.0"
@@ -107,7 +108,6 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
     expected_record = {
         "schema": EXPECTED_SCHEMA,
         "status": EXPECTED_STATUS,
-        "git_branch": EXPECTED_BRANCH,
         "frozen_architecture": EXPECTED_ARCH,
         "worktree_state": "clean",
         "rust_toolchain": EXPECTED_TOOLCHAIN,
@@ -116,13 +116,17 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
         if record.get(key) != value:
             raise ProofError(f"record {key} mismatch: expected {value!r}, found {record.get(key)!r}")
 
+    branch = record.get("git_branch")
+    if not isinstance(branch, str) or branch not in ALLOWED_BRANCHES:
+        raise ProofError(f"record git_branch not admitted: {branch!r}")
+
     head = str(record.get("git_head") or "")
     if not HEX40.fullmatch(head):
         raise ProofError("record git_head must be a 40-character lowercase Git SHA")
 
     text_bindings = {
         "git-head.txt": head,
-        "git-branch.txt": EXPECTED_BRANCH,
+        "git-branch.txt": branch,
         "frozen-architecture.txt": EXPECTED_ARCH,
         "worktree-state.txt": "clean",
     }
@@ -179,8 +183,8 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
         live_dirty = _git("status", "--porcelain", cwd=root)
         if live_head != head:
             raise ProofError(f"live HEAD mismatch: evidence={head}, checkout={live_head}")
-        if live_branch != EXPECTED_BRANCH:
-            raise ProofError(f"live branch mismatch: expected {EXPECTED_BRANCH}, found {live_branch or 'DETACHED'}")
+        if live_branch != branch:
+            raise ProofError(f"live branch mismatch: expected {branch}, found {live_branch or 'DETACHED'}")
         # The evidence directory itself may be ignored/untracked; any tracked/source change still fails closed.
         if live_dirty:
             raise ProofError("live worktree is not clean")
@@ -188,7 +192,7 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
     return {
         "status": EXPECTED_STATUS,
         "git_head": head,
-        "git_branch": EXPECTED_BRANCH,
+        "git_branch": branch,
         "frozen_architecture": EXPECTED_ARCH,
         "rust_toolchain": EXPECTED_TOOLCHAIN,
     }
