@@ -99,6 +99,10 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
     missing = sorted(name for name in REQUIRED_FILES if not (evidence / name).is_file())
     if missing:
         raise ProofError("missing evidence files: " + ", ".join(missing))
+    # Evidence must be a self-contained bundle, not links to mutable external files.
+    linked = sorted(name for name in REQUIRED_FILES if (evidence / name).is_symlink())
+    if linked:
+        raise ProofError("symlink evidence files refused: " + ", ".join(linked))
 
     try:
         record = json.loads((evidence / "record.json").read_text(encoding="utf-8"))
