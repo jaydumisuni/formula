@@ -99,5 +99,14 @@ JSON
     > evidence-files.sha256
 )
 
+# Revalidate checkout identity after the potentially long cargo metadata read.
+# Never publish evidence that claims a clean, pinned HEAD if inputs drifted.
+[ "$(git rev-parse HEAD)" = "$HEAD" ] || fail "HEAD changed during evidence capture"
+[ "$(git branch --show-current)" = "$BRANCH" ] || fail "branch changed during evidence capture"
+[ -z "$(git status --porcelain)" ] || fail "worktree changed during evidence capture"
+for path in rust-toolchain.toml Cargo.toml Cargo.lock docs/implementation/P0_SOURCE_MANIFEST.md; do
+  sha256sum "$path"
+done | cmp -s - "$STAGE/manifest-sha256.txt" || fail "source manifest changed during evidence capture"
+
 mv "$STAGE" "$OUT_DIR"
 printf 'Captured candidate P0-01 host evidence for %s at %s\n' "$HEAD" "$OUT_DIR"
