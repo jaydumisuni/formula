@@ -1,9 +1,10 @@
+mod fixture;
 use formula_store::{BlobStore, GenerationIndex};
 use std::{fs, io};
 
 #[test]
 fn corrupt_older_history_cannot_be_hidden_by_valid_active_generation() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-older-corrupt-{}",
         std::process::id()
     ));
@@ -38,7 +39,7 @@ fn corrupt_older_history_cannot_be_hidden_by_valid_active_generation() {
 
 #[test]
 fn missing_older_manifest_blob_blocks_new_generation_publication() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-missing-older-blob-{}",
         std::process::id()
     ));
@@ -65,7 +66,7 @@ fn missing_older_manifest_blob_blocks_new_generation_publication() {
 
 #[test]
 fn verified_replay_rejects_corrupt_older_manifest_blob() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-verified-replay-corrupt-older-{}",
         std::process::id()
     ));
@@ -92,7 +93,7 @@ fn verified_replay_rejects_corrupt_older_manifest_blob() {
 
 #[test]
 fn verified_replay_rejects_missing_older_manifest_blob() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-verified-replay-missing-older-{}",
         std::process::id()
     ));
@@ -115,7 +116,7 @@ fn verified_replay_rejects_missing_older_manifest_blob() {
 
 #[test]
 fn verified_replay_rejects_missing_active_manifest_blob() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-verified-replay-missing-active-{}",
         std::process::id()
     ));
@@ -134,7 +135,8 @@ fn verified_replay_rejects_missing_active_manifest_blob() {
 
 #[test]
 fn noncanonical_history_alias_cannot_be_replayed_or_published() {
-    let root = std::env::temp_dir().join(format!("formula-history-alias-{}", std::process::id()));
+    let root =
+        fixture::private_temp_dir().join(format!("formula-history-alias-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
@@ -163,7 +165,7 @@ fn noncanonical_history_alias_cannot_be_replayed_or_published() {
 
 #[test]
 fn invisible_history_name_alias_blocks_successor_publication() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-history-invisible-alias-{}",
         std::process::id()
     ));
@@ -231,7 +233,7 @@ fn invisible_history_name_alias_blocks_successor_publication() {
 
 #[test]
 fn uppercase_historical_digest_cannot_replay_or_authorize_successor() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-history-uppercase-digest-{}",
         std::process::id()
     ));
@@ -273,7 +275,7 @@ fn uppercase_historical_digest_cannot_replay_or_authorize_successor() {
 
 #[test]
 fn historical_digest_with_trailing_newline_cannot_authorize_replay_or_successor() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-history-trailing-newline-{}",
         std::process::id()
     ));
@@ -312,7 +314,7 @@ fn historical_digest_with_trailing_newline_cannot_authorize_replay_or_successor(
 
 #[test]
 fn historical_digest_with_trailing_space_cannot_authorize_replay_or_successor() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-history-trailing-space-{}",
         std::process::id()
     ));
@@ -351,7 +353,7 @@ fn historical_digest_with_trailing_space_cannot_authorize_replay_or_successor() 
 
 #[test]
 fn historical_digest_control_byte_aliases_cannot_authorize_successor() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-history-control-byte-{}",
         std::process::id()
     ));
@@ -390,7 +392,7 @@ fn historical_digest_control_byte_aliases_cannot_authorize_successor() {
 
 #[test]
 fn historical_digest_unicode_format_aliases_fail_closed() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-history-format-alias-{}",
         std::process::id()
     ));
@@ -491,7 +493,8 @@ fn historical_digest_unicode_format_aliases_fail_closed() {
 
 #[test]
 fn noncanonical_active_pointer_spellings_fail_closed() {
-    let root = std::env::temp_dir().join(format!("formula-active-spelling-{}", std::process::id()));
+    let root =
+        fixture::private_temp_dir().join(format!("formula-active-spelling-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
@@ -709,8 +712,8 @@ fn noncanonical_active_pointer_spellings_fail_closed() {
 
 #[test]
 fn oversized_historical_leaf_cannot_authorize_replay_or_successor() {
-    let root =
-        std::env::temp_dir().join(format!("formula-history-oversized-{}", std::process::id()));
+    let root = fixture::private_temp_dir()
+        .join(format!("formula-history-oversized-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
@@ -791,7 +794,7 @@ fn publication_waits_for_exclusive_index_directory_lock() {
     use std::thread;
     use std::time::Duration;
 
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-publish-lock-{}",
         std::process::id()
     ));
@@ -843,7 +846,7 @@ fn concurrent_successor_publishers_preserve_monotonic_authority() {
     use std::sync::{Arc, Barrier};
     use std::thread;
 
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-concurrent-successors-{}",
         std::process::id()
     ));
@@ -892,7 +895,8 @@ fn concurrent_successor_publishers_preserve_monotonic_authority() {
 #[test]
 fn non_utf8_history_name_blocks_replay_and_successor_publication() {
     use std::os::unix::ffi::OsStringExt;
-    let root = std::env::temp_dir().join(format!("formula-history-nonutf8-{}", std::process::id()));
+    let root =
+        fixture::private_temp_dir().join(format!("formula-history-nonutf8-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
@@ -923,8 +927,8 @@ fn non_utf8_history_name_blocks_replay_and_successor_publication() {
 
 #[test]
 fn mixed_case_historical_digest_cannot_authorize_successor() {
-    let root =
-        std::env::temp_dir().join(format!("formula-history-mixed-case-{}", std::process::id()));
+    let root = fixture::private_temp_dir()
+        .join(format!("formula-history-mixed-case-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
@@ -974,7 +978,7 @@ fn mixed_case_historical_digest_cannot_authorize_successor() {
 
 #[test]
 fn historical_digest_prefixed_control_bytes_fail_closed() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-history-prefixed-control-{}",
         std::process::id()
     ));

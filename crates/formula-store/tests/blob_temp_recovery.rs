@@ -1,9 +1,11 @@
+mod fixture;
 use formula_store::BlobStore;
 use std::fs;
 
 #[test]
 fn stale_blob_temp_does_not_block_new_immutable_put() {
-    let root = std::env::temp_dir().join(format!("formula-stale-blob-temp-{}", std::process::id()));
+    let root =
+        fixture::private_temp_dir().join(format!("formula-stale-blob-temp-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let bytes = b"immutable after interrupted temp write";
@@ -26,7 +28,8 @@ fn stale_blob_temp_does_not_block_new_immutable_put() {
 }
 #[test]
 fn exhausted_blob_temp_slots_fail_closed_without_overwriting_prior_writers() {
-    let root = std::env::temp_dir().join(format!("formula-exhausted-temp-{}", std::process::id()));
+    let root =
+        fixture::private_temp_dir().join(format!("formula-exhausted-temp-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let bytes = b"fresh immutable payload";

@@ -1,3 +1,4 @@
+mod fixture;
 use formula_core::ArtifactDigest;
 use formula_store::BlobStore;
 use std::fs;
@@ -10,8 +11,8 @@ fn competing_destination_is_never_overwritten_by_blob_publication() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root =
-        std::env::temp_dir().join(format!("formula-blob-race-{}-{nonce}", std::process::id()));
+    let root = fixture::private_temp_dir()
+        .join(format!("formula-blob-race-{}-{nonce}", std::process::id()));
     let store_root = root.join("store");
     let bytes = vec![0x5a; 32 * 1024 * 1024];
     let digest = ArtifactDigest::sha256(&bytes);
@@ -55,7 +56,7 @@ fn simultaneous_identical_writers_reuse_one_verified_immutable_blob() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-blob-identical-race-{}-{nonce}",
         std::process::id()
     ));

@@ -939,6 +939,15 @@ mod tests {
     use super::*;
 
     fn test_root(name: &str) -> PathBuf {
+        // The production store rejects group-writable authority ancestors.
+        // Make fixture creation independent of the invoking service's umask;
+        // explicit peer-writable negative tests still set their own modes.
+        #[cfg(unix)]
+        static PRIVATE_FIXTURE_UMASK: std::sync::Once = std::sync::Once::new();
+        #[cfg(unix)]
+        PRIVATE_FIXTURE_UMASK.call_once(|| unsafe {
+            libc::umask(0o077);
+        });
         std::env::temp_dir().join(format!("formula-store-{name}-{}", std::process::id()))
     }
 

@@ -1,5 +1,6 @@
 #![cfg(target_os = "linux")]
 
+mod fixture;
 use formula_core::ArtifactDigest;
 use formula_store::BlobStore;
 use std::ffi::CString;
@@ -15,8 +16,8 @@ fn fifo_blob_leaf_is_rejected_without_blocking_or_replacement() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root =
-        std::env::temp_dir().join(format!("formula-fifo-blob-{}-{nonce}", std::process::id()));
+    let root = fixture::private_temp_dir()
+        .join(format!("formula-fifo-blob-{}-{nonce}", std::process::id()));
     let store = BlobStore::new(&root);
     let bytes = b"immutable artifact cannot be a fifo";
     let digest = ArtifactDigest::sha256(bytes);
@@ -44,7 +45,7 @@ fn directory_blob_leaf_is_rejected_without_replacement() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-directory-blob-{}-{nonce}",
         std::process::id()
     ));

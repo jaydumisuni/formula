@@ -1,9 +1,10 @@
+mod fixture;
 use formula_store::{BlobStore, GenerationIndex};
 use std::{fs, io};
 
 #[test]
 fn stale_pointer_temp_does_not_block_atomic_publication() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-atomicity-{}",
         std::process::id()
     ));
@@ -31,7 +32,8 @@ fn stale_pointer_temp_does_not_block_atomic_publication() {
 
 #[test]
 fn corrupt_historical_manifest_cannot_activate_new_generation() {
-    let root = std::env::temp_dir().join(format!("formula-corrupt-history-{}", std::process::id()));
+    let root =
+        fixture::private_temp_dir().join(format!("formula-corrupt-history-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
@@ -60,7 +62,7 @@ fn corrupt_historical_manifest_cannot_activate_new_generation() {
 
 #[test]
 fn older_generation_cannot_replace_active_generation() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-rollback-{}",
         std::process::id()
     ));
@@ -86,7 +88,7 @@ fn older_generation_cannot_replace_active_generation() {
 
 #[test]
 fn corrupt_active_pointer_blocks_new_publication() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-corrupt-active-{}",
         std::process::id()
     ));
@@ -111,7 +113,7 @@ fn corrupt_active_pointer_blocks_new_publication() {
 fn symlinked_active_pointer_cannot_publish_or_replay() {
     use std::os::unix::fs::symlink;
 
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-symlink-active-{}",
         std::process::id()
     ));
@@ -145,7 +147,8 @@ fn symlinked_active_pointer_cannot_publish_or_replay() {
 fn symlinked_history_entry_rejected_for_replay_and_publication() {
     use std::os::unix::fs::symlink;
 
-    let root = std::env::temp_dir().join(format!("formula-history-symlink-{}", std::process::id()));
+    let root =
+        fixture::private_temp_dir().join(format!("formula-history-symlink-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
@@ -176,7 +179,8 @@ fn symlinked_history_entry_rejected_for_replay_and_publication() {
 
 #[test]
 fn nonregular_history_entry_rejected() {
-    let root = std::env::temp_dir().join(format!("formula-history-dir-{}", std::process::id()));
+    let root =
+        fixture::private_temp_dir().join(format!("formula-history-dir-{}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     let store = BlobStore::new(root.join("store"));
     let index = GenerationIndex::new(root.join("index"));
@@ -205,7 +209,7 @@ fn nonregular_history_entry_rejected() {
 fn symlinked_generation_index_root_cannot_publish_or_replay() {
     use std::os::unix::fs::symlink;
 
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-symlink-root-{}",
         std::process::id()
     ));
@@ -248,7 +252,7 @@ fn symlinked_generation_index_root_cannot_publish_or_replay() {
 fn symlinked_history_directory_cannot_publish_or_replay() {
     use std::os::unix::fs::symlink;
 
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-symlink-directory-{}",
         std::process::id()
     ));
@@ -287,7 +291,7 @@ fn symlinked_history_directory_cannot_publish_or_replay() {
 #[cfg(unix)]
 #[test]
 fn hardlinked_history_entry_cannot_publish_or_replay() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-hardlink-history-{}",
         std::process::id()
     ));
@@ -322,7 +326,7 @@ fn hardlinked_history_entry_cannot_publish_or_replay() {
 #[cfg(unix)]
 #[test]
 fn hardlinked_active_pointer_cannot_publish_or_replay() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-hardlink-active-{}",
         std::process::id()
     ));
@@ -355,7 +359,7 @@ fn hardlinked_active_pointer_cannot_publish_or_replay() {
 
 #[test]
 fn stale_history_temp_does_not_publish_partial_digest() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-history-temp-{}",
         std::process::id()
     ));
@@ -381,7 +385,7 @@ fn stale_history_temp_does_not_publish_partial_digest() {
 
 #[test]
 fn corrupt_future_history_cannot_mask_stale_active_generation() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-future-corrupt-{}",
         std::process::id()
     ));
@@ -411,7 +415,7 @@ fn concurrent_identical_history_publication_preserves_one_binding() {
     use std::sync::{Arc, Barrier};
     use std::thread;
 
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-history-concurrent-{}",
         std::process::id()
     ));
@@ -450,7 +454,7 @@ fn concurrent_conflicting_history_publication_cannot_rebind_generation() {
     use std::sync::{Arc, Barrier};
     use std::thread;
 
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-history-conflict-{}",
         std::process::id()
     ));
@@ -500,7 +504,7 @@ fn concurrent_conflicting_history_publication_cannot_rebind_generation() {
 
 #[test]
 fn oversized_history_leaf_blocks_public_replay_and_publication() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-oversized-history-{}",
         std::process::id()
     ));
@@ -534,7 +538,7 @@ fn oversized_history_leaf_blocks_public_replay_and_publication() {
 
 #[test]
 fn oversized_active_pointer_blocks_public_replay_and_publication() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-oversized-active-{}",
         std::process::id()
     ));
@@ -564,7 +568,7 @@ fn oversized_active_pointer_blocks_public_replay_and_publication() {
 
 #[test]
 fn directory_substitution_at_active_pointer_is_rejected() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-directory-active-{}",
         std::process::id()
     ));
@@ -602,7 +606,7 @@ fn directory_substitution_at_active_pointer_is_rejected() {
 
 #[test]
 fn directory_substitution_at_history_leaf_blocks_replay_and_recovers() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-directory-history-{}",
         std::process::id()
     ));
@@ -643,7 +647,7 @@ fn directory_substitution_at_history_leaf_blocks_replay_and_recovers() {
 
 #[test]
 fn noncanonical_active_pointer_framing_blocks_replay_and_publication() {
-    let root = std::env::temp_dir().join(format!(
+    let root = fixture::private_temp_dir().join(format!(
         "formula-generation-active-framing-{}",
         std::process::id()
     ));

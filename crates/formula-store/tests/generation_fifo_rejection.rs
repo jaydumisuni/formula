@@ -1,5 +1,6 @@
 #![cfg(target_os = "linux")]
 
+mod fixture;
 use formula_store::{BlobStore, GenerationIndex};
 use std::ffi::CString;
 use std::fs;
@@ -13,7 +14,7 @@ fn test_root(label: &str) -> std::path::PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    std::env::temp_dir().join(format!(
+    fixture::private_temp_dir().join(format!(
         "formula-generation-{label}-{}-{nonce}",
         std::process::id()
     ))
