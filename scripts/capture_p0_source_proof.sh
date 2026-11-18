@@ -2,7 +2,8 @@
 set -euo pipefail
 
 EXPECTED_ARCH="50c0beb021d8bf02d59a177049b9c2cf1783b26a"
-EXPECTED_BRANCH="impl/p0-first-light"
+# Both project-owned implementation branches are explicitly admitted; arbitrary branches are not.
+ALLOWED_BRANCHES=("impl/p0-first-light" "c3/p1-continuation-20261006")
 OUT_DIR="${1:-.formula/evidence/p0-01}"
 
 fail() {
@@ -22,7 +23,14 @@ git rev-parse --verify "$EXPECTED_ARCH^{commit}" >/dev/null 2>&1 || fail "frozen
 git merge-base --is-ancestor "$EXPECTED_ARCH" HEAD || fail "captured HEAD does not descend from frozen architecture checkpoint $EXPECTED_ARCH"
 
 BRANCH="$(git branch --show-current)"
-[ "$BRANCH" = "$EXPECTED_BRANCH" ] || fail "expected branch $EXPECTED_BRANCH, found ${BRANCH:-DETACHED}"
+BRANCH_ALLOWED=false
+for expected in "${ALLOWED_BRANCHES[@]}"; do
+  if [ "$BRANCH" = "$expected" ]; then
+    BRANCH_ALLOWED=true
+    break
+  fi
+done
+[ "$BRANCH_ALLOWED" = true ] || fail "branch not admitted for P0-01 capture: ${BRANCH:-DETACHED}"
 
 [ -z "$(git status --porcelain)" ] || fail "worktree is not clean"
 
