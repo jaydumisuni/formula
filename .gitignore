@@ -1,2 +1,5 @@
 /target/
 /.formula/
+# Generated Python bytecode from authority-boundary verification.
+__pycache__/
+*.py[cod]
