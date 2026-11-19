@@ -53,7 +53,9 @@ def dependency_entries(manifest: Path) -> list[tuple[str, Path | None]]:
 
     def resolved_name(alias: str, spec: object) -> str:
         if isinstance(spec, dict) and spec.get("workspace") is True:
-            inherited = workspace_dependencies.get(alias)
+            if alias not in workspace_dependencies:
+                fail(f"workspace dependency missing: {alias}")
+            inherited = workspace_dependencies[alias]
             if isinstance(inherited, dict):
                 return inherited.get("package", alias)
             return alias

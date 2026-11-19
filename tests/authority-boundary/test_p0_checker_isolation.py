@@ -48,6 +48,14 @@ class CheckerIsolationTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "formula-engine"):
             p0.check_checker_isolation()
 
+    def test_rejects_missing_workspace_inherited_dependency(self):
+        self.manifest.write_text(
+            '[dependencies]\nmissing-inherited = { workspace = true }\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "workspace dependency missing: missing-inherited"):
+            p0.check_checker_isolation()
+
     def test_rejects_missing_local_dependency_manifest(self):
         self.manifest.write_text(
             '[dependencies]\nmissing-helper = { path = "../missing-helper" }\n',
