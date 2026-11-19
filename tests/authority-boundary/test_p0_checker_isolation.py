@@ -56,6 +56,15 @@ class CheckerIsolationTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "local dependency manifest missing"):
             p0.check_checker_isolation()
 
+    def test_rejects_local_dependency_outside_workspace(self):
+        outside = self.root.parent / "outside-formula-helper"
+        self.manifest.write_text(
+            f'[dependencies]\nhelper = {{ path = "{outside}" }}\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "local dependency escapes workspace"):
+            p0.check_checker_isolation()
+
     def test_rejects_target_specific_formula_engine_dependency(self):
         self.manifest.write_text(
             "[target.\"cfg(unix)\".dependencies]\nformula-engine = { path = \"../formula-engine\" }\n",
