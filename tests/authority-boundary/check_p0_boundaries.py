@@ -109,7 +109,9 @@ def check_workspace_shape() -> None:
 
 
 def check_checker_isolation() -> None:
-    deps = dependency_names("formula-check")
+    # Check the complete local dependency graph: a helper crate must not
+    # provide an indirect route from the independent checker into discovery.
+    deps = workspace_dependency_closure("formula-check")
     forbidden = deps & FORBIDDEN_CHECK_DEPS
     if forbidden:
         fail(f"formula-check crosses checker/search boundary: {sorted(forbidden)}")
