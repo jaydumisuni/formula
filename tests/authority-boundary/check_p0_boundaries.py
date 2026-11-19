@@ -162,8 +162,13 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
 
 def check_fixture_identity() -> None:
     fixture_dir = ROOT / "tests/authority-boundary/fixtures"
-    if fixture_dir.is_symlink():
-        fail("P0 fixture directory must not be a symlink")
+    # Every directory on the sealed path must be real: a symlinked ancestor
+    # otherwise redirects the entire fixture authority outside the checkout.
+    for ancestor in (ROOT / "tests", ROOT / "tests/authority-boundary", fixture_dir):
+        if ancestor.is_symlink():
+            if ancestor == fixture_dir:
+                fail("P0 fixture directory must not be a symlink")
+            fail(f"P0 fixture directory ancestor must not be a symlink: {ancestor.name}")
     for entry in fixture_dir.rglob("*"):
         mode = entry.lstat().st_mode
         if stat.S_ISLNK(mode):

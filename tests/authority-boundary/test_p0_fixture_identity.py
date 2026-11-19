@@ -125,6 +125,24 @@ class FixtureIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "fixture directory must not be a symlink"):
             p0.check_fixture_identity()
 
+    def test_rejects_symlinked_fixture_parent_directory(self):
+        import hashlib
+        real = self.root / "real-authority"
+        real.mkdir()
+        fixture_root = real / "fixtures"
+        fixture_root.mkdir()
+        raw = b'{"value":1}\n'
+        (fixture_root / "extra.json").write_bytes(raw)
+        (fixture_root / "extra.sha256").write_text(
+            hashlib.sha256(raw).hexdigest() + "  extra.json\n", encoding="ascii"
+        )
+        self.fixtures.rmdir()
+        parent = self.root / "tests" / "authority-boundary"
+        parent.rmdir()
+        parent.symlink_to(real, target_is_directory=True)
+        with self.assertRaisesRegex(AssertionError, "fixture directory ancestor must not be a symlink"):
+            p0.check_fixture_identity()
+
     def test_rejects_symlinked_nested_fixture_directory(self):
         real = self.root / "external-cases"
         real.mkdir()
