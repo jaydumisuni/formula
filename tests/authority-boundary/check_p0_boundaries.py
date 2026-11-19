@@ -92,7 +92,9 @@ def workspace_dependency_closure(crate: str) -> set[str]:
         seen_manifests.add(manifest)
         for dependency, dependency_manifest in dependency_entries(manifest):
             seen_names.add(dependency)
-            if dependency_manifest is not None and dependency_manifest.is_file():
+            if dependency_manifest is not None:
+                if not dependency_manifest.is_file():
+                    fail(f"local dependency manifest missing: {dependency_manifest}")
                 pending.append(dependency_manifest)
     return seen_names
 
