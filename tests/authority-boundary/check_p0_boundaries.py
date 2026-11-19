@@ -155,8 +155,14 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
         fail(f"P0 canonical runtime acquired external dependencies: {sorted(external)}")
     for crate in runtime_crates:
         source_root = ROOT / "crates" / crate / "src"
+        if source_root.is_symlink():
+            fail(f"P0 canonical runtime source root must not be a symlink: {crate}")
         if not source_root.exists():
             continue
+        for path in source_root.rglob("*"):
+            mode = path.lstat().st_mode
+            if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
+                fail(f"P0 canonical runtime source tree contains nonregular entry: {path.relative_to(ROOT)}")
         for path in source_root.rglob("*.rs"):
             compact = "".join(path.read_text(encoding="utf-8").split())
             direct_network = "std::net" in compact

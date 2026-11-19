@@ -63,6 +63,23 @@ class NetworkFreeRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "external dependencies"):
             p0.check_canonical_runtime_has_no_external_dependencies()
 
+    def test_rejects_symlinked_runtime_source_file(self):
+        outside = self.root / "outside.rs"
+        outside.write_text("pub fn external() {}\n", encoding="utf-8")
+        self.source.symlink_to(outside)
+        with self.assertRaisesRegex(AssertionError, "nonregular entry"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
+    def test_rejects_symlinked_runtime_source_root(self):
+        source_root = self.source.parent
+        source_root.rmdir()
+        outside = self.root / "external-src"
+        outside.mkdir()
+        (outside / "lib.rs").write_text("pub fn external() {}\n", encoding="utf-8")
+        source_root.symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(AssertionError, "source root must not be a symlink"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
     def test_rejects_std_network_use_in_first_light_runtime(self):
         self.source.write_text(
             "use std::net::TcpStream;\npub fn connect() { let _ = TcpStream::connect(\"127.0.0.1:9\"); }\n",
