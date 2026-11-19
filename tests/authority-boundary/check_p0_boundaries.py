@@ -170,6 +170,8 @@ def check_fixture_identity() -> None:
             fail(f"P0 fixture tree must not contain symlinks: {entry.name}")
         if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)) and entry.suffix != ".json":
             fail(f"P0 fixture tree contains nonregular entry: {entry.name}")
+        if stat.S_ISREG(mode) and entry.suffix not in {".json", ".sha256"}:
+            fail(f"P0 sealed fixture tree contains unexpected file: {entry.name}")
     fixtures = sorted(fixture_dir.rglob("*.json"))
     for sidecar in fixture_dir.rglob("*.sha256"):
         if not sidecar.with_suffix(".json").is_file():

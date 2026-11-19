@@ -139,6 +139,18 @@ class FixtureIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "fixture tree must not contain symlinks"):
             p0.check_fixture_identity()
 
+    def test_rejects_unsealed_regular_file_in_fixture_tree(self):
+        (self.fixtures / "untracked-notes.txt").write_text("hidden fixture input", encoding="utf-8")
+        with self.assertRaisesRegex(AssertionError, "unexpected file"):
+            p0.check_fixture_identity()
+
+    def test_rejects_nested_unsealed_regular_file(self):
+        nested = self.fixtures / "cases"
+        nested.mkdir()
+        (nested / "payload.bin").write_bytes(b"unsealed")
+        with self.assertRaisesRegex(AssertionError, "unexpected file"):
+            p0.check_fixture_identity()
+
     def test_rejects_nonfixture_fifo_in_sealed_tree(self):
         import os
         os.mkfifo(self.fixtures / "notes.pipe")
