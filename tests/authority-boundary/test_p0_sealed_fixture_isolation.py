@@ -34,6 +34,15 @@ class SealedFixtureIsolationTests(unittest.TestCase):
         )
         (crate / "src" / "lib.rs").write_text(source, encoding="utf-8")
 
+    def test_rejects_symlinked_discovery_source_file(self):
+        self.write_crate("formula-engine")
+        self.write_crate("formula-packages")
+        outside = self.root / "outside.rs"
+        outside.write_text("pub fn external() {}\n", encoding="utf-8")
+        (self.root / "crates" / "formula-engine" / "src" / "external.rs").symlink_to(outside)
+        with self.assertRaisesRegex(AssertionError, "source tree must not contain symlinks"):
+            p0.check_sealed_fixture_isolation()
+
     def test_rejects_transitive_formula_first_light_dependency(self):
         self.write_crate(
             "formula-engine",

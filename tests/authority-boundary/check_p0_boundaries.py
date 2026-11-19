@@ -129,6 +129,11 @@ def check_sealed_fixture_isolation() -> None:
         if "formula-first-light" in deps:
             fail(f"{crate} dependency graph reaches sealed formula-first-light crate")
         source_root = ROOT / "crates" / crate / "src"
+        if source_root.is_symlink():
+            fail(f"{crate} source root must not be a symlink")
+        for path in source_root.rglob("*"):
+            if path.is_symlink():
+                fail(f"{crate} source tree must not contain symlinks: {path.relative_to(ROOT)}")
         for path in source_root.rglob("*.rs"):
             text = path.read_text(encoding="utf-8")
             if "formula_first_light" in text or "formula-first-light" in text:
