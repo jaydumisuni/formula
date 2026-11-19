@@ -23,6 +23,11 @@ class FixtureIdentityTests(unittest.TestCase):
         p0.ROOT = self.previous_root
         self.tmp.cleanup()
 
+    def test_rejects_orphan_digest_sidecar(self):
+        (self.fixtures / "orphan.sha256").write_text("0" * 64 + "  orphan.json\n", encoding="ascii")
+        with self.assertRaisesRegex(AssertionError, "sidecar has no fixture"):
+            p0.check_fixture_identity()
+
     def test_rejects_fixture_without_digest_sidecar(self):
         (self.fixtures / "extra.json").write_text("{\"value\":1}\n", encoding="utf-8")
         with self.assertRaisesRegex(AssertionError, "digest"):
