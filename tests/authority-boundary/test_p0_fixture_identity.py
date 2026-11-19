@@ -128,6 +128,12 @@ class FixtureIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "fixture tree must not contain symlinks"):
             p0.check_fixture_identity()
 
+    def test_rejects_nonfixture_fifo_in_sealed_tree(self):
+        import os
+        os.mkfifo(self.fixtures / "notes.pipe")
+        with self.assertRaisesRegex(AssertionError, "nonregular entry"):
+            p0.check_fixture_identity()
+
     def test_rejects_fifo_fixture_before_read(self):
         import os
         fifo = self.fixtures / "pipe.json"
