@@ -149,17 +149,19 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
     metadata_digest_lines = _parse_sha256_file(evidence / "cargo-metadata.sha256")
     metadata_matches = [
         digest for name, digest in metadata_digest_lines.items()
-        if Path(name).name == "cargo-metadata.json"
+        if name in ("cargo-metadata.json", str(evidence / "cargo-metadata.json"))
     ]
-    if len(metadata_matches) != 1:
+    if len(metadata_matches) != 1 or len(metadata_digest_lines) != 1:
         raise ProofError("cargo-metadata.sha256 must bind exactly one cargo-metadata.json")
     metadata_expected = metadata_matches[0]
     if _sha256(evidence / "cargo-metadata.json") != metadata_expected:
         raise ProofError("cargo-metadata.json digest mismatch")
 
     evidence_hashes = _parse_sha256_file(evidence / "evidence-files.sha256")
+    if len(evidence_hashes) != len(REQUIRED_FILES) - 1:
+        raise ProofError("evidence-files.sha256 must bind exactly the required evidence files")
     for name in REQUIRED_FILES - {"evidence-files.sha256"}:
-        matching = [digest for path, digest in evidence_hashes.items() if Path(path).name == name]
+        matching = [digest for path, digest in evidence_hashes.items() if path in (name, str(evidence / name))]
         if len(matching) != 1:
             raise ProofError(f"evidence-files.sha256 must bind exactly one {name}")
         if _sha256(evidence / name) != matching[0]:

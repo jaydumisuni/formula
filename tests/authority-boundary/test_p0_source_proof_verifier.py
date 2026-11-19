@@ -127,6 +127,30 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             with self.assertRaisesRegex(mod.ProofError, "must bind exactly one cargo-metadata.json"):
                 mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_single_wrong_directory_metadata_binding_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            digest_path = evidence / "cargo-metadata.sha256"
+            digest_path.write_text(
+                f"{sha((evidence / 'cargo-metadata.json').read_bytes())}  alternate/cargo-metadata.json\n"
+            )
+            with self.assertRaisesRegex(mod.ProofError, "must bind exactly one cargo-metadata.json"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
+    def test_single_wrong_directory_evidence_binding_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            digest_path = evidence / "evidence-files.sha256"
+            digest_path.write_text(
+                digest_path.read_text().replace(
+                    str(evidence / "git-head.txt"), "alternate/git-head.txt"
+                )
+            )
+            with self.assertRaisesRegex(mod.ProofError, "must bind exactly one git-head.txt"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
     def test_repeated_binary_filename_marker_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
