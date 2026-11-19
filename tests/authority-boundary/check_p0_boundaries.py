@@ -184,7 +184,7 @@ def check_fixture_identity() -> None:
         if fixture.lstat().st_nlink != 1:
             fail(f"P0 fixture must not be hardlinked: {fixture.name}")
         raw = fixture.read_bytes()
-        parsed = json.loads(raw)
+        parsed = json.loads(raw, parse_constant=lambda value: fail(f"P0 fixture contains nonfinite JSON constant: {value}"))
         canonical = json.dumps(parsed, sort_keys=True, separators=(",", ":")) + "\n"
         if raw != canonical.encode("utf-8"):
             fail(f"P0 fixture bytes are not canonical JSON: {fixture.name}")
