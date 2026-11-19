@@ -168,7 +168,7 @@ def check_fixture_identity() -> None:
         mode = entry.lstat().st_mode
         if stat.S_ISLNK(mode):
             fail(f"P0 fixture tree must not contain symlinks: {entry.name}")
-        if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)) and entry.suffix != ".json":
+        if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
             fail(f"P0 fixture tree contains nonregular entry: {entry.name}")
         if stat.S_ISREG(mode) and entry.suffix not in {".json", ".sha256"}:
             fail(f"P0 sealed fixture tree contains unexpected file: {entry.name}")

@@ -161,7 +161,7 @@ class FixtureIdentityTests(unittest.TestCase):
         import os
         fifo = self.fixtures / "pipe.json"
         os.mkfifo(fifo)
-        with self.assertRaisesRegex(AssertionError, "fixture must be a regular file"):
+        with self.assertRaisesRegex(AssertionError, "nonregular entry"):
             p0.check_fixture_identity()
 
     def test_rejects_hardlinked_fixture_even_with_matching_digest(self):
