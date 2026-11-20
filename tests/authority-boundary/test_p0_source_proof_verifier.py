@@ -133,6 +133,18 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             with self.assertRaises(mod.ProofError):
                 mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_duplicate_record_keys_fail_closed_even_if_values_match(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            record_path = evidence / "record.json"
+            raw = record_path.read_text()
+            record_path.write_text(raw.replace(
+                '"schema": ', '"schema": "formula.p0-01.source-proof.v1", "schema": ', 1
+            ))
+            with self.assertRaisesRegex(mod.ProofError, "duplicate record.json key"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
     def test_duplicate_sha256_filename_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
