@@ -138,8 +138,13 @@ def check_sealed_fixture_isolation() -> None:
         if source_root.is_symlink():
             fail(f"{crate} source root must not be a symlink")
         for path in source_root.rglob("*"):
-            if path.is_symlink():
+            metadata = path.lstat()
+            if stat.S_ISLNK(metadata.st_mode):
                 fail(f"{crate} source tree must not contain symlinks: {path.relative_to(ROOT)}")
+            if not (stat.S_ISREG(metadata.st_mode) or stat.S_ISDIR(metadata.st_mode)):
+                fail(f"{crate} source tree contains nonregular entry: {path.relative_to(ROOT)}")
+            if stat.S_ISREG(metadata.st_mode) and metadata.st_nlink != 1:
+                fail(f"{crate} source tree contains hardlinked file: {path.relative_to(ROOT)}")
         for path in source_root.rglob("*.rs"):
             text = path.read_text(encoding="utf-8")
             if "formula_first_light" in text or "formula-first-light" in text:

@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -41,6 +42,22 @@ class SealedFixtureIsolationTests(unittest.TestCase):
         outside.write_text("pub fn external() {}\n", encoding="utf-8")
         (self.root / "crates" / "formula-engine" / "src" / "external.rs").symlink_to(outside)
         with self.assertRaisesRegex(AssertionError, "source tree must not contain symlinks"):
+            p0.check_sealed_fixture_isolation()
+
+    def test_rejects_hardlinked_discovery_source_file(self):
+        self.write_crate("formula-engine")
+        self.write_crate("formula-packages")
+        source = self.root / "crates" / "formula-engine" / "src" / "lib.rs"
+        os.link(source, source.with_name("alias.rs"))
+        with self.assertRaisesRegex(AssertionError, "hardlinked file"):
+            p0.check_sealed_fixture_isolation()
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX FIFO required")
+    def test_rejects_fifo_discovery_source_entry(self):
+        self.write_crate("formula-engine")
+        self.write_crate("formula-packages")
+        os.mkfifo(self.root / "crates" / "formula-engine" / "src" / "pipe.rs")
+        with self.assertRaisesRegex(AssertionError, "nonregular entry"):
             p0.check_sealed_fixture_isolation()
 
     def test_rejects_transitive_formula_first_light_dependency(self):
