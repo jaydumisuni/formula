@@ -67,6 +67,9 @@ jobs:
       - name: Verify workspace compiles with locked dependency resolution
         run: cargo +1.98.0 check --workspace --locked
 
+      - name: Exercise P1 concurrent-generation custody regression (construction only)
+        run: cargo +1.98.0 test -p formula-store --locked --test concurrent_publication
+
       - name: Preserve authority boundary
         run: |
           echo "Candidate verification only."
