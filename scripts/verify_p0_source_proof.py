@@ -190,6 +190,9 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
             raise ProofError(f"symlink source manifest refused: {name}")
         if not source.is_file():
             raise ProofError(f"source manifest missing from checkout: {name}")
+        # Source custody also excludes aliases writable through a second pathname.
+        if source.stat().st_nlink != 1:
+            raise ProofError(f"hardlinked source manifest refused: {name}")
         if _sha256(source) != expected:
             raise ProofError(f"source manifest digest mismatch: {name}")
 

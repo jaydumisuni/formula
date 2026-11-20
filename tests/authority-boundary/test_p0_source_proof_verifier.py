@@ -116,6 +116,15 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             with self.assertRaisesRegex(mod.ProofError, "hardlinked evidence files refused"):
                 mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_hardlinked_source_manifest_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            external = root / "external-cargo.toml"
+            external.hardlink_to(root / "Cargo.toml")
+            with self.assertRaisesRegex(mod.ProofError, "hardlinked source manifest refused"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
     def test_tampered_evidence_file_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
