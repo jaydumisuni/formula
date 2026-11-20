@@ -105,6 +105,11 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
     linked = sorted(name for name in REQUIRED_FILES if (evidence / name).is_symlink())
     if linked:
         raise ProofError("symlink evidence files refused: " + ", ".join(linked))
+    # A hardlinked bundle member can be changed through an external pathname
+    # without changing the evidence directory or its recorded file identity.
+    hardlinked = sorted(name for name in REQUIRED_FILES if (evidence / name).stat().st_nlink != 1)
+    if hardlinked:
+        raise ProofError("hardlinked evidence files refused: " + ", ".join(hardlinked))
 
     try:
         record = json.loads((evidence / "record.json").read_text(encoding="utf-8"))

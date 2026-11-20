@@ -107,6 +107,15 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             with self.assertRaisesRegex(mod.ProofError, "symlink evidence files refused"):
                 mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_hardlinked_evidence_file_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            external = root / "external-rustc.txt"
+            external.hardlink_to(evidence / "rustc-version.txt")
+            with self.assertRaisesRegex(mod.ProofError, "hardlinked evidence files refused"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
     def test_tampered_evidence_file_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
