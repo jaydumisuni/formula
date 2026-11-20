@@ -180,6 +180,9 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
         if expected is None:
             raise ProofError(f"manifest-sha256.txt missing {name}")
         source = root / name
+        # Manifest evidence must describe files owned by this checkout, not external symlink targets.
+        if source.is_symlink() or any(parent.is_symlink() for parent in list(source.parents)[:-1] if parent != root and root in parent.parents):
+            raise ProofError(f"symlink source manifest refused: {name}")
         if not source.is_file():
             raise ProofError(f"source manifest missing from checkout: {name}")
         if _sha256(source) != expected:

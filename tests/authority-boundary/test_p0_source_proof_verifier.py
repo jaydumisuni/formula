@@ -253,6 +253,28 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             with self.assertRaises(mod.ProofError):
                 mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_symlinked_source_manifest_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            source = root / "Cargo.toml"
+            external = root / "external-cargo.toml"
+            source.rename(external)
+            source.symlink_to(external)
+            with self.assertRaisesRegex(mod.ProofError, "symlink source manifest refused"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
+    def test_symlinked_source_manifest_parent_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            directory = root / "docs" / "implementation"
+            moved = root / "external-implementation"
+            directory.rename(moved)
+            directory.symlink_to(moved, target_is_directory=True)
+            with self.assertRaisesRegex(mod.ProofError, "symlink source manifest refused"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
     def test_p0_source_manifest_drift_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
