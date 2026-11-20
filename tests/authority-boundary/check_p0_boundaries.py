@@ -169,6 +169,8 @@ def check_canonical_runtime_has_no_external_dependencies() -> None:
             mode = path.lstat().st_mode
             if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
                 fail(f"P0 canonical runtime source tree contains nonregular entry: {path.relative_to(ROOT)}")
+            if stat.S_ISREG(mode) and path.lstat().st_nlink != 1:
+                fail(f"P0 canonical runtime source tree contains hardlinked file: {path.relative_to(ROOT)}")
         for path in source_root.rglob("*.rs"):
             compact = "".join(path.read_text(encoding="utf-8").split())
             direct_network = "std::net" in compact

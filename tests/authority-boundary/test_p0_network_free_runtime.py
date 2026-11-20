@@ -70,6 +70,13 @@ class NetworkFreeRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "nonregular entry"):
             p0.check_canonical_runtime_has_no_external_dependencies()
 
+    def test_rejects_hardlinked_runtime_source_file(self):
+        outside = self.root / "outside.rs"
+        outside.write_text("pub fn external() {}\n", encoding="utf-8")
+        self.source.hardlink_to(outside)
+        with self.assertRaisesRegex(AssertionError, "hardlinked file"):
+            p0.check_canonical_runtime_has_no_external_dependencies()
+
     def test_rejects_symlinked_runtime_source_root(self):
         source_root = self.source.parent
         source_root.rmdir()
