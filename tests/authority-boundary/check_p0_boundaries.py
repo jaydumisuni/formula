@@ -99,6 +99,12 @@ def workspace_dependency_closure(crate: str) -> set[str]:
                     fail(f"local dependency escapes workspace: {dependency_manifest}")
                 if not dependency_manifest.is_file():
                     fail(f"local dependency manifest missing: {dependency_manifest}")
+                # An alias may conceal a forbidden local crate name. Bind the
+                # closure to the dependency's declared package identity too.
+                package_name = load_toml(dependency_manifest).get("package", {}).get("name")
+                if not isinstance(package_name, str) or not package_name:
+                    fail(f"local dependency has no package name: {dependency_manifest}")
+                seen_names.add(package_name)
                 pending.append(dependency_manifest)
     return seen_names
 

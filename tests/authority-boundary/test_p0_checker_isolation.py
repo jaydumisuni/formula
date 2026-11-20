@@ -48,6 +48,20 @@ class CheckerIsolationTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "formula-engine"):
             p0.check_checker_isolation()
 
+    def test_rejects_path_alias_hiding_forbidden_package_identity(self):
+        engine = self.root / "crates" / "formula-engine"
+        engine.mkdir(parents=True)
+        (engine / "Cargo.toml").write_text(
+            '[package]\nname = "formula-engine"\nversion = "0.1.0"\n',
+            encoding="utf-8",
+        )
+        self.manifest.write_text(
+            '[dependencies]\ninnocent-helper = { path = "../formula-engine" }\n',
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AssertionError, "formula-engine"):
+            p0.check_checker_isolation()
+
     def test_rejects_missing_workspace_inherited_dependency(self):
         self.manifest.write_text(
             '[dependencies]\nmissing-inherited = { workspace = true }\n',
