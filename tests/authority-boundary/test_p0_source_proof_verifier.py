@@ -154,6 +154,15 @@ class P0SourceProofVerifierTests(unittest.TestCase):
                 with self.assertRaisesRegex(mod.ProofError, "record.json must contain a JSON object"):
                     mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_toolchain_version_prefix_spoof_fails_closed(self):
+        for filename, spoof in (("rustc-version.txt", "rustc 1.98.01 (spoof)\n"), ("cargo-version.txt", "cargo 1.98.0evil (spoof)\n")):
+            with self.subTest(filename=filename), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                evidence = self.make_bundle(root)
+                (evidence / filename).write_text(spoof)
+                with self.assertRaisesRegex(mod.ProofError, "is not (Rust|Cargo) 1.98.0"):
+                    mod.verify(root, evidence, require_live_checkout=False)
+
     def test_duplicate_sha256_filename_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

@@ -161,10 +161,10 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
             raise ProofError(f"{name} mismatch: expected {expected!r}, found {found!r}")
 
     rustc_text = (evidence / "rustc-version.txt").read_text(encoding="utf-8")
-    if not rustc_text.startswith("rustc 1.98.0"):
+    if not re.match(r"^rustc 1\.98\.0(?:\s|$)", rustc_text):
         raise ProofError("rustc-version.txt is not Rust 1.98.0")
     cargo_text = (evidence / "cargo-version.txt").read_text(encoding="utf-8")
-    if not cargo_text.startswith("cargo 1.98.0"):
+    if not re.match(r"^cargo 1\.98\.0(?:\s|$)", cargo_text):
         raise ProofError("cargo-version.txt is not Cargo 1.98.0")
 
     metadata_digest_lines = _parse_sha256_file(evidence / "cargo-metadata.sha256")
