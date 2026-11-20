@@ -145,6 +145,15 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             with self.assertRaisesRegex(mod.ProofError, "duplicate record.json key"):
                 mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_non_object_record_fails_closed(self):
+        for invalid in ([], None, "not an object", 42):
+            with self.subTest(invalid=invalid), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                evidence = self.make_bundle(root)
+                (evidence / "record.json").write_text(json.dumps(invalid))
+                with self.assertRaisesRegex(mod.ProofError, "record.json must contain a JSON object"):
+                    mod.verify(root, evidence, require_live_checkout=False)
+
     def test_duplicate_sha256_filename_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

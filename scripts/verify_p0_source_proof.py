@@ -127,6 +127,9 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
     except (OSError, json.JSONDecodeError) as exc:
         raise ProofError(f"invalid record.json: {exc}") from exc
 
+    if not isinstance(record, dict):
+        raise ProofError("record.json must contain a JSON object")
+
     expected_record = {
         "schema": EXPECTED_SCHEMA,
         "status": EXPECTED_STATUS,
