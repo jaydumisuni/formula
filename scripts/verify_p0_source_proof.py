@@ -91,6 +91,8 @@ def _git(*args: str, cwd: Path) -> str:
 
 
 def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) -> dict[str, str]:
+    if evidence.is_symlink():
+        raise ProofError("symlink evidence directory refused")
     root = root.resolve()
     evidence = evidence.resolve()
     if not evidence.is_dir():
