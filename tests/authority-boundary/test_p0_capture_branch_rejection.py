@@ -3,6 +3,7 @@ import pathlib
 import subprocess
 import tempfile
 import unittest
+import uuid
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -10,7 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 class CaptureBranchRejection(unittest.TestCase):
     def test_named_unauthorized_branch_refuses_capture_before_writing_evidence(self):
-        branch = "supervisor/p0-unauthorized-negative-fixture"
+        branch = f"supervisor/p0-unauthorized-negative-fixture-{uuid.uuid4().hex}"
         with tempfile.TemporaryDirectory(prefix="formula-p0-named-branch-") as temp:
             checkout = pathlib.Path(temp) / "checkout"
             output = pathlib.Path(temp) / "evidence"
@@ -31,8 +32,21 @@ class CaptureBranchRejection(unittest.TestCase):
                     ["git", "-C", str(ROOT), "worktree", "remove", "--force", str(checkout)],
                     check=True, capture_output=True, text=True,
                 )
+                # Delete only the unique ref created by this test, and only if
+                # it still points at the checkout's original commit.
+                ref = f"refs/heads/{branch}"
+                actual = subprocess.run(
+                    ["git", "-C", str(ROOT), "rev-parse", "--verify", ref],
+                    check=True, capture_output=True, text=True,
+                ).stdout.strip()
+                expected = subprocess.run(
+                    ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+                    check=True, capture_output=True, text=True,
+                ).stdout.strip()
+                if actual != expected:
+                    raise AssertionError("temporary fixture branch changed; preserving ref")
                 subprocess.run(
-                    ["git", "-C", str(ROOT), "branch", "-D", branch],
+                    ["git", "-C", str(ROOT), "branch", "-d", branch],
                     check=True, capture_output=True, text=True,
                 )
 
