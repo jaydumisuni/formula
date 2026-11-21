@@ -35,6 +35,7 @@ jobs:
       - name: Verify P0 host-capture procedure syntax and safety markers
         run: |
           bash -n scripts/capture_p0_source_proof.sh
+          python -B -m unittest discover -s tests/authority-boundary -p 'test_p0_capture_branch_rejection.py'
           grep -Fq 'ALLOWED_BRANCHES=(' scripts/capture_p0_source_proof.sh
           grep -Fq '"impl/p0-first-light"' scripts/capture_p0_source_proof.sh
           grep -Fq '"c3/p1-continuation-20261006"' scripts/capture_p0_source_proof.sh
