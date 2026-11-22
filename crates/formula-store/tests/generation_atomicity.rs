@@ -699,6 +699,14 @@ fn missing_manifest_blob_cannot_publish_or_advance_active_pointer() {
     assert!(!root.join("index/generations/2.manifest").exists());
     assert_eq!(index.historical_manifest(1).unwrap(), first);
     assert_eq!(index.active_generation().unwrap(), (1, first));
+
+    // A rejected next generation must remain publishable once its blob arrives.
+    let restored = store.put(b"not-in-authorized-store").unwrap();
+    assert_eq!(restored, absent);
+    index.publish(&store, 2, restored).unwrap();
+    assert_eq!(index.historical_manifest(1).unwrap(), first);
+    assert_eq!(index.historical_manifest(2).unwrap(), restored);
+    assert_eq!(index.active_generation().unwrap(), (2, restored));
     fs::remove_dir_all(root).unwrap();
 }
 
