@@ -193,6 +193,18 @@ class P0SourceProofVerifierTests(unittest.TestCase):
                 with self.assertRaisesRegex(mod.ProofError, "is not (Rust|Cargo) 1.98.0"):
                     mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_toolchain_verbose_field_rejects_invisible_and_non_ascii_characters(self):
+        for filename in ("rustc-version.txt", "cargo-version.txt"):
+            for bad in ("\u202e", "\u200b", "\u00a0", "\x1b", "\t", "\u0085", "\u0301"):
+                with self.subTest(filename=filename, character=repr(bad)), tempfile.TemporaryDirectory() as td:
+                    root = Path(td)
+                    evidence = self.make_bundle(root)
+                    (evidence / filename).write_text(
+                        f"{filename.split('-')[0]} 1.98.0 (test)\nhost: x{bad}exe\nrelease: 1.98.0\n"
+                    )
+                    with self.assertRaisesRegex(mod.ProofError, "is not (Rust|Cargo) 1.98.0"):
+                        mod.verify(root, evidence, require_live_checkout=False)
+
     def test_duplicate_sha256_filename_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

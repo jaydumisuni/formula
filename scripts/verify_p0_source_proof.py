@@ -180,7 +180,7 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
             if ": " not in line:
                 raise ProofError(f"{filename} is not {tool.title() if tool == 'cargo' else 'Rust'} 1.98.0")
             key, value = line.split(": ", 1)
-            if key not in fields or key in seen or not value or value != value.strip() or "\x00" in value:
+            if key not in fields or key in seen or not value or value != value.strip() or any(not (" " <= ch <= "~") for ch in value):
                 raise ProofError(f"{filename} is not {tool.title() if tool == 'cargo' else 'Rust'} 1.98.0")
             seen.add(key)
             if key == "release" and value != "1.98.0":
