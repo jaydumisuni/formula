@@ -95,6 +95,47 @@ fn interrupted_history_temp_preserved_during_next_publication() {
 }
 
 #[test]
+fn durable_history_ahead_of_pointer_recovers_only_matching_generation() {
+    let root = fixture::private_temp_dir().join(format!(
+        "formula-interrupted-pointer-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let second = store.put(b"second").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    // Reproduce the durable history / active-pointer crash window without
+    // claiming a real process-kill or power-loss durability qualification.
+    let history = root.join("index/generations/2.manifest");
+    fs::write(&history, second.to_hex()).unwrap();
+    assert_eq!(
+        index.publish(&store, 1, first).unwrap_err().kind(),
+        io::ErrorKind::InvalidInput
+    );
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 2, first).unwrap_err().kind(),
+        io::ErrorKind::AlreadyExists
+    );
+
+    // Exact-history retry completes the interrupted publication.
+    index.publish(&store, 2, second).unwrap();
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap(),
+        (2, second)
+    );
+    assert_eq!(index.historical_manifest(1).unwrap(), first);
+    assert_eq!(index.historical_manifest(2).unwrap(), second);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn corrupt_historical_manifest_cannot_activate_new_generation() {
     let root =
         fixture::private_temp_dir().join(format!("formula-corrupt-history-{}", std::process::id()));
