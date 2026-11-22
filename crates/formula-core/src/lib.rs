@@ -639,6 +639,27 @@ mod tests {
     }
 
     #[test]
+    fn ordered_references_are_structurally_distinct() {
+        // D2-P01: replay must not silently sort reference sequences. A changed
+        // reference order is a changed exact structure, not a canonicalization
+        // opportunity or evidence of mathematical equivalence.
+        let left = Entity::new(
+            "application",
+            b"f".to_vec(),
+            vec![digest(1), digest(2)],
+            vec![digest(9)],
+        );
+        let reordered = Entity::new(
+            "application",
+            b"f".to_vec(),
+            vec![digest(2), digest(1)],
+            vec![digest(9)],
+        );
+        assert_ne!(left.canonical_bytes(), reordered.canonical_bytes());
+        assert_ne!(left.structural_digest(), reordered.structural_digest());
+    }
+
+    #[test]
     fn semantic_change_changes_structural_digest() {
         let left = Entity::new("integer", b"42".to_vec(), vec![], vec![]);
         let right = Entity::new("integer", b"43".to_vec(), vec![], vec![]);
