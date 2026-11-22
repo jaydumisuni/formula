@@ -1,0 +1,2 @@
+# Candidate-only Formula G0 review test harness, not Formula runtime dependencies.
+pytest==9.0.2
