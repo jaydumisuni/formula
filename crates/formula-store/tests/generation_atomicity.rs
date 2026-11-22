@@ -679,3 +679,25 @@ fn noncanonical_active_pointer_framing_blocks_replay_and_publication() {
     assert_eq!(index.active_generation().unwrap(), (1, current));
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn missing_manifest_blob_cannot_publish_or_advance_active_pointer() {
+    let root = fixture::private_temp_dir()
+        .join(format!("formula-missing-manifest-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let other_store = BlobStore::new(root.join("other-store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"present").unwrap();
+    let absent = other_store.put(b"not-in-authorized-store").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    assert_eq!(
+        index.publish(&store, 2, absent).unwrap_err().kind(),
+        io::ErrorKind::NotFound
+    );
+    assert!(!root.join("index/generations/2.manifest").exists());
+    assert_eq!(index.historical_manifest(1).unwrap(), first);
+    assert_eq!(index.active_generation().unwrap(), (1, first));
+    fs::remove_dir_all(root).unwrap();
+}
