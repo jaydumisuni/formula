@@ -677,6 +677,11 @@ fn noncanonical_active_pointer_framing_blocks_replay_and_publication() {
     }
     fs::write(&pointer, canonical).unwrap();
     assert_eq!(index.active_generation().unwrap(), (1, current));
+    // Restoring canonical framing must also restore the next publication path.
+    index.publish(&store, 2, next).unwrap();
+    assert_eq!(index.historical_manifest(1).unwrap(), current);
+    assert_eq!(index.historical_manifest(2).unwrap(), next);
+    assert_eq!(index.active_generation().unwrap(), (2, next));
     fs::remove_dir_all(root).unwrap();
 }
 
