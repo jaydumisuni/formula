@@ -720,5 +720,12 @@ fn missing_manifest_blob_cannot_create_initial_generation() {
     );
     assert!(!root.join("index/generations/1.manifest").exists());
     assert!(!root.join("index/active-generation").exists());
+
+    // A failed first publication must remain retryable after its blob arrives.
+    let restored = store.put(b"not-in-authorized-store").unwrap();
+    assert_eq!(restored, absent);
+    index.publish(&store, 1, restored).unwrap();
+    assert_eq!(index.historical_manifest(1).unwrap(), restored);
+    assert_eq!(index.active_generation().unwrap(), (1, restored));
     fs::remove_dir_all(root).unwrap();
 }
