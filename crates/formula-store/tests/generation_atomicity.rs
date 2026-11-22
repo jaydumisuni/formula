@@ -3,6 +3,40 @@ use formula_store::{BlobStore, GenerationIndex};
 use std::{fs, io};
 
 #[test]
+fn fresh_roots_replay_identical_generation_digests() {
+    let base = fixture::private_temp_dir().join(format!(
+        "formula-fresh-root-digest-replay-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&base);
+    let mut observations = Vec::new();
+    for run in 0..2 {
+        let root = base.join(format!("run-{run}"));
+        let store = BlobStore::new(root.join("store"));
+        let index = GenerationIndex::new(root.join("index"));
+        let first = store.put(b"canonical generation one").unwrap();
+        let second = store.put(b"canonical generation two").unwrap();
+        index.publish(&store, 1, first).unwrap();
+        index.publish(&store, 2, second).unwrap();
+        assert_eq!(
+            index.verified_active_generation(&store).unwrap(),
+            (2, second)
+        );
+        assert_eq!(index.historical_manifest(1).unwrap(), first);
+        assert_eq!(index.historical_manifest(2).unwrap(), second);
+        observations.push((
+            first,
+            second,
+            fs::read(root.join("index/active-generation")).unwrap(),
+            fs::read(root.join("index/generations/1.manifest")).unwrap(),
+            fs::read(root.join("index/generations/2.manifest")).unwrap(),
+        ));
+    }
+    assert_eq!(observations[0], observations[1]);
+    fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
 fn stale_pointer_temp_does_not_block_atomic_publication() {
     let root = fixture::private_temp_dir().join(format!(
         "formula-generation-atomicity-{}",
