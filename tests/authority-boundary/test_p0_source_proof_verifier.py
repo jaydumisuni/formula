@@ -80,6 +80,22 @@ class P0SourceProofVerifierTests(unittest.TestCase):
             self.assertEqual(result["git_branch"], branch)
             self.assertEqual(result["status"], mod.EXPECTED_STATUS)
 
+    def test_text_binding_with_extra_whitespace_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            (evidence / "git-branch.txt").write_text(mod.EXPECTED_BRANCH + "  \n")
+            with self.assertRaisesRegex(mod.ProofError, "noncanonical text binding"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
+    def test_text_binding_with_multiple_lines_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            evidence = self.make_bundle(root)
+            (evidence / "git-head.txt").write_text("a" * 40 + "\n\n")
+            with self.assertRaisesRegex(mod.ProofError, "noncanonical text binding"):
+                mod.verify(root, evidence, require_live_checkout=False)
+
     def test_unadmitted_branch_bundle_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

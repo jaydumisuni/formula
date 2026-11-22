@@ -46,7 +46,13 @@ def _sha256(path: Path) -> str:
 
 
 def _text(path: Path) -> str:
-    return path.read_text(encoding="utf-8").strip()
+    content = path.read_text(encoding="utf-8")
+    if not content.endswith("\n") or content.endswith("\n\n") or "\r" in content:
+        raise ProofError(f"noncanonical text binding in {path.name}")
+    value = content[:-1]
+    if value != value.strip() or "\n" in value:
+        raise ProofError(f"noncanonical text binding in {path.name}")
+    return value
 
 
 def _parse_sha256_file(path: Path) -> dict[str, str]:
