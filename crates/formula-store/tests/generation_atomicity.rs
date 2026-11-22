@@ -65,6 +65,36 @@ fn stale_pointer_temp_does_not_block_atomic_publication() {
 }
 
 #[test]
+fn interrupted_history_temp_preserved_during_next_publication() {
+    let root = fixture::private_temp_dir().join(format!(
+        "formula-interrupted-history-temp-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let second = store.put(b"second").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    // Simulate a crash after opening a history temp but before installation.
+    let interrupted = root
+        .join("index/generations")
+        .join(format!("2.manifest.tmp-{}-0", std::process::id()));
+    fs::write(&interrupted, b"partial history digest").unwrap();
+    index.publish(&store, 2, second).unwrap();
+
+    assert_eq!(fs::read(&interrupted).unwrap(), b"partial history digest");
+    assert_eq!(index.historical_manifest(1).unwrap(), first);
+    assert_eq!(index.historical_manifest(2).unwrap(), second);
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap(),
+        (2, second)
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn corrupt_historical_manifest_cannot_activate_new_generation() {
     let root =
         fixture::private_temp_dir().join(format!("formula-corrupt-history-{}", std::process::id()));
