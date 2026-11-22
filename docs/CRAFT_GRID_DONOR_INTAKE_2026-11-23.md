@@ -9,3 +9,7 @@
 **Qualification:** fixed source/license pins, redacted golden workbooks, function compatibility matrix, circular/recalculation/error handling, rounding/precision and Unicode/date semantics, adversarial formula/file handling, reversible export, independent result comparison, and explicit fallback. No auto-execution of spreadsheet macros or donor agent commands.
 
 **Disposition now:** research queue; Formula math engine and its proof gates are untouched. Any UI/workbook integration belongs to a separately accepted interface stage, not the core solver.
+
+## Roadmap retirement boundary (2026-11-23)
+
+**None of Formula P0–P13 closes from GridCraft/craft-libs.** GridCraft may satisfy a separately scoped optional **XLSX/workbook UI interchange requirement** only after typed source/target workbook tests, precision/date/circular/reference/error semantics, actual Formula checker-backed answer and lossless-or-declared-loss export. It cannot discharge mathematical First Light (P9), self-expansion (P10), federation (P11), bootstrap trust (P12) or Ptah admission (P13). No new P-number or progress state is created by this research. Crossroadmap details: private `TTG-ecosystem/docs/STORYTOLD_VORK_ROADMAP_CLOSURE_MATRIX_2026-11-23.md`.
