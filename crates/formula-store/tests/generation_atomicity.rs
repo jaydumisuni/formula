@@ -148,6 +148,7 @@ fn interrupted_pointer_retry_requires_durable_manifest_blob() {
     let first = store.put(b"first").unwrap();
     let absent = other.put(b"missing-at-recovery").unwrap();
     index.publish(&store, 1, first).unwrap();
+    let pointer_before = fs::read(root.join("index/active-generation")).unwrap();
 
     // History is durable but its referenced blob is unavailable in the
     // authorized store. A matching retry must not advance the pointer.
@@ -158,6 +159,11 @@ fn interrupted_pointer_retry_requires_durable_manifest_blob() {
         io::ErrorKind::NotFound
     );
     assert_eq!(index.historical_manifest(2).unwrap(), absent);
+    // A rejected retry must not mutate the previously durable pointer.
+    assert_eq!(
+        fs::read(root.join("index/active-generation")).unwrap(),
+        pointer_before
+    );
     assert_eq!(
         index.active_generation().unwrap_err().kind(),
         io::ErrorKind::InvalidData
@@ -165,6 +171,10 @@ fn interrupted_pointer_retry_requires_durable_manifest_blob() {
 
     // Once the exact blob arrives, the original history can be resumed.
     assert_eq!(store.put(b"missing-at-recovery").unwrap(), absent);
+    assert_eq!(
+        fs::read(root.join("index/active-generation")).unwrap(),
+        pointer_before
+    );
     index.publish(&store, 2, absent).unwrap();
     assert_eq!(
         index.verified_active_generation(&store).unwrap(),
