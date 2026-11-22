@@ -701,3 +701,24 @@ fn missing_manifest_blob_cannot_publish_or_advance_active_pointer() {
     assert_eq!(index.active_generation().unwrap(), (1, first));
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn missing_manifest_blob_cannot_create_initial_generation() {
+    let root = fixture::private_temp_dir().join(format!(
+        "formula-missing-initial-manifest-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let other_store = BlobStore::new(root.join("other-store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let absent = other_store.put(b"not-in-authorized-store").unwrap();
+
+    assert_eq!(
+        index.publish(&store, 1, absent).unwrap_err().kind(),
+        io::ErrorKind::NotFound
+    );
+    assert!(!root.join("index/generations/1.manifest").exists());
+    assert!(!root.join("index/active-generation").exists());
+    fs::remove_dir_all(root).unwrap();
+}
