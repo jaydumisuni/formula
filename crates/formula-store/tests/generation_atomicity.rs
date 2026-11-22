@@ -136,6 +136,45 @@ fn durable_history_ahead_of_pointer_recovers_only_matching_generation() {
 }
 
 #[test]
+fn interrupted_pointer_retry_requires_durable_manifest_blob() {
+    let root = fixture::private_temp_dir().join(format!(
+        "formula-interrupted-pointer-missing-blob-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let other = BlobStore::new(root.join("other"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let absent = other.put(b"missing-at-recovery").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    // History is durable but its referenced blob is unavailable in the
+    // authorized store. A matching retry must not advance the pointer.
+    let history = root.join("index/generations/2.manifest");
+    fs::write(&history, absent.to_hex()).unwrap();
+    assert_eq!(
+        index.publish(&store, 2, absent).unwrap_err().kind(),
+        io::ErrorKind::NotFound
+    );
+    assert_eq!(index.historical_manifest(2).unwrap(), absent);
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+
+    // Once the exact blob arrives, the original history can be resumed.
+    assert_eq!(store.put(b"missing-at-recovery").unwrap(), absent);
+    index.publish(&store, 2, absent).unwrap();
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap(),
+        (2, absent)
+    );
+    assert_eq!(index.historical_manifest(1).unwrap(), first);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn corrupt_historical_manifest_cannot_activate_new_generation() {
     let root =
         fixture::private_temp_dir().join(format!("formula-corrupt-history-{}", std::process::id()));
