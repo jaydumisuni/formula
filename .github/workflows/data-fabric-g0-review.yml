@@ -1,0 +1,48 @@
+name: Formula G0 Independent Review Candidate CI
+
+on:
+  pull_request:
+    paths:
+      - docs/reviews/data-fabric-g0-*
+      - tools/verify_data_fabric_g0_review.py
+      - tests/test_data_fabric_g0_review.py
+      - .github/workflows/data-fabric-g0-review.yml
+  push:
+    branches:
+      - review/data-fabric-g0-2170fa4-20261122
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install pytest
+      - name: Run source-independent review integrity tests
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -m pytest -q tests/test_data_fabric_g0_review.py
+      - name: Verify review does not claim certification
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('docs/reviews/data-fabric-g0-2170fa4-semantic-preassurance-20261122.json')
+          report = json.loads(p.read_text())
+          assert len(report['rows']) == 33
+          assert report['reviewer']['formal_formula_authority'] is False
+          assert report['status'] == 'PREASSURANCE__NOT_FORMULA_CERTIFICATION'
+          assert sum(x['disposition'] == 'NEEDS_CLARIFICATION' for x in report['rows']) == 8
+          PY

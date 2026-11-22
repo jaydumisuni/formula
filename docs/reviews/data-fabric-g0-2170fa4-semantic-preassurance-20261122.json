@@ -1,0 +1,327 @@
+{
+  "notes": [
+    "This is a source-bound challenge candidate, not an authenticated Formula sign-off.",
+    "NEEDS_CLARIFICATION rows remain blockers, do not fill Data Fabric matrix as MEASURABLE.",
+    "The producing project remains read-only to this reviewer.",
+    "All 18 hostile-world obligations require independent bounded Simulation qualification."
+  ],
+  "review_scope": "Measurability of frozen G0 semantic obligations only, not executable G1 storage proof",
+  "reviewer": {
+    "accepted_milestone": false,
+    "formal_formula_authority": false,
+    "identity": "Operator-directed GPT-6 bounded semantic challenge in Formula-owned isolated review branch",
+    "independent_of_source_branch": true,
+    "sergeant_full_generation_review": false
+  },
+  "rows": [
+    {
+      "ambiguity": "",
+      "counterexample": "Acknowledgement is observed before durable barrier, or a committed identity disappears after restart",
+      "discriminator": "Acknowledge only after declared durable barrier and recover acknowledged identity exactly once or explicit failure",
+      "disposition": "MEASURABLE",
+      "evidence": "Crash injection at before/after durability fence, commit journal identity, acknowledged reply, post-restart state",
+      "input": "G0_CONSTITUTION",
+      "obligation": "durable commit / WAL ordering"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Committed relation exposes a strict subset of a multiwrite transaction",
+      "discriminator": "Every transaction boundary observes either all its writes or none after crash/replay",
+      "disposition": "MEASURABLE",
+      "evidence": "Multiwrite transactional fixture, crash at every write boundary, post-replay consistent read",
+      "input": "G0_CONSTITUTION",
+      "obligation": "atomicity"
+    },
+    {
+      "ambiguity": "Constitution requires a defined snapshot but does not itself freeze the isolation level or snapshot cut-point",
+      "counterexample": "A reader sees a concurrent writer's uncommitted row as committed",
+      "discriminator": "A reader's result is stable under its named isolation/snapshot contract and excludes every uncommitted write",
+      "disposition": "NEEDS_CLARIFICATION",
+      "evidence": "Define required isolation/snapshot cut-point from pinned Business Core usage; concurrent read/write trace",
+      "input": "G0_CONSTITUTION",
+      "obligation": "MVCC / visibility"
+    },
+    {
+      "ambiguity": "Integrity evidence is qualified by an unspecified declared threat model",
+      "counterexample": "Checksum mismatch is silently accepted or constraint-violating row becomes authoritative",
+      "discriminator": "Corrupted required storage objects must be refused or reported; frozen constraints remain enforced",
+      "disposition": "NEEDS_CLARIFICATION",
+      "evidence": "Specify threat model, checksum coverage, constraint catalog and corruption/constraint negative fixture",
+      "input": "G0_CONSTITUTION",
+      "obligation": "integrity / constraints"
+    },
+    {
+      "ambiguity": "Resume-versus-rollback decision criteria are not yet stated",
+      "counterexample": "A restart exposes a mixed migration generation while claiming success",
+      "discriminator": "An interrupted schema transition deterministically resumes or rolls back without mixed schema generations",
+      "disposition": "NEEDS_CLARIFICATION",
+      "evidence": "Freeze migration checkpoint choice and restart/replay observations",
+      "input": "G0_CONSTITUTION",
+      "obligation": "catalog / schema"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "TTG-TXN-000060 overwritten or new master allocation skips required first 61",
+      "discriminator": "Monotonic sequence allocation and legacy TTG-TXN-000060 retained; first reconciled next master ID is TTG-TXN-000061",
+      "disposition": "MEASURABLE",
+      "evidence": "Pinned Business Core allocator import, concurrent nextval trace, ID continuity receipt",
+      "input": "G0_CONSTITUTION",
+      "obligation": "sequences"
+    },
+    {
+      "ambiguity": "Generation-relative WAL ordering is stated but not a complete durability-barrier contract",
+      "counterexample": "Dependent page survives while required WAL intent is missing, yet recovery declares success",
+      "discriminator": "A dependent durable data mutation never precedes durable intent; replay is deterministic/idempotent",
+      "disposition": "NEEDS_CLARIFICATION",
+      "evidence": "Freeze exact WAL durability/order and bounded tail validity law before acceptance",
+      "input": "G0_CONSTITUTION",
+      "obligation": "WAL / recovery ordering"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Stale or substituted object accepted under another persistent identity",
+      "discriminator": "A version/identity mismatch in page, segment or catalog object is explicitly detected",
+      "disposition": "MEASURABLE",
+      "evidence": "Immutable object identities and forged-version substitution traces, integrity error receipt",
+      "input": "G0_CONSTITUTION",
+      "obligation": "storage identity / version"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Corrupted tail replay changes authoritative state silently",
+      "discriminator": "For each declared recovery cut point, deterministic valid state or explicit fail-closed error is observed",
+      "disposition": "MEASURABLE",
+      "evidence": "Crash/restart traces with replay digest and injected WAL/page corruption",
+      "input": "G0_CONSTITUTION",
+      "obligation": "crash recovery / corruption handling"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Unsupported PostgreSQL statement is accepted by silently broadening scope",
+      "discriminator": "Every pinned Business Core SQL/client operation matches required behavior; unknown features reject explicitly",
+      "disposition": "MEASURABLE",
+      "evidence": "Exact pinned Business Core query corpus and differential rejection suite",
+      "input": "G0_CONSTITUTION",
+      "obligation": "compatibility boundary"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Two competing writers both claim durable authority before G3 qualification",
+      "discriminator": "Ambiguous second writer fails closed; G3 quorum/replication authority not implied by G0/G1",
+      "disposition": "MEASURABLE",
+      "evidence": "Dual-writer adversarial trace and authority generation ledger",
+      "input": "G0_CONSTITUTION",
+      "obligation": "future replication / single-writer boundary"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Producing process signs its own acceptance and activates a candidate",
+      "discriminator": "Uncertified candidate cannot enter ADMITTED/ACTIVATED/REALIZED without external evidence",
+      "disposition": "MEASURABLE",
+      "evidence": "Generation state-machine transition audit with independent Formula/Simulation/Sergeant receipts",
+      "input": "G0_CONSTITUTION",
+      "obligation": "generation transitions / independent admission"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Storage engine rewrites Business Core lifecycle or allocates universal master ID independently",
+      "discriminator": "Storage layer preserves Business Core identity, lifecycle and master transaction ownership",
+      "disposition": "MEASURABLE",
+      "evidence": "Frozen Business Core golden records; storage roundtrip and authority boundary challenge",
+      "input": "G0_CONSTITUTION",
+      "obligation": "business authority separation"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "A required SKIP LOCKED or advisory lock effect differs or unsupported SQL is quietly accepted",
+      "discriminator": "Pinned SQL workload features including JSONB, upsert, locking, RETURNING, sequence and migration semantics behave as specified",
+      "disposition": "MEASURABLE",
+      "evidence": "Replay SQL/client statement inventory at Business Core commit c2a8fba with differential comparison",
+      "input": "BUSINESS_CORE_COMPATIBILITY_SCOPE",
+      "obligation": "pinned compatibility subset"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Floating donor branch or unknown license is accepted as an admitted mechanism",
+      "discriminator": "Missing immutable revision, license evidence or explicit realization path cannot be admitted",
+      "disposition": "MEASURABLE",
+      "evidence": "Donor manifest validator positive and invalid revision/license/provenance controls",
+      "input": "DONOR_INTAKE_CONTRACT",
+      "obligation": "provenance / mechanism admission"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Pre-durable intent is replayed as committed state",
+      "discriminator": "Crash before durable barrier does not expose a committed transaction after replay",
+      "disposition": "MEASURABLE",
+      "evidence": "Crash at pre-fsync boundary, acknowledged bit, post-recovery commit read",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-01"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Lost acknowledgement causes duplicate effect or uncertain outcome is retried blind",
+      "discriminator": "Confirmed prior durable commit queried by stable operation identity returns original result with zero second effect; mismatched content and unknown outcome are refused",
+      "disposition": "MEASURABLE",
+      "evidence": "Identity/request digest and outcome authority record; 13 safe/unsafe HW-02 traces from Simulation PR #2",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-02"
+    },
+    {
+      "ambiguity": "No explicit maximal acceptable damage window or WAL record validation rule is frozen",
+      "counterexample": "Malformed suffix is accepted as authenticated committed transaction",
+      "discriminator": "Torn/truncated WAL tail is detected and never treated as valid commit data",
+      "disposition": "NEEDS_CLARIFICATION",
+      "evidence": "Specify bounded tail truncation/fence policy; inject bitflip/truncation across record boundary",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-03"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Second replay increments counter or duplicates inserted row",
+      "discriminator": "Reapplying identical WAL record never duplicates committed effect",
+      "disposition": "MEASURABLE",
+      "evidence": "Replay identical record twice; compare state and effect count",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-04"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Only one of two dependent writes is exposed as a committed transaction",
+      "discriminator": "Partial dependent page writes after durable intent replay to the defined atomic outcome",
+      "disposition": "MEASURABLE",
+      "evidence": "Multiwrite WAL intent, crash between dependent writes, recovery read",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-05"
+    },
+    {
+      "ambiguity": "Defined snapshot cut point and isolation level are not yet pinned to Business Core behavior",
+      "counterexample": "Dirty row appears as committed during writer's transaction",
+      "discriminator": "Reader sees defined snapshot and never consumes uncommitted writer change",
+      "disposition": "NEEDS_CLARIFICATION",
+      "evidence": "Freeze snapshot cut point/isolation clause; concurrent writer-reader schedule",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-06"
+    },
+    {
+      "ambiguity": "Deterministic conflict winner/timeout/abort precedence is not specified at G0",
+      "counterexample": "Identical concurrent schedules yield nondeterministic winner or both claim write",
+      "discriminator": "Conflicting writers resolve according to a declared deterministic lock/abort policy",
+      "disposition": "NEEDS_CLARIFICATION",
+      "evidence": "Lock arbitration/abort precedence and pinned workload concurrency trace required",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-07"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Substituted object reads as valid under old identity",
+      "discriminator": "Persistent object identity/version mismatch yields explicit rejection",
+      "disposition": "MEASURABLE",
+      "evidence": "Object ID/version substitution and replay error receipt",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-08"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Damaged required block is accepted as valid without corruption evidence",
+      "discriminator": "Checksum/integrity corruption is detected and does not get silently repaired",
+      "disposition": "MEASURABLE",
+      "evidence": "Corrupt page/checksum injection and recovery log",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-09"
+    },
+    {
+      "ambiguity": "Resume/rollback selection and schema generation cut-over are not specified",
+      "counterexample": "Catalog after restart exposes conflicting generations or claims both",
+      "discriminator": "Interrupted schema migration deterministically resolves to declared old or new generation",
+      "disposition": "NEEDS_CLARIFICATION",
+      "evidence": "Define migration branch selection and version/rollback receipt",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-10"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Stale index result is treated as authoritative over row state",
+      "discriminator": "Index does not override base relation truth when disagreement occurs",
+      "disposition": "MEASURABLE",
+      "evidence": "Corrupt/stale index mutation, authoritative relation read, fail-closed consistency report",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-11"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Constraint-violating row survives recovery as committed",
+      "discriminator": "Constraints required by pinned compatibility remain true across crash/replay",
+      "disposition": "MEASURABLE",
+      "evidence": "Unique/FK/partial index checks from pinned SQL before and after crash",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-12"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Restart reissues an already committed master sequence value",
+      "discriminator": "Sequence never regresses or grants competing master ID authority over restart",
+      "disposition": "MEASURABLE",
+      "evidence": "Allocator restart/replay and preserved high-watermark evidence",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-13"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Legacy row silently overwritten or first new master ID is not 61",
+      "discriminator": "Legacy TTG-TXN-000060 persists and first reconciled new master is TTG-TXN-000061",
+      "disposition": "MEASURABLE",
+      "evidence": "Pinned legacy fixture and first reconciliation allocation receipt",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-14"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Mechanism with unknown revision/license is admitted",
+      "discriminator": "Unknown/incomplete donor provenance is rejected before admission",
+      "disposition": "MEASURABLE",
+      "evidence": "Donor manifest invalid-provenance negative input and admission ledger",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-15"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Self-issued certificate causes admitted generation",
+      "discriminator": "Producer cannot move candidate to certified/activated without independent gate chain",
+      "disposition": "MEASURABLE",
+      "evidence": "Malicious self-certification transition and independent receipt registry",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-16"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Two nodes both treat themselves as authoritative writer",
+      "discriminator": "Second writer cannot acquire ambiguous durable authority in G1; no G3 authority is implicitly promoted",
+      "disposition": "MEASURABLE",
+      "evidence": "Duplicate epoch/writer identity trace with explicit rejection",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-17"
+    },
+    {
+      "ambiguity": "",
+      "counterexample": "Unlisted feature accepted as guaranteed compatibility",
+      "discriminator": "Unsupported PostgreSQL SQL/client capability fails explicitly instead of silently expanding compatibility",
+      "disposition": "MEASURABLE",
+      "evidence": "Pinned SQL/capability table and unsupported feature negative execution",
+      "input": "G0_HOSTILE_WORLD_CORPUS",
+      "obligation": "HW-18"
+    }
+  ],
+  "schema": "ttg.formula.data-fabric-g0-review-candidate.v1",
+  "source_bindings": {
+    "docs/BUSINESS_CORE_COMPATIBILITY_SCOPE.md": "a5be5b79ee534f9e15467450cffcd2dfb26f1f1714a85cf2743edbaa4caadd70",
+    "docs/DONOR_INTAKE_CONTRACT.md": "cbbfdc6b04a90e7fa8f82c8635418e3f4202f594ada3482a0aeea445e828c1f1",
+    "docs/G0_CONSTITUTION.md": "afa39f4498293b30429c213121e1c4640dab33509c96ee7576187ed4673c345e",
+    "docs/G0_FORMULA_REVIEW_MATRIX.md": "259d7f71e0a784049e752db44de094ee5092ad35b88312f1cddfc87ac26085d1",
+    "docs/G0_HOSTILE_WORLD_CORPUS.md": "30c05e03c3f99012f674e99ff8c04ac4166639e6c447dff87be925dd49bc72b8"
+  },
+  "source_branch": "supervisor/shift-e-g0-seven-obligation-regression-20261122",
+  "source_head": "2170fa435b9e7f67a5ffba2695351e7cd197469f",
+  "source_repo": "jaydumisuni/TTG-Data-Fabric",
+  "status": "PREASSURANCE__NOT_FORMULA_CERTIFICATION"
+}
