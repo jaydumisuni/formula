@@ -179,6 +179,20 @@ class P0SourceProofVerifierTests(unittest.TestCase):
                 with self.assertRaisesRegex(mod.ProofError, "is not (Rust|Cargo) 1.98.0"):
                     mod.verify(root, evidence, require_live_checkout=False)
 
+    def test_toolchain_version_multiline_and_unicode_spoof_fails_closed(self):
+        for filename, spoof in (
+            ("rustc-version.txt", "rustc 1.98.0\nINJECTED\nrelease: 1.98.0\n"),
+            ("cargo-version.txt", "cargo 1.98.0\u2028EXTRA\nrelease: 1.98.0\n"),
+            ("rustc-version.txt", "rustc 1.98.0 (test)\nrelease: 1.98.0\nINJECTED\n"),
+            ("cargo-version.txt", "cargo 1.98.0 (test)\nrelease: 1.98.0\nrelease: 1.98.0\n"),
+        ):
+            with self.subTest(filename=filename, spoof=spoof), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                evidence = self.make_bundle(root)
+                (evidence / filename).write_text(spoof)
+                with self.assertRaisesRegex(mod.ProofError, "is not (Rust|Cargo) 1.98.0"):
+                    mod.verify(root, evidence, require_live_checkout=False)
+
     def test_duplicate_sha256_filename_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

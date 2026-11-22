@@ -166,12 +166,30 @@ def verify(root: Path, evidence: Path, *, require_live_checkout: bool = True) ->
         if found != expected:
             raise ProofError(f"{name} mismatch: expected {expected!r}, found {found!r}")
 
-    rustc_text = (evidence / "rustc-version.txt").read_text(encoding="utf-8")
-    if not re.match(r"^rustc 1\.98\.0(?:\s|$)", rustc_text):
-        raise ProofError("rustc-version.txt is not Rust 1.98.0")
-    cargo_text = (evidence / "cargo-version.txt").read_text(encoding="utf-8")
-    if not re.match(r"^cargo 1\.98\.0(?:\s|$)", cargo_text):
-        raise ProofError("cargo-version.txt is not Cargo 1.98.0")
+    # Verbose toolchain output is multiline by design. Validate every line,
+    # not just a prefix that could conceal injected evidence after a newline.
+    def verify_tool_version(filename: str, tool: str, fields: set[str]) -> None:
+        raw = (evidence / filename).read_text(encoding="utf-8")
+        if "\r" in raw or any(c in raw for c in ("\x85", "\u2028", "\u2029")) or not raw.endswith("\n"):
+            raise ProofError(f"{filename} is not {tool.title() if tool == 'cargo' else 'Rust'} 1.98.0")
+        lines = raw[:-1].split("\n")
+        if not re.fullmatch(rf"{tool} 1\.98\.0(?: \([A-Za-z0-9 ._-]+\))?", lines[0]):
+            raise ProofError(f"{filename} is not {tool.title() if tool == 'cargo' else 'Rust'} 1.98.0")
+        seen: set[str] = set()
+        for line in lines[1:]:
+            if ": " not in line:
+                raise ProofError(f"{filename} is not {tool.title() if tool == 'cargo' else 'Rust'} 1.98.0")
+            key, value = line.split(": ", 1)
+            if key not in fields or key in seen or not value or value != value.strip() or "\x00" in value:
+                raise ProofError(f"{filename} is not {tool.title() if tool == 'cargo' else 'Rust'} 1.98.0")
+            seen.add(key)
+            if key == "release" and value != "1.98.0":
+                raise ProofError(f"{filename} is not {tool.title() if tool == 'cargo' else 'Rust'} 1.98.0")
+        if "release" not in seen:
+            raise ProofError(f"{filename} is not {tool.title() if tool == 'cargo' else 'Rust'} 1.98.0")
+
+    verify_tool_version("rustc-version.txt", "rustc", {"binary", "commit-hash", "commit-date", "host", "release", "LLVM version"})
+    verify_tool_version("cargo-version.txt", "cargo", {"release", "commit-hash", "commit-date", "host", "libgit2", "libcurl", "ssl", "os"})
 
     metadata_digest_lines = _parse_sha256_file(evidence / "cargo-metadata.sha256")
     metadata_matches = [
