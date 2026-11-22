@@ -96,3 +96,7 @@ Ptah may later execute serialized Work Cells and large mathematical campaigns, b
 P0 repository/build skeleton was the original next step, not the current global stage. Recover latest proof stages from [CURRENT.md](CURRENT.md).
 
 The next major proof freeze is **P9 — Canonical First-Light Proof**.
+
+## Spreadsheet interface donor intake (2026-11-23)
+
+[docs/CRAFT_GRID_DONOR_INTAKE_2026-11-23.md](docs/CRAFT_GRID_DONOR_INTAKE_2026-11-23.md) records GridCraft/craft-libs as a **possible workbook/interchange donor** only. It does not solve or alter Formula's mathematical constitution, promoted capabilities, trust hierarchy, current proof gates or exact-head implementation status. No new native solver, integration or qualification is claimed.
