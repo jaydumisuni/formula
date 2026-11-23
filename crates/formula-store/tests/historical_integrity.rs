@@ -115,6 +115,30 @@ fn verified_replay_rejects_missing_older_manifest_blob() {
 }
 
 #[test]
+fn missing_active_manifest_blob_blocks_successor_publication() {
+    let root = fixture::private_temp_dir().join(format!(
+        "formula-missing-active-blob-successor-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let active = store.put(b"active manifest").unwrap();
+    let successor = store.put(b"successor manifest").unwrap();
+    index.publish(&store, 4, active).unwrap();
+
+    // A syntactically valid pointer must not advance over missing content.
+    fs::remove_file(store.blob_path(active)).unwrap();
+    assert_eq!(
+        index.publish(&store, 5, successor).unwrap_err().kind(),
+        io::ErrorKind::NotFound
+    );
+    assert!(!root.join("index/generations/5.manifest").exists());
+    assert_eq!(index.active_generation().unwrap(), (4, active));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn verified_replay_rejects_missing_active_manifest_blob() {
     let root = fixture::private_temp_dir().join(format!(
         "formula-verified-replay-missing-active-{}",
