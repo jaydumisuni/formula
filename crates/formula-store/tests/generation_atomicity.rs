@@ -36,6 +36,60 @@ fn fresh_roots_replay_identical_generation_digests() {
     fs::remove_dir_all(base).unwrap();
 }
 
+// The child terminates without unwinding after staging a history temp. This
+// exercises an actual process boundary, not merely an in-process fixture.
+#[test]
+fn interrupted_history_child_helper() {
+    let Ok(root) = std::env::var("FORMULA_INTERRUPTED_HISTORY_CHILD_ROOT") else {
+        return;
+    };
+    let pending =
+        std::path::Path::new(&root).join("index/generations/2.manifest.tmp-interrupted-child");
+    fs::write(pending, b"partial history from terminated process").unwrap();
+    std::process::abort();
+}
+
+#[test]
+fn terminated_history_writer_cannot_block_next_generation() {
+    let root = fixture::private_temp_dir().join(format!(
+        "formula-terminated-history-writer-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let second = store.put(b"second").unwrap();
+    index.publish(&store, 1, first).unwrap();
+
+    let status = std::process::Command::new(std::env::current_exe().unwrap())
+        .arg("--exact")
+        .arg("interrupted_history_child_helper")
+        .arg("--nocapture")
+        .env("FORMULA_INTERRUPTED_HISTORY_CHILD_ROOT", &root)
+        .status()
+        .unwrap();
+    assert!(!status.success(), "child must terminate abnormally");
+    let pending = root.join("index/generations/2.manifest.tmp-interrupted-child");
+    assert_eq!(
+        fs::read(&pending).unwrap(),
+        b"partial history from terminated process"
+    );
+    assert_eq!(index.active_generation().unwrap(), (1, first));
+    index.publish(&store, 2, second).unwrap();
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap(),
+        (2, second)
+    );
+    assert_eq!(index.historical_manifest(1).unwrap(), first);
+    assert_eq!(index.historical_manifest(2).unwrap(), second);
+    assert_eq!(
+        fs::read(&pending).unwrap(),
+        b"partial history from terminated process"
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn stale_pointer_temp_does_not_block_atomic_publication() {
     let root = fixture::private_temp_dir().join(format!(
