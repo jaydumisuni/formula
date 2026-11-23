@@ -1001,6 +1001,9 @@ fn real_history_to_pointer_killpoint_recovers_exact_generation() {
         pointer_before
     );
     assert_eq!(index.historical_manifest(2).unwrap(), second);
+    // A recovered history record is insufficient if its content-addressed blob
+    // cannot be reopened and verified after the publisher was killed.
+    assert_eq!(store.get(second).unwrap(), b"second");
     assert_eq!(
         index.active_generation().unwrap_err().kind(),
         io::ErrorKind::InvalidData
