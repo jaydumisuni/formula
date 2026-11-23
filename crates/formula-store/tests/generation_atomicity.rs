@@ -990,6 +990,12 @@ fn real_history_to_pointer_killpoint_recovers_exact_generation() {
         .status()
         .unwrap();
     assert_eq!(status.signal(), Some(libc::SIGKILL));
+    // Recovery must be established from freshly opened store/index handles,
+    // not from state retained by the parent test before the child died.
+    drop(index);
+    drop(store);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
     assert_eq!(
         fs::read(root.join("index/active-generation")).unwrap(),
         pointer_before
