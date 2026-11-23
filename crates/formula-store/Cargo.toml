@@ -8,3 +8,7 @@ publish.workspace = true
 [dependencies]
 formula-core = { path = "../formula-core" }
 libc = "0.2"
+
+[features]
+# Explicit opt-in for process-termination qualification; absent from normal builds.
+publication-crash-test = []

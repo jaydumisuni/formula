@@ -950,3 +950,64 @@ fn missing_manifest_blob_cannot_create_initial_generation() {
     assert_eq!(index.active_generation().unwrap(), (1, restored));
     fs::remove_dir_all(root).unwrap();
 }
+
+// This child calls the real publish path; the opt-in feature terminates it
+// after the durable history fsync and before the active pointer is replaced.
+#[cfg(all(unix, feature = "publication-crash-test"))]
+#[test]
+fn real_publication_killpoint_child_helper() {
+    let Ok(root) = std::env::var("FORMULA_REAL_KILLPOINT_ROOT") else {
+        return;
+    };
+    let store = BlobStore::new(std::path::Path::new(&root).join("store"));
+    let index = GenerationIndex::new(std::path::Path::new(&root).join("index"));
+    let second = store.put(b"second").unwrap();
+    index.publish(&store, 2, second).unwrap();
+    panic!("publication killpoint failed to terminate child");
+}
+
+#[cfg(all(unix, feature = "publication-crash-test"))]
+#[test]
+fn real_history_to_pointer_killpoint_recovers_exact_generation() {
+    use std::os::unix::process::ExitStatusExt;
+    let root = fixture::private_temp_dir().join(format!(
+        "formula-real-publication-killpoint-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    let store = BlobStore::new(root.join("store"));
+    let index = GenerationIndex::new(root.join("index"));
+    let first = store.put(b"first").unwrap();
+    let second = store.put(b"second").unwrap();
+    index.publish(&store, 1, first).unwrap();
+    let pointer_before = fs::read(root.join("index/active-generation")).unwrap();
+
+    let status = std::process::Command::new(std::env::current_exe().unwrap())
+        .arg("--exact")
+        .arg("real_publication_killpoint_child_helper")
+        .env("FORMULA_REAL_KILLPOINT_ROOT", &root)
+        .env("FORMULA_TEST_KILL_AFTER_HISTORY", "1")
+        .status()
+        .unwrap();
+    assert_eq!(status.signal(), Some(libc::SIGKILL));
+    assert_eq!(
+        fs::read(root.join("index/active-generation")).unwrap(),
+        pointer_before
+    );
+    assert_eq!(index.historical_manifest(2).unwrap(), second);
+    assert_eq!(
+        index.active_generation().unwrap_err().kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(
+        index.publish(&store, 1, first).unwrap_err().kind(),
+        io::ErrorKind::InvalidInput
+    );
+    index.publish(&store, 2, second).unwrap();
+    assert_eq!(
+        index.verified_active_generation(&store).unwrap(),
+        (2, second)
+    );
+    assert_eq!(index.historical_manifest(1).unwrap(), first);
+    fs::remove_dir_all(root).unwrap();
+}

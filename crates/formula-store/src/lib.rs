@@ -725,6 +725,15 @@ impl GenerationIndex {
             fs::File::open(&generations)?.sync_all()?;
         }
 
+        // Only an explicitly feature-enabled qualification binary can stop
+        // inside the real publication path, after durable history and before
+        // active-pointer replacement. Normal builds contain no such hook.
+        #[cfg(all(unix, feature = "publication-crash-test"))]
+        if std::env::var_os("FORMULA_TEST_KILL_AFTER_HISTORY").is_some() {
+            unsafe { libc::raise(libc::SIGKILL) };
+            unreachable!("SIGKILL must terminate the qualification child");
+        }
+
         // An interrupted publication can leave its temporary pointer behind.
         // Never overwrite it or let it permanently prevent a later publication.
         let (temp, mut file) = {
